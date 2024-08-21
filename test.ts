@@ -1,7 +1,9 @@
-import { ADD } from "./operators";
+// import { ADD } from "./operators";
+
+// const ADD = Symbol();
 
 class Vector3 {
-	[ADD] = [
+	ADD = [
 		[Vector3, Vector3, (a: Vector3, b: Vector3) => {
 			return new Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
 		}],
@@ -19,7 +21,9 @@ class Vector3 {
 	}
 }
 
-export {
-	Vector3,
-	Vector3 as Vec3
-}
+const v1 = new Vector3(1, 2, 3);
+const v2 = new Vector3(7, 10, 13);
+
+const v3: Vector3 = v1 + v2;
+
+console.log(v3);
