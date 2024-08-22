@@ -24,26 +24,60 @@ function visitNodeAndReplaceBinaryExpressions(node: ts.Node, context: ts.Transfo
 // Function to transform the source file
 function transformSourceFile(sourceFile: ts.SourceFile, context: ts.TransformationContext, className: string, methodName: string): ts.SourceFile {
     const node = ts.visitNode(sourceFile, node => visitNodeAndReplaceBinaryExpressions(node, context, className, methodName));
-	if(!ts.isSourceFile(node)) {
-		throw new Error("Somehow got back an element this isn't a sourceFile");
-	}
-	return node;
+    if (!ts.isSourceFile(node)) {
+        throw new Error("Somehow got back an element this isn't a SourceFile");
+    }
+	node.fileName = node.fileName.replace(".ts", "-updated.ts");
+    return node;
 }
 
-// Function to emit the transformed source file to JS
-function emitTransformedFile(sourceFile: ts.SourceFile, outputFileName: string) {
+// Function to emit the transformed source file as TypeScript and JS
+function emitTransformedFile(sourceFile: ts.SourceFile, tsOutputFileName: string, jsOutputFileName: string) {
     const transformer = (context: ts.TransformationContext) => (file: ts.SourceFile) =>
         transformSourceFile(file, context, 'MyVector3', 'ADD[0][2]');
 
+    // Apply the transformation
     const result = ts.transform(sourceFile, [transformer]);
-
-    const printer = ts.createPrinter();
     const transformedSourceFile = result.transformed[0] as ts.SourceFile;
-    const resultCode = printer.printFile(transformedSourceFile);
 
-    const outputFilePath = ts.sys.resolvePath(outputFileName);
-    ts.sys.writeFile(outputFilePath, resultCode);
-    console.log(`File emitted to: ${outputFilePath}`);
+    // Emit the transformed TypeScript file
+    const printer = ts.createPrinter();
+    const transformedSourceCode = printer.printFile(transformedSourceFile);
+    const tsOutputFilePath = ts.sys.resolvePath(tsOutputFileName);
+    ts.sys.writeFile(tsOutputFilePath, transformedSourceCode);
+    console.log(`Transformed TypeScript file emitted to: ${tsOutputFilePath}`);
+
+    // Emit the transformed file as JavaScript
+    const compilerOptions: ts.CompilerOptions = {
+        target: ts.ScriptTarget.ESNext,
+        module: ts.ModuleKind.CommonJS,
+    };
+
+	const newSourceFile = ts.createSourceFile(
+		tsOutputFileName,
+		transformedSourceCode,
+		ts.ScriptTarget.Latest,
+		true
+	);
+
+    const program = ts.createProgram([newSourceFile.fileName], compilerOptions, {
+		...ts.createCompilerHost(compilerOptions),
+		getSourceFile: (fileName) => fileName === newSourceFile.fileName ? newSourceFile : undefined,
+	});
+	
+	console.log("A")
+    const { emitSkipped, diagnostics } = program.emit(undefined, (fileName, data) => {
+        if (fileName.endsWith('.js')) {
+            ts.sys.writeFile(jsOutputFileName, data);
+        }
+    });
+	console.log("B")
+
+    if (emitSkipped) {
+        console.error("Emit failed with the following diagnostics:", diagnostics);
+    } else {
+        console.log(`Transformed JavaScript file emitted to: ${jsOutputFileName}`);
+    }
 
     result.dispose();
 }
@@ -57,5 +91,5 @@ const sourceFile = ts.createSourceFile(
     true
 );
 
-// Transform and emit the file
-emitTransformedFile(sourceFile, 'output.ts');
+// Transform and emit the files
+emitTransformedFile(sourceFile, 'output.ts', 'output.js');
