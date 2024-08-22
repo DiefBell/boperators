@@ -2,13 +2,13 @@
 
 // const ADD = Symbol();
 
-class Vector3 {
-	ADD = [
-		[Vector3, Vector3, (a: Vector3, b: Vector3) => {
-			return new Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
+class MyVector3 {
+	public static readonly ADD = [
+		[MyVector3, MyVector3, (a: MyVector3, b: MyVector3) => {
+			return new MyVector3(a.x + b.x, a.y + b.y, a.z + b.z);
 		}],
-		[Vector3, "number", (a: Vector3, b: number) => 5]
-	]
+		[MyVector3, "number", (a: MyVector3, b: number) => 5]
+	] as const;
 
 	x: number;
 	y: number;
@@ -21,9 +21,9 @@ class Vector3 {
 	}
 }
 
-const v1 = new Vector3(1, 2, 3);
-const v2 = new Vector3(7, 10, 13);
+const v1 = new MyVector3(1, 2, 3);
+const v2 = new MyVector3(7, 10, 13);
 
-const v3: Vector3 = v1 + v2;
+const v3: MyVector3 = v1 + v2;
 
 console.log(v3);
