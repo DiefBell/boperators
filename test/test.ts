@@ -2,7 +2,7 @@
 
 // const ADD = Symbol();
 
-class MyVector3 {
+export class MyVector3 {
 	public static readonly ADD = [
 		[MyVector3, MyVector3, (a: MyVector3, b: MyVector3) => {
 			return new MyVector3(a.x + b.x, a.y + b.y, a.z + b.z);
