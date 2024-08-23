@@ -1,11 +1,9 @@
 import ts from 'typescript';
 import * as path from "path";
-import { transformSourceFile } from './transformFile';
+import { transformSourceFile } from '../lib/transformFile';
 
-export const doIt = () =>
+export const doIt = (filePath: string) =>
 {
-	// Read and parse the TypeScript file
-	const filePath = "test/test.ts"; // Change this to your TypeScript file
 	const fileName = path.basename(filePath);
 	const sourceFile = ts.createSourceFile(
 		fileName,

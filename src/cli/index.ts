@@ -1,3 +1,3 @@
 import { doIt } from "./doIt";
 
-doIt();
+doIt("test/test.ts");

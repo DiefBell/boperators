@@ -1,7 +1,3 @@
-// import { ADD } from "./operators";
-
-// const ADD = Symbol();
-
 export class MyVector3 {
 	public static readonly ADD = [
 		[MyVector3, MyVector3, (a: MyVector3, b: MyVector3) => {
