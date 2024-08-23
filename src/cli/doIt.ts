@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import * as path from "path";
-import { transformSourceFile } from '../lib/transformFile';
+import { transformSourceFile } from './transformFile';
 
 export const doIt = (filePath: string) =>
 {
