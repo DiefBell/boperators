@@ -16,13 +16,13 @@ const program = ts.createProgram({
 
 const oom = new OperatorOverrideManger(program);
 
-console.log(1)
+// console.log(1)
 const testSourceFile = program.getSourceFile(testFilePath);
 
-console.log(2)
+// console.log(2)
 if(!testSourceFile) {
     throw new Error();
 }
 
-console.log(3)
-oom.getOperatorsFromFile(testSourceFile);
+// console.log(3)
+oom.loadOverloadsFromFile(testSourceFile);

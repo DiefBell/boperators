@@ -1,10 +1,10 @@
 import ts from "typescript";
-import type { MethodDeclaration } from "typescript";
+import type { PropertyDeclaration } from "typescript";
 
 
-export const isStaticMethodDeclaration = (node: ts.Node): node is MethodDeclaration =>
+export const isStaticPropertyDeclaration = (node: ts.Node): node is PropertyDeclaration =>
 {
-    if(!ts.isMethodDeclaration(node)) {
+    if(!ts.isPropertyDeclaration(node)) {
         return false;
     }
 

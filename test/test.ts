@@ -1,4 +1,5 @@
-import { ADD } from "../src/lib/index";
+import { ADD, SUBTRACT } from "../src/lib/index";
+import * as ops from "../src/lib/index";
 
 export class MyVector3 {
 	public static readonly ADD = [
