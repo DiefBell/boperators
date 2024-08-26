@@ -25,4 +25,4 @@ if(!testSourceFile) {
 }
 
 // console.log(3)
-oom.loadOverloadsFromFile(testSourceFile);
+oom.test(testSourceFile);
