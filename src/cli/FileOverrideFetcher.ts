@@ -19,34 +19,34 @@ export class FileOverrideFetcher
 	)
 	{
 		// 1
-		console.log("\n\nSTEP ONE: GET TYPE CHECKER");
+		console.log("\nSTEP ONE: GET TYPE CHECKER");
 		this._checker = program.getTypeChecker();
 
 		// 2
-		console.log("\n\nSTEP TWO: FIND IMPORT SYMBOLS FROM OPERATORS FILE");
+		console.log("\nSTEP TWO: FIND IMPORT SYMBOLS FROM OPERATORS FILE");
 		const importSymbols = this._getImportsFromOperatorFile(sourceFile);
-		console.log("\nNum imports", importSymbols.length)
+		console.log("\tNum imports", importSymbols.length)
 
 		// 3
-		console.log("\n\nSTEP THREE: GET COMPUTED PROPERTY DECLARATION SYMBOLS IN FILE");
+		console.log("\nSTEP THREE: GET COMPUTED PROPERTY DECLARATION SYMBOLS IN FILE");
 		const propDeclarationSymbols = this._getComputedPropertyDeclarations(sourceFile)
-		console.log("\nNum property decs", propDeclarationSymbols.length)
+		console.log("\tNum property decs", propDeclarationSymbols.length)
 
 		// 4. Trace prop dec symbols back to original file
 		// to check they match something in `operatorSymbols`.
-		// Filter out those that don't
-		console.log("\n\nSTEP FOUR: CHECK IF COMPUTED DECLARATION SYMBOLS EQUAL OPERATOR SYMBOLS");
-		const validOperatorSymbols = this._filterOperatorOverloadDeclarations(
+		// Filter out those that don't.
+		console.log("\nSTEP FOUR: CHECK IF COMPUTED DECLARATION SYMBOLS EQUAL OPERATOR SYMBOLS");
+		const operatorOverloadDeclarations = this._filterOperatorOverloadDeclarations(
 			propDeclarationSymbols,
 			importSymbols,
 			Array.from(operatorSymbols.values())
 		);
-		console.log("\nNum valid symbols", validOperatorSymbols.length)
+		console.log("\tNum valid symbols", operatorOverloadDeclarations.length)
 
-		// 5. trace imports back to original operators file to check if it's valid, filter
-		// 6. validate overloads
-		// 7. build overload metadata
-		// 8. double check for clashes
+		// 5. validate overloads
+		console.log("\nSTEP FIVE: BUILD OPERATOR OVERLOAD METADATA");
+
+		// 6. double check for clashes
 	}
 
 	/**
@@ -206,10 +206,10 @@ export class FileOverrideFetcher
 				}
 			}
 
-			// if(this._isPropertyNameOperatorSymbol(expression, importSymbols, operatorSymbols))
-			// {
-			// 	validDeclarations.push(declaration);
-			// }
+			if (this._isPropertyNameOperatorSymbol(expression, importSymbols, operatorSymbols))
+			{
+				validDeclarations.push(declaration);
+			}
 
 			// if (
 			// 	(ts.isPropertyAccessExpression(expression) && this._isPropertyAccessExpressionOperatorSymbol(
@@ -228,14 +228,14 @@ export class FileOverrideFetcher
 	}
 
 	/**
-	 * If the computed property name is a PropertyAccessExpression
-	 * i.e. `ops.MULTIPLY`, we check whether it is for one of our operatorSymbols.
-	 * This is done via our importSymbols.
-	 * @param expression 
-	 * @param importSymbols 
-	 * @param operatorSymbols 
-	 * @returns 
-	 */
+ * If the computed property name is a PropertyAccessExpression
+ * i.e., `ops.MULTIPLY`, we check whether it is for one of our operatorSymbols.
+ * This is done via our importSymbols.
+ * @param expression The property access expression, e.g., `ops.MULTIPLY`.
+ * @param importSymbols The symbols imported into the current file.
+ * @param operatorSymbols The symbols representing the valid operator symbols.
+ * @returns Whether the given expression corresponds to a valid operator symbol.
+ */
 	private _isPropertyAccessExpressionOperatorSymbol(
 		expression: ts.PropertyAccessExpression,
 		importSymbols: ts.Symbol[],
@@ -257,35 +257,47 @@ export class FileOverrideFetcher
 			return false;
 		}
 
-		// If leftSymbol is an alias, resolve it to the actual symbol it refers to
 		const leftSymbolAlias = !!(leftSymbol.flags & ts.SymbolFlags.Alias)
 			? this._checker.getAliasedSymbol(leftSymbol)
-			: null;
-		console.info(`Symbol "${leftSymbol.getName()}" aliases "${leftSymbolAlias?.getName()}"`);
+			: undefined;
 
-		// Ensure the leftSymbol is indeed a namespace or module with exports
-		if (!leftSymbol.exports)
+		if (
+			!leftSymbolAlias
+			|| (leftSymbolAlias.flags & ts.SymbolFlags.Namespace) === 0
+			|| (leftSymbolAlias.flags & ts.SymbolFlags.Module) === 0
+		)
 		{
-			console.error(`Symbol "${leftSymbol.getName()}" does not have exports`);
-			return false; // No exports found for the namespace
+			console.error(
+				`Symbol "${leftSymbol.getName()}" doesn't alias anything. Are you sure it's an import?`
+			);
+			return false;
+		}
+
+		// At this point, `leftSymbol` is expected to be the namespace/module symbol itself.
+		// Fetch the symbol that represents the module or namespace exports.
+		const exportedSymbols = this._checker.getExportsOfModule(leftSymbolAlias);
+
+		// If the exported symbols cannot be resolved, return false
+		if (!exportedSymbols)
+		{
+			console.error(`Could not retrieve exports from module "${leftSymbol.getName()}"`);
+			return false;
 		}
 
 		// Get the right-hand side name of the property access (e.g., `MULTIPLY`)
-		const rightName = expression.name.text as ts.__String;
+		const rightName = expression.name.text;
 
-		// Look up the right-hand symbol in the namespace exports
-		const rightSymbol = leftSymbol.exports.get(rightName);
+		// Find the right-hand symbol in the module's exports
+		const rightSymbol = exportedSymbols.find(sym => sym.name === rightName);
 		if (!rightSymbol)
 		{
 			console.error(`Symbol "${rightName}" is not an exported member of "${leftSymbol.getName()}"`);
-			return false; // `MULTIPLY` is not an exported member of `ops`
+			return false;
 		}
 
-		// Finally, check if the resolved right symbol matches any in operatorSymbols
-		const aliasedRightSymbol = this._checker.getAliasedSymbol(rightSymbol);
-
-		return operatorSymbols.includes(aliasedRightSymbol);
+		return operatorSymbols.includes(rightSymbol);
 	}
+
 
 
 
@@ -298,6 +310,12 @@ export class FileOverrideFetcher
 	{
 		// Handle other types of expressions (direct computed names) if needed
 		const symbol = this._checker.getSymbolAtLocation(expression);
+
+		if (!symbol || !(symbol.flags & ts.SymbolFlags.Alias))
+		{
+			return false;
+		}
+
 		return !!symbol && operatorSymbols.includes(
 			this._checker.getAliasedSymbol(symbol)
 		);

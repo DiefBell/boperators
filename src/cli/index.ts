@@ -6,9 +6,12 @@ import ts from "typescript";
 // doIt("test/test.ts");
 const testFilePath = path.join(process.cwd(), "test", "test.ts");
 
+console.log(path.join(process.cwd(), "src", "lib", "index.ts"));
+
 const program = ts.createProgram({
     rootNames: [
         path.join(process.cwd(), "src", "lib", "operatorSymbols.ts"),
+        path.join(process.cwd(), "src", "lib", "index.ts"),
         testFilePath
     ],
     options: {}
