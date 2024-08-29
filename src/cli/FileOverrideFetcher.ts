@@ -3,6 +3,17 @@ import { ADD, DIVIDE, MULTIPLY, SUBTRACT } from "../lib";
 import type { OperatorOverride } from "./types/OperatorOverride";
 import type { OperatorName } from "./types/Operators";
 
+export type OperatorOverrideMetadata = {
+	left: ts.Type
+	right: ts.Type
+	func: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression
+};
+
+const metadataToString = (metadata: OperatorOverrideMetadata) =>
+	`Left: "${metadata.left.getSymbol()?.getName()}"\n`
+	+ `Right: "${metadata.right.getSymbol()?.getName()}"\n`
+	+ `Func: "${metadata.func.getText()}"\n`;
+
 export class FileOverrideFetcher
 {
 	[ADD]: OperatorOverride[] = [];
@@ -43,8 +54,13 @@ export class FileOverrideFetcher
 		);
 		console.log("\tNum valid symbols", operatorOverloadDeclarations.length);
 
-		// 5. validate overloads
+		// 5. get overload metadata
 		console.log("\nSTEP FIVE: BUILD OPERATOR OVERLOAD METADATA");
+		const metadatas = this._buildOverloadMetadata(operatorOverloadDeclarations);
+		metadatas.forEach((metadata) =>
+		{
+			console.log(metadataToString(metadata));
+		});
 
 		// 6. double check for clashes
 	}
@@ -130,43 +146,6 @@ export class FileOverrideFetcher
 	}
 
 	/**
-	 * Retrieves the symbol for a property in a namespace symbol's export map.
-	 * @param namespaceSymbol The symbol representing the namespace (e.g., `ops`).
-	 * @param propertyName The property name whose symbol is being retrieved (e.g., `MULTIPLY`).
-	 * @returns The symbol for the specified property if it exists, otherwise undefined.
-	 */
-	private _getExportedSymbol(namespaceSymbol: ts.Symbol, propertyName: ts.PropertyName): ts.Symbol | undefined
-	{
-		// Ensure we have the exports map for the namespace symbol
-		const exports = namespaceSymbol.exports;
-
-		if (exports)
-		{
-			// Check the type of propertyName and retrieve the appropriate symbol
-			let propertyKey: ts.__String | undefined;
-			if (ts.isIdentifier(propertyName))
-			{
-				propertyKey = propertyName.escapedText as ts.__String;
-			}
-			else if (ts.isStringLiteral(propertyName))
-			{
-				propertyKey = propertyName.text as ts.__String;
-			}
-			else if (ts.isNumericLiteral(propertyName))
-			{
-				propertyKey = propertyName.text as ts.__String; // Numeric literal text can be used as key
-			}
-
-			if (propertyKey)
-			{
-				return exports.get(propertyKey);
-			}
-		}
-
-		return undefined;
-	}
-
-	/**
 	 * Filters out any propDeclarationSymbols that aren't in importSymbols.
 	 * Then filters out again if those import symbols don't alias to something in operatorSymbols.
 	 * Must work with both NamedImports and NamespaceImports.
@@ -228,14 +207,14 @@ export class FileOverrideFetcher
 	}
 
 	/**
- * If the computed property name is a PropertyAccessExpression
- * i.e., `ops.MULTIPLY`, we check whether it is for one of our operatorSymbols.
- * This is done via our importSymbols.
- * @param expression The property access expression, e.g., `ops.MULTIPLY`.
- * @param importSymbols The symbols imported into the current file.
- * @param operatorSymbols The symbols representing the valid operator symbols.
- * @returns Whether the given expression corresponds to a valid operator symbol.
- */
+	 * If the computed property name is a PropertyAccessExpression
+	 * i.e., `ops.MULTIPLY`, we check whether it is for one of our operatorSymbols.
+	 * This is done via our importSymbols.
+	 * @param expression The property access expression, e.g., `ops.DIVIDE`.
+	 * @param importSymbols The symbols imported into the current file.
+	 * @param operatorSymbols The symbols representing the valid operator symbols.
+	 * @returns Whether the given expression corresponds to a valid operator symbol.
+	 */
 	private _isPropertyAccessExpressionOperatorSymbol(
 		expression: ts.PropertyAccessExpression,
 		importSymbols: ts.Symbol[],
@@ -298,6 +277,15 @@ export class FileOverrideFetcher
 		return operatorSymbols.includes(rightSymbol);
 	}
 
+	/**
+	 * Is a computed property name is not a PropertyAccessExpression
+	 * i.e. it's just `SUBTRACT`, we check whether it is one of our operatorSymbols.
+	 * This is done via our importSymbols
+	 * @param expression The property symbol e.g. "ADD"
+	 * @param importSymbols The symbols imported into the current file.
+	 * @param operatorSymbols The symbols representing the valid operator symbols.
+	 * @returnsWhether the given expression corresponds to a valid operator symbol.
+	 */
 	private _isPropertyNameOperatorSymbol(
 		expression: ts.Expression,
 		importSymbols: ts.Symbol[],
@@ -315,5 +303,157 @@ export class FileOverrideFetcher
 		return !!symbol && operatorSymbols.includes(
 			this._checker.getAliasedSymbol(symbol)
 		);
+	}
+
+	/**
+	 * Builds metadata for operator overloads.
+	 * - If declaration isn't a string:function dictionary, skip it (and warn).
+	 * - If any of the functions don't return a value, skip it.
+	 * - If not all functions have 1 or 2 parameters, skip it (and warn).
+	 * - If, for the functions with 2 parameters,
+	 * 	one of their types isn't the type of the declaration's class, skip it (and warn).
+	 * - For 1 parameter function declarations, create metadata where "left" type is the
+	 * 	class' type, and the "right" type is the type of the function parameter.
+	 *  The "func" is the function declaration itself.
+	 * - For 2 parameter function declarations, create metadata where "left" type is the
+	 * 	first parameter's type, and the "right" type is the type of the second function parameter.
+	 *  The "func" is the function declaration itself.
+	 *
+	 * @param declarations Declarations for operator overloads.
+	 */
+	private _buildOverloadMetadata(declarations: ts.PropertyDeclaration[]): OperatorOverrideMetadata[]
+	{
+		const metadata: OperatorOverrideMetadata[] = [];
+
+		for (const declaration of declarations)
+		{
+			const initializer = declaration.initializer;
+
+			if (!initializer || !ts.isObjectLiteralExpression(initializer))
+			{
+				console.warn("Declaration initializer is not an object literal.");
+				continue;
+			}
+
+			for (const property of initializer.properties)
+			{
+				if (!ts.isPropertyAssignment(property))
+				{
+					console.warn("Object literal contains non-property assignment.");
+					continue;
+				}
+
+				const func = property.initializer;
+
+				// Ensure the function is a supported type: FunctionDeclaration, ArrowFunction, or FunctionExpression
+				if (!ts.isFunctionExpression(func) && !ts.isArrowFunction(func) && !ts.isFunctionDeclaration(func))
+				{
+					console.warn("Unsupported function type found in property assignment.");
+					continue;
+				}
+
+				// Ensure the function returns a value
+				const returnType = this._checker.getReturnTypeOfSignature(this._checker.getSignatureFromDeclaration(func)!);
+				if (returnType.flags & ts.TypeFlags.Void)
+				{
+					console.warn("Function does not return a value.");
+					continue;
+				}
+
+				// Check function parameters
+				const parameters = func.parameters;
+				if (parameters.length < 1 || parameters.length > 2)
+				{
+					console.warn("Function does not have 1 or 2 parameters.");
+					continue;
+				}
+
+				// Retrieve class type for validation
+				const classType = this._getClassTypeFromDeclaration(declaration);
+				if (!classType)
+				{
+					console.warn("Unable to retrieve class type from declaration.");
+					continue;
+				}
+
+				let leftType: ts.Type;
+				let rightType: ts.Type;
+
+				if (parameters.length === 1)
+				{
+					// For functions with 1 parameter
+					leftType = classType;
+					rightType = this._checker.getTypeAtLocation(parameters[0]);
+				}
+				else
+				{
+					// For functions with 2 parameters
+					leftType = this._checker.getTypeAtLocation(parameters[0]);
+					rightType = this._checker.getTypeAtLocation(parameters[1]);
+
+					// Ensure one of the parameter types matches the class type
+					if (!this._typeIsEqual(leftType, classType) && !this._typeIsEqual(rightType, classType))
+					{
+						console.warn("Neither parameter type matches class type.");
+						continue;
+					}
+				}
+
+				// Create and store the metadata
+				metadata.push({
+					left: leftType,
+					right: rightType,
+					func,
+				});
+			}
+		}
+
+		return metadata;
+	}
+
+	/**
+	 * Retrieves the TypeScript `ts.Type` of the class to which the provided property declaration belongs.
+	 *
+	 * @param declaration - The property declaration whose class type is to be determined.
+	 * @returns The `ts.Type` representing the class or undefined if the class type can't be determined.
+	 */
+	private _getClassTypeFromDeclaration(declaration: ts.PropertyDeclaration): ts.Type | undefined
+	{
+		// Get the parent of the declaration
+		const parentClass = declaration.parent;
+
+		// Check if the parent is a class declaration
+		if (ts.isClassDeclaration(parentClass) && parentClass.name)
+		{
+			// Use the type checker to get the type of the class
+			const classType = this._checker.getTypeAtLocation(parentClass.name);
+			return classType;
+		}
+
+		return undefined;
+	}
+
+	/**
+	 * Compares two TypeScript types to determine if they are equivalent.
+	 *
+	 * @param typeA - The first TypeScript type to compare.
+	 * @param typeB - The second TypeScript type to compare.
+	 * @returns `true` if the types are considered equivalent, `false` otherwise.
+	 */
+	private _typeIsEqual(typeA: ts.Type, typeB: ts.Type): boolean
+	{
+		// Direct reference equality check
+		if (typeA === typeB)
+		{
+			return true;
+		}
+
+		// Check if types are structurally equivalent
+		if (this._checker.isTypeAssignableTo(typeA, typeB) && this._checker.isTypeAssignableTo(typeB, typeA))
+		{
+			return true;
+		}
+
+		return false;
 	}
 }

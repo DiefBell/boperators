@@ -4,7 +4,8 @@
 	"type": "module",
 	"scripts": {
 		"lint": "bun eslint ./src/**/*.ts",
-		"lint:fix": "bun lint --fix"
+		"lint:fix": "bun lint --fix",
+		"run-test": "bun run ./src/cli"
 	},
 	"devDependencies": {
 		"@dief/prefs": "github:DiefBell/prefs#1.1.0",

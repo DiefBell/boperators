@@ -1,12 +1,8 @@
 import { ADD } from "../src/lib/index";
 import * as ops from "../src/lib/index";
 
-const NonImported = "Non imported";
-
 export class Vector3
 {
-	public [NonImported] = "";
-
 	public readonly [ops.MULTIPLY] = {
 		// @boperators/Commutative
 		"Multiply by a scalar": (rhs: number) =>
@@ -16,11 +12,15 @@ export class Vector3
 	public readonly [ADD] = {
 		// print a warning, we don't need "commutative" if its the same type
 		// @boperators/Commutative
-		"Add another Vec3": (rhs: Vector3) =>
-			new Vector3(this.x + rhs.x, this.y + rhs.y, this.z + rhs.z),
+		"Add another Vec3": function addAnotherVec3(rhs: Vector3)
+		{
+			return new Vector3(this.x + rhs.x, this.y + rhs.y, this.z + rhs.z);
+		},
 		// @boperators/Commutative
-		"Add a number": (rhs: number) =>
-			new Vector3(this.x + rhs, this.y + rhs, this.z + rhs),
+		"Add a number": function (rhs: number)
+		{
+			return new Vector3(this.x + rhs, this.y + rhs, this.z + rhs);
+		},
 	};
 
 	x: number;
