@@ -1,4 +1,3 @@
-
 import ts from "typescript";
 import * as fs from "node:fs";
 import * as path from "path";
@@ -12,30 +11,33 @@ import { FileOverrideFetcher } from "./FileOverrideFetcher";
 
 const OPERATOR_SYMBOLS_FILE = "operatorSymbols.ts";
 
-export class OperatorOverrideManger {
-    [ADD]: OperatorOverride[] = [];
-    [SUBTRACT]: OperatorOverride[] = [];
-    [MULTIPLY]: OperatorOverride[] = [];
-    [DIVIDE]: OperatorOverride[] = [];
+export class OperatorOverrideManger
+{
+	[ADD]: OperatorOverride[] = [];
+	[SUBTRACT]: OperatorOverride[] = [];
+	[MULTIPLY]: OperatorOverride[] = [];
+	[DIVIDE]: OperatorOverride[] = [];
 
 	private _program: ts.Program;
-    private _checker: ts.TypeChecker;
-    private _symbols: Map<OperatorName, ts.Symbol> = new Map();
+	private _checker: ts.TypeChecker;
+	private _symbols: Map<OperatorName, ts.Symbol> = new Map();
 
-    constructor(program: ts.Program) {
+	constructor(program: ts.Program)
+	{
 		this._program = program;
-        this._checker = program.getTypeChecker();
+		this._checker = program.getTypeChecker();
 
-        const __dirName = path.dirname(fileURLToPath(import.meta.url));
-        const operatorFilePath = path.join(__dirName, "..", "lib", "operatorSymbols.ts");
+		const __dirName = path.dirname(fileURLToPath(import.meta.url));
+		const operatorFilePath = path.join(__dirName, "..", "lib", "operatorSymbols.ts");
 
-        const operatorSourceFile = program.getSourceFile(operatorFilePath);
-        if (!operatorSourceFile) {
-            throw new Error("Failed to find operators source file - have you modified that packagey")
-        }
+		const operatorSourceFile = program.getSourceFile(operatorFilePath);
+		if (!operatorSourceFile)
+		{
+			throw new Error("Failed to find operators source file - have you modified that packagey");
+		}
 
-        this._getOperatorSymbols(operatorSourceFile);
-    }
+		this._getOperatorSymbols(operatorSourceFile);
+	}
 
 	public test(sourceFile: ts.SourceFile)
 	{
@@ -46,83 +48,87 @@ export class OperatorOverrideManger {
 		);
 	}
 
-    /**
+	/**
      * Looks inside `operatorSymbols.ts` to get the `ts.Symbol` for the operators.
      */
-    private _getOperatorSymbols(node: ts.Node) {
-        if (
-            ts.isVariableDeclaration(node)
-            && !!node.initializer
-            && ts.isCallExpression(node.initializer)
-            && !!node.initializer.expression
-            && ts.isIdentifier(node.initializer.expression)
-            && node.initializer.expression.escapedText === "Symbol"
-            && ts.isIdentifier(node.name)
-            && operators.includes(node.name.getText())
-        ) {
-            const symbol = this._checker.getSymbolAtLocation(node.name)
-            if (symbol) {
-                this._symbols.set(node.name.getText() as OperatorName, symbol);
-            }
-        }
+	private _getOperatorSymbols(node: ts.Node)
+	{
+		if (
+			ts.isVariableDeclaration(node)
+			&& !!node.initializer
+			&& ts.isCallExpression(node.initializer)
+			&& !!node.initializer.expression
+			&& ts.isIdentifier(node.initializer.expression)
+			&& node.initializer.expression.escapedText === "Symbol"
+			&& ts.isIdentifier(node.name)
+			&& operators.includes(node.name.getText())
+		)
+		{
+			const symbol = this._checker.getSymbolAtLocation(node.name);
+			if (symbol)
+			{
+				this._symbols.set(node.name.getText() as OperatorName, symbol);
+			}
+		}
 
-        node.forEachChild(this._getOperatorSymbols.bind(this));
-    }
+		node.forEachChild(this._getOperatorSymbols.bind(this));
+	}
 
-    /**
+	/**
      * For a given symbol, check if it matches one of the symbols imported from our operators file,
      * then double check whether that symbol aliases one of the original symbols in the operators file.
-     * @param symbol 
-     * @param imports 
+     * @param symbol
+     * @param imports
      */
-    private _findMatchingOperatorSymbol(symbol: ts.Symbol, imports: ts.ImportDeclaration[]): OperatorName | undefined {
-        const matchingImport = imports.find((i) => {
-            const symbol = this._checker.getSymbolAtLocation(i);
-            return symbol === symbol;
-        });
+	private _findMatchingOperatorSymbol(symbol: ts.Symbol, imports: ts.ImportDeclaration[]): OperatorName | undefined
+	{
+		const matchingImport = imports.find((i) =>
+		{
+			const symbol = this._checker.getSymbolAtLocation(i);
+			return symbol === symbol;
+		});
 
-        if (!matchingImport) {
-            return;
-        }
+		if (!matchingImport)
+		{
+			return;
+		}
 
-        const aliasedSymbol = this._checker.getAliasedSymbol(symbol);
-        if(!Object.values(this._symbols).includes(aliasedSymbol))
-        {
-            return;
-        }
+		const aliasedSymbol = this._checker.getAliasedSymbol(symbol);
+		if (!Object.values(this._symbols).includes(aliasedSymbol))
+		{
+			return;
+		}
 
-        console.log("HERE!");
-        return aliasedSymbol.name as OperatorName;
-    }
+		console.log("HERE!");
+		return aliasedSymbol.name as OperatorName;
+	}
 
-    // private _loadOverloadsFromNode(node: ts.Node, imports: ts.ImportDeclaration[]): void {
-    //     if (isStaticPropertyDeclaration(node)) {
-    //         const propertyName = node.name
-    //         if (ts.isIdentifier(propertyName)) {
-    //             const propertySymbol = this._checker.getSymbolAtLocation(propertyName);
-    //             if(!propertySymbol) {
-    //                 return;
-    //             }
-    //             const operatorName = this._findMatchingOperatorSymbol(propertySymbol, imports);
-    //             console.log(operatorName);
-    //         }
-    //     }
-    //     // if(
-    //     //     ts.isIdentifier(node)
-    //     //     // && isStaticPropertyDeclaration(node.parent)
-    //     // ) {
-    //     //     const symbol = this._checker.getSymbolAtLocation(node);
-    //     //     if(symbol && symbol.flags & ts.SymbolFlags.Alias) {
-    //     //         const aliased = this._checker.getAliasedSymbol(symbol);
-    //     //         if(Object.values(this._symbols).includes(aliased)){
-    //     //             console.log("FOUND!")
-    //     //             console.log(node.parent.parent.parent.parent.getText());
-    //     //         }
-    //     //     }
-    //     // }
+	// private _loadOverloadsFromNode(node: ts.Node, imports: ts.ImportDeclaration[]): void {
+	//     if (isStaticPropertyDeclaration(node)) {
+	//         const propertyName = node.name
+	//         if (ts.isIdentifier(propertyName)) {
+	//             const propertySymbol = this._checker.getSymbolAtLocation(propertyName);
+	//             if(!propertySymbol) {
+	//                 return;
+	//             }
+	//             const operatorName = this._findMatchingOperatorSymbol(propertySymbol, imports);
+	//             console.log(operatorName);
+	//         }
+	//     }
+	//     // if(
+	//     //     ts.isIdentifier(node)
+	//     //     // && isStaticPropertyDeclaration(node.parent)
+	//     // ) {
+	//     //     const symbol = this._checker.getSymbolAtLocation(node);
+	//     //     if(symbol && symbol.flags & ts.SymbolFlags.Alias) {
+	//     //         const aliased = this._checker.getAliasedSymbol(symbol);
+	//     //         if(Object.values(this._symbols).includes(aliased)){
+	//     //             console.log("FOUND!")
+	//     //             console.log(node.parent.parent.parent.parent.getText());
+	//     //         }
+	//     //     }
+	//     // }
 
-    //     node.forEachChild((child) => this._loadOverloadsFromNode(child, imports));
-    // }
-
-
+	//     node.forEachChild((child) => this._loadOverloadsFromNode(child, imports));
+	// }
 }

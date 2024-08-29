@@ -29,23 +29,24 @@ export class TransformedFileData implements Disposable
 		this.transformedSourceCode = transformedSourceCode;
 	}
 
-	[Symbol.dispose]() {
+	[Symbol.dispose]()
+	{
 		this._result.dispose();
 	}
 }
 
 /**
- * 
+ *
  * @param sourceFile
- * @param emitTs 
- * @returns 
- * 
+ * @param emitTs
+ * @returns
+ *
  * @example using transformed = transformSourceFile(sourceFile, true);
  */
 export const transformSourceFile = (sourceFile: ts.SourceFile, emitTs: boolean = false): TransformedFileData =>
 {
 	const transformer = (context: ts.TransformationContext) => (file: ts.SourceFile) =>
-		replaceOperatorsInAst(file, context, 'MyVector3', 'ADD[0][2]');
+		replaceOperatorsInAst(file, context, "MyVector3", "ADD[0][2]");
 
 	// Apply the transformation
 	const result = ts.transform(sourceFile, [transformer]);
@@ -56,7 +57,8 @@ export const transformSourceFile = (sourceFile: ts.SourceFile, emitTs: boolean =
 	const transformedSourceCode = printer.printFile(transformedSourceFile);
 
 	// debugging
-	if(emitTs) {
+	if (emitTs)
+	{
 		const debugFileName = path.join("tmp", transformedSourceFile.fileName.replace(".ts", ".debug.ts"));
 		const debugFileOutputPath = ts.sys.resolvePath(debugFileName);
 		ts.sys.writeFile(debugFileOutputPath, transformedSourceCode);
@@ -64,4 +66,4 @@ export const transformSourceFile = (sourceFile: ts.SourceFile, emitTs: boolean =
 	}
 
 	return new TransformedFileData(result, transformedSourceFile, transformedSourceCode);
-}
+};

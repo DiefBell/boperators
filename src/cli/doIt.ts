@@ -1,6 +1,6 @@
-import ts from 'typescript';
+import ts from "typescript";
 import * as path from "path";
-import { transformSourceFile } from './transformFile';
+import { transformSourceFile } from "./transformFile";
 
 export const doIt = (filePath: string) =>
 {
@@ -12,8 +12,7 @@ export const doIt = (filePath: string) =>
 		true
 	);
 
-	using transformedSourceFileInfo = transformSourceFile(sourceFile, true)
-
+	using transformedSourceFileInfo = transformSourceFile(sourceFile, true);
 
 	// Emit the transformed file as JavaScript
 	const compilerOptions: ts.CompilerOptions = {
@@ -25,14 +24,14 @@ export const doIt = (filePath: string) =>
 
 	const program = ts.createProgram([newSourceFile.fileName], compilerOptions, {
 		...ts.createCompilerHost(compilerOptions),
-		getSourceFile: (fileName) => fileName === newSourceFile.fileName ? newSourceFile : undefined,
+		getSourceFile: fileName => fileName === newSourceFile.fileName ? newSourceFile : undefined,
 	});
 
 	const { emitSkipped, diagnostics } = program.emit(undefined, (fileName, data) =>
 	{
-		if (fileName.endsWith('.js'))
+		if (fileName.endsWith(".js"))
 		{
-			const outputJsFilePath = path.join("build", fileName)
+			const outputJsFilePath = path.join("build", fileName);
 			console.log(outputJsFilePath);
 			ts.sys.writeFile(outputJsFilePath, data);
 		}
@@ -41,7 +40,8 @@ export const doIt = (filePath: string) =>
 	if (emitSkipped)
 	{
 		console.error("Emit failed with the following diagnostics:", diagnostics);
-	} else
+	}
+	else
 	{
 		console.log(`Transformed JavaScript file emitted to: ${"JS"}`);
 	}
