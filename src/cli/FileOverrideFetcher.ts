@@ -3,16 +3,30 @@ import { ADD, DIVIDE, MULTIPLY, SUBTRACT } from "../lib";
 import type { OperatorOverride } from "./types/OperatorOverride";
 import type { OperatorName } from "./types/Operators";
 
-export type OperatorOverrideMetadata = {
-	left: ts.Type
-	right: ts.Type
-	func: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression
-};
+const primitiveTypes = ["number", "string", "boolean"] as const;
+type PrimitiveType = typeof primitiveTypes[number];
+const isPrimitive = (typeName: string): typeName is PrimitiveType =>
+	primitiveTypes.includes(typeName as PrimitiveType);
 
-const metadataToString = (metadata: OperatorOverrideMetadata) =>
-	`Left: "${metadata.left.getSymbol()?.getName()}"\n`
-	+ `Right: "${metadata.right.getSymbol()?.getName()}"\n`
-	+ `Func: "${metadata.func.getText()}"\n`;
+class OperatorOverrideMetadata
+{
+	constructor(
+		private _name: string,
+		private _left: ts.Type | PrimitiveType,
+		private _right: ts.Type | PrimitiveType,
+		private _func: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression
+	)
+	{ }
+
+	toString(): string
+	{
+		return `Name: ${this._name}\n`
+			// Fix in prefs! https://eslint.style/rules/plus/indent-binary-ops
+			// eslint-disable-next-line @stylistic/indent-binary-ops
+			+ `Right: ${typeof this._right === "string" ? `${this._right} (primitive)` : `${this._right.getSymbol()?.getName()} (complex type)`}\n`
+			+ `Func: ${this._func.getText()}\n`;
+	}
+}
 
 export class FileOverrideFetcher
 {
@@ -59,7 +73,7 @@ export class FileOverrideFetcher
 		const metadatas = this._buildOverloadMetadata(operatorOverloadDeclarations);
 		metadatas.forEach((metadata) =>
 		{
-			console.log(metadataToString(metadata));
+			console.log(metadata.toString());
 		});
 
 		// 6. double check for clashes
@@ -306,107 +320,161 @@ export class FileOverrideFetcher
 	}
 
 	/**
-	 * Builds metadata for operator overloads.
-	 * - If declaration isn't a string:function dictionary, skip it (and warn).
-	 * - If any of the functions don't return a value, skip it.
-	 * - If not all functions have 1 or 2 parameters, skip it (and warn).
-	 * - If, for the functions with 2 parameters,
-	 * 	one of their types isn't the type of the declaration's class, skip it (and warn).
-	 * - For 1 parameter function declarations, create metadata where "left" type is the
-	 * 	class' type, and the "right" type is the type of the function parameter.
-	 *  The "func" is the function declaration itself.
-	 * - For 2 parameter function declarations, create metadata where "left" type is the
-	 * 	first parameter's type, and the "right" type is the type of the second function parameter.
-	 *  The "func" is the function declaration itself.
+	 * Builds metadata for operator overloads from given property declarations.
+	 * This method processes each property declaration to extract operator overload functions
+	 * and their associated metadata based on the following rules:
 	 *
-	 * @param declarations Declarations for operator overloads.
+	 * - **Valid Declarations**: Only considers declarations that are object literal expressions.
+	 * - **Initializer Check**: Skips declarations that do not have an initializer.
+	 * - **Class Type Extraction**: Extracts the class type from the declaration, if available.
+	 * - **Function Validity**: Processes functions that are either `FunctionDeclaration`, `ArrowFunction`,
+	 *   or `FunctionExpression` and verifies that they have 1 or 2 parameters.
+	 * - **Return Type Check**: Skips functions that do not have a return type.
+	 * - **Parameter Type Handling**:
+	 *   - For 1-parameter functions:
+	 *     - Sets the `left` type as the class type and the `right` type as the type of the function parameter.
+	 *   - For 2-parameter functions:
+	 *     - Sets `left` and `right` types based on the function parameters.
+	 *     - Ensures that one of the parameters matches the class type (when applicable).
+	 * - **Primitive Types Handling**: Primitive types (`number`, `string`, `boolean`) are converted to their string representation.
+	 *
+	 * Logs warnings for any issues encountered during processing, such as invalid initializers,
+	 * unresolved parameter types, or functions that do not meet the required criteria.
+	 *
+	 * @param declarations An array of `ts.PropertyDeclaration` objects representing operator overload declarations.
+	 * @returns An array of `OperatorOverrideMetadata` instances, each representing valid operator overload metadata.
 	 */
 	private _buildOverloadMetadata(declarations: ts.PropertyDeclaration[]): OperatorOverrideMetadata[]
 	{
 		const metadata: OperatorOverrideMetadata[] = [];
 
-		for (const declaration of declarations)
+		// Helper function to check if a type is primitive and return its string representation
+		const getPrimitiveTypeString = (type: ts.Type): PrimitiveType | undefined =>
 		{
-			const initializer = declaration.initializer;
+			const typeName = this._checker.typeToString(type);
+			return isPrimitive(typeName) ? typeName : undefined;
+		};
 
-			if (!initializer || !ts.isObjectLiteralExpression(initializer))
+		declarations.forEach((declaration) =>
+		{
+			if (!declaration.initializer)
 			{
-				console.warn("Declaration initializer is not an object literal.");
-				continue;
+				console.warn("Declaration does not have an initializer.");
+				return;
 			}
 
-			for (const property of initializer.properties)
+			if (!ts.isObjectLiteralExpression(declaration.initializer))
 			{
-				if (!ts.isPropertyAssignment(property))
+				console.warn("Declaration initializer is not a valid object literal.");
+				return;
+			}
+
+			const classType = this._getClassTypeFromDeclaration(declaration);
+
+			if (!classType)
+			{
+				console.warn("Could not determine the class type from declaration.");
+				return;
+			}
+
+			const properties = declaration.initializer.properties;
+
+			properties.forEach((property) =>
+			{
+				if (!ts.isPropertyAssignment(property) || !ts.isStringLiteral(property.name))
 				{
-					console.warn("Object literal contains non-property assignment.");
-					continue;
+					console.warn("Property is not a valid string:function assignment.");
+					return;
 				}
 
-				const func = property.initializer;
+				const overrideName = property.name.text;
+				const initializer = property.initializer;
+				let func: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression | undefined;
+				let parameters: readonly ts.ParameterDeclaration[] | undefined;
 
-				// Ensure the function is a supported type: FunctionDeclaration, ArrowFunction, or FunctionExpression
-				if (!ts.isFunctionExpression(func) && !ts.isArrowFunction(func) && !ts.isFunctionDeclaration(func))
+				if (ts.isFunctionExpression(initializer) || ts.isArrowFunction(initializer) || ts.isFunctionDeclaration(initializer))
 				{
-					console.warn("Unsupported function type found in property assignment.");
-					continue;
+					func = initializer;
+					parameters = initializer.parameters;
 				}
 
-				// Ensure the function returns a value
-				const returnType = this._checker.getReturnTypeOfSignature(this._checker.getSignatureFromDeclaration(func)!);
-				if (returnType.flags & ts.TypeFlags.Void)
+				if (!func || !parameters)
 				{
-					console.warn("Function does not return a value.");
-					continue;
+					console.warn("Initializer is not a function expression, arrow function, or function declaration.");
+					return;
 				}
 
-				// Check function parameters
-				const parameters = func.parameters;
 				if (parameters.length < 1 || parameters.length > 2)
 				{
 					console.warn("Function does not have 1 or 2 parameters.");
-					continue;
+					return;
 				}
 
-				// Retrieve class type for validation
-				const classType = this._getClassTypeFromDeclaration(declaration);
-				if (!classType)
+				const signature = this._checker.getSignatureFromDeclaration(func);
+				const returnType = signature ? this._checker.getReturnTypeOfSignature(signature) : undefined;
+
+				if (!returnType || (returnType.flags & ts.TypeFlags.Void))
 				{
-					console.warn("Unable to retrieve class type from declaration.");
-					continue;
+					console.warn("Function does not have a return type.");
+					return;
 				}
 
-				let leftType: ts.Type;
-				let rightType: ts.Type;
+				let leftType: ts.Type | PrimitiveType | undefined;
+				let rightType: ts.Type | PrimitiveType | undefined;
 
 				if (parameters.length === 1)
 				{
-					// For functions with 1 parameter
 					leftType = classType;
-					rightType = this._checker.getTypeAtLocation(parameters[0]);
-				}
-				else
-				{
-					// For functions with 2 parameters
-					leftType = this._checker.getTypeAtLocation(parameters[0]);
-					rightType = this._checker.getTypeAtLocation(parameters[1]);
-
-					// Ensure one of the parameter types matches the class type
-					if (!this._typeIsEqual(leftType, classType) && !this._typeIsEqual(rightType, classType))
+					const paramType = this._checker.getTypeAtLocation(parameters[0]);
+					if (paramType)
 					{
-						console.warn("Neither parameter type matches class type.");
-						continue;
+						leftType = classType;
+						rightType = getPrimitiveTypeString(paramType) || paramType;
+					}
+					else
+					{
+						console.warn("Parameter type for single-parameter function is not correctly resolved.");
+						return;
+					}
+				}
+				else if (parameters.length === 2)
+				{
+					const param1Type = this._checker.getTypeAtLocation(parameters[0]);
+					const param2Type = this._checker.getTypeAtLocation(parameters[1]);
+
+					if (param1Type && param2Type)
+					{
+						if (!this._typeIsEqual(param1Type, classType) && !this._typeIsEqual(param2Type, classType))
+						{
+							console.warn("Neither parameter matches the class type.");
+							return;
+						}
+
+						leftType = getPrimitiveTypeString(param1Type) || param1Type;
+						rightType = getPrimitiveTypeString(param2Type) || param2Type;
+					}
+					else
+					{
+						console.warn("Failed to resolve one or both parameter types for two-parameter function.");
+						return;
 					}
 				}
 
-				// Create and store the metadata
-				metadata.push({
-					left: leftType,
-					right: rightType,
-					func,
-				});
-			}
-		}
+				if (leftType && rightType)
+				{
+					metadata.push(new OperatorOverrideMetadata(
+						overrideName,
+						leftType,
+						rightType,
+						func,
+					));
+				}
+				else
+				{
+					console.warn("Failed to resolve both parameter types.");
+				}
+			});
+		});
 
 		return metadata;
 	}
