@@ -29,4 +29,4 @@ if (!testSourceFile)
 }
 
 // console.log(3)
-oom.test(testSourceFile);
+oom.test();

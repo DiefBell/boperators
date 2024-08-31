@@ -1,23 +1,11 @@
 import ts from "typescript";
-import * as fs from "node:fs";
 import * as path from "path";
 
-import { ADD, DIVIDE, MULTIPLY, SUBTRACT } from "../lib";
-import { isStaticPropertyDeclaration } from "./astUtils";
 import { fileURLToPath } from "bun";
-import type { OperatorOverride } from "./types/OperatorOverride";
 import { type OperatorName, operators } from "./types/Operators";
-import { FileOverrideFetcher } from "./FileOverrideFetcher";
-
-const OPERATOR_SYMBOLS_FILE = "operatorSymbols.ts";
-
+import { getOperatorOverloads } from "./getOverloads";
 export class OperatorOverrideManger
 {
-	[ADD]: OperatorOverride[] = [];
-	[SUBTRACT]: OperatorOverride[] = [];
-	[MULTIPLY]: OperatorOverride[] = [];
-	[DIVIDE]: OperatorOverride[] = [];
-
 	private _program: ts.Program;
 	private _checker: ts.TypeChecker;
 	private _symbols: Map<OperatorName, ts.Symbol> = new Map();
@@ -39,13 +27,13 @@ export class OperatorOverrideManger
 		this._getOperatorSymbols(operatorSourceFile);
 	}
 
-	public test(sourceFile: ts.SourceFile)
+	public test()
 	{
-		const fetcher = new FileOverrideFetcher(
-			this._program,
-			sourceFile,
-			this._symbols
-		);
+		const overloads = getOperatorOverloads(this._program, Array.from(this._symbols.values()));
+		for (const o of overloads)
+		{
+			console.log(o.toString());
+		}
 	}
 
 	/**
