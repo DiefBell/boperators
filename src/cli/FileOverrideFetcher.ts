@@ -8,23 +8,36 @@ type PrimitiveType = typeof primitiveTypes[number];
 const isPrimitive = (typeName: string): typeName is PrimitiveType =>
 	primitiveTypes.includes(typeName as PrimitiveType);
 
+type PropertyOperatorSymbolPair = {
+	// https://eslint.style/rules/ts/member-delimiter-style
+	// eslint-disable-next-line
+	declaration: ts.PropertyDeclaration;
+	operatorSymbol: ts.Symbol
+};
+
 class OperatorOverrideMetadata
 {
 	constructor(
+		private _checker: ts.TypeChecker,
 		private _name: string,
 		private _left: ts.Type | PrimitiveType,
 		private _right: ts.Type | PrimitiveType,
-		private _func: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression
+		private _func: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression,
+		private _overridePropertyName: ts.Symbol,
+		private _operatorSymbol: ts.Symbol
 	)
 	{ }
 
 	toString(): string
 	{
-		return `Name: ${this._name}\n`
+		return `\n\x1b[1mName: ${this._name}\x1b[0m\n`
 			// Fix in prefs! https://eslint.style/rules/plus/indent-binary-ops
 			// eslint-disable-next-line @stylistic/indent-binary-ops
+			+ `Left: ${typeof this._left === "string" ? `${this._left} (primitive)` : `${this._left.getSymbol()?.getName()} (complex type)`}\n`
 			+ `Right: ${typeof this._right === "string" ? `${this._right} (primitive)` : `${this._right.getSymbol()?.getName()} (complex type)`}\n`
-			+ `Func: ${this._func.getText()}\n`;
+			+ `Func: ${this._func.getText().split("\n")[0]}\n`
+			+ `Property name: ${this._checker.symbolToString(this._overridePropertyName)}\n`
+			+ `Operator: ${this._operatorSymbol.getName()}`;
 	}
 }
 
@@ -173,9 +186,9 @@ export class FileOverrideFetcher
 		propDeclarations: ts.PropertyDeclaration[],
 		importSymbols: ts.Symbol[],
 		operatorSymbols: ts.Symbol[]
-	): ts.PropertyDeclaration[]
+	): PropertyOperatorSymbolPair[]
 	{
-		const validDeclarations: ts.PropertyDeclaration[] = [];
+		const validDeclarations: PropertyOperatorSymbolPair[] = [];
 
 		propDeclarations.forEach((declaration) =>
 		{
@@ -187,34 +200,18 @@ export class FileOverrideFetcher
 			}
 
 			const expression = name.expression;
+			const symbol = (
+				ts.isPropertyAccessExpression(expression)
+				&& this._getPropertyAccessExpressionOperatorSymbol(expression, importSymbols, operatorSymbols)
+			)
+			|| this._getPropertyNameOperatorSymbol(expression, importSymbols, operatorSymbols);
 
-			if (ts.isPropertyAccessExpression(expression))
+			// https://eslint.style/rules/ts/keyword-spacing
+			// eslint-disable-next-line
+			if(!!symbol)
 			{
-				if (this._isPropertyAccessExpressionOperatorSymbol(
-					expression, importSymbols, operatorSymbols
-				))
-				{
-					validDeclarations.push(declaration);
-					return;
-				}
+				validDeclarations.push({ declaration: declaration, operatorSymbol: symbol });
 			}
-
-			if (this._isPropertyNameOperatorSymbol(expression, importSymbols, operatorSymbols))
-			{
-				validDeclarations.push(declaration);
-			}
-
-			// if (
-			// 	(ts.isPropertyAccessExpression(expression) && this._isPropertyAccessExpressionOperatorSymbol(
-			// 		expression,
-			// 		importSymbols,
-			// 		operatorSymbols
-			// 	))
-			// 	// || (this._isPropertyNameOperatorSymbol(expression, importSymbols, operatorSymbols))
-			// )
-			// {
-			// 	validDeclarations.push(declaration);
-			// }
 		});
 
 		return validDeclarations;
@@ -222,32 +219,32 @@ export class FileOverrideFetcher
 
 	/**
 	 * If the computed property name is a PropertyAccessExpression
-	 * i.e., `ops.MULTIPLY`, we check whether it is for one of our operatorSymbols.
-	 * This is done via our importSymbols.
+	 * i.e., `ops.MULTIPLY`, we check whether it is for one of our operatorSymbols,
+	 * and return the operator symbol if it is.
 	 * @param expression The property access expression, e.g., `ops.DIVIDE`.
 	 * @param importSymbols The symbols imported into the current file.
 	 * @param operatorSymbols The symbols representing the valid operator symbols.
 	 * @returns Whether the given expression corresponds to a valid operator symbol.
 	 */
-	private _isPropertyAccessExpressionOperatorSymbol(
+	private _getPropertyAccessExpressionOperatorSymbol(
 		expression: ts.PropertyAccessExpression,
 		importSymbols: ts.Symbol[],
 		operatorSymbols: ts.Symbol[]
-	): boolean
+	): ts.Symbol | null
 	{
 		// Get the symbol for the left-hand side (namespace or module)
 		let leftSymbol = this._checker.getSymbolAtLocation(expression.expression);
 		if (!leftSymbol)
 		{
 			console.error("Could not resolve symbol for left side of property access");
-			return false;
+			return null;
 		}
 
 		// Check if the left symbol is in the import symbols (i.e., it should be an imported namespace/module)
 		if (!importSymbols.includes(leftSymbol))
 		{
 			console.error(`Symbol "${leftSymbol.getName()}" is not an import in its file`);
-			return false;
+			return null;
 		}
 
 		const leftSymbolAlias = !!(leftSymbol.flags & ts.SymbolFlags.Alias)
@@ -263,7 +260,7 @@ export class FileOverrideFetcher
 			console.error(
 				`Symbol "${leftSymbol.getName()}" doesn't alias anything. Are you sure it's an import?`
 			);
-			return false;
+			return null;
 		}
 
 		// At this point, `leftSymbol` is expected to be the namespace/module symbol itself.
@@ -274,7 +271,7 @@ export class FileOverrideFetcher
 		if (!exportedSymbols)
 		{
 			console.error(`Could not retrieve exports from module "${leftSymbol.getName()}"`);
-			return false;
+			return null;
 		}
 
 		// Get the right-hand side name of the property access (e.g., `MULTIPLY`)
@@ -285,38 +282,43 @@ export class FileOverrideFetcher
 		if (!rightSymbol)
 		{
 			console.error(`Symbol "${rightName}" is not an exported member of "${leftSymbol.getName()}"`);
-			return false;
+			return null;
 		}
 
-		return operatorSymbols.includes(rightSymbol);
+		return operatorSymbols.includes(rightSymbol) ? rightSymbol : null;
 	}
 
 	/**
-	 * Is a computed property name is not a PropertyAccessExpression
+	 * If a computed property name is not a PropertyAccessExpression
 	 * i.e. it's just `SUBTRACT`, we check whether it is one of our operatorSymbols.
-	 * This is done via our importSymbols
+	 * If it is then return the symbol.
 	 * @param expression The property symbol e.g. "ADD"
 	 * @param importSymbols The symbols imported into the current file.
 	 * @param operatorSymbols The symbols representing the valid operator symbols.
 	 * @returnsWhether the given expression corresponds to a valid operator symbol.
 	 */
-	private _isPropertyNameOperatorSymbol(
+	private _getPropertyNameOperatorSymbol(
 		expression: ts.Expression,
 		importSymbols: ts.Symbol[],
 		operatorSymbols: ts.Symbol[]
-	): boolean
+	): ts.Symbol | null
 	{
 		// Handle other types of expressions (direct computed names) if needed
 		const symbol = this._checker.getSymbolAtLocation(expression);
 
 		if (!symbol || !(symbol.flags & ts.SymbolFlags.Alias))
 		{
-			return false;
+			return null;
 		}
 
-		return !!symbol && operatorSymbols.includes(
-			this._checker.getAliasedSymbol(symbol)
-		);
+		if (!symbol)
+		{
+			return null;
+		}
+
+		const aliasedSymbol = this._checker.getAliasedSymbol(symbol);
+
+		return operatorSymbols.includes(aliasedSymbol) ? aliasedSymbol : null;
 	}
 
 	/**
@@ -344,7 +346,7 @@ export class FileOverrideFetcher
 	 * @param declarations An array of `ts.PropertyDeclaration` objects representing operator overload declarations.
 	 * @returns An array of `OperatorOverrideMetadata` instances, each representing valid operator overload metadata.
 	 */
-	private _buildOverloadMetadata(declarations: ts.PropertyDeclaration[]): OperatorOverrideMetadata[]
+	private _buildOverloadMetadata(declarations: PropertyOperatorSymbolPair[]): OperatorOverrideMetadata[]
 	{
 		const metadata: OperatorOverrideMetadata[] = [];
 
@@ -355,7 +357,10 @@ export class FileOverrideFetcher
 			return isPrimitive(typeName) ? typeName : undefined;
 		};
 
-		declarations.forEach((declaration) =>
+		declarations.forEach(({
+			declaration,
+			operatorSymbol, // just so we can save it with the rest of the metadata
+		}) =>
 		{
 			if (!declaration.initializer)
 			{
@@ -377,18 +382,18 @@ export class FileOverrideFetcher
 				return;
 			}
 
-			const properties = declaration.initializer.properties;
+			const overrides = declaration.initializer.properties;
 
-			properties.forEach((property) =>
+			overrides.forEach((override) =>
 			{
-				if (!ts.isPropertyAssignment(property) || !ts.isStringLiteral(property.name))
+				if (!ts.isPropertyAssignment(override) || !ts.isStringLiteral(override.name))
 				{
 					console.warn("Property is not a valid string:function assignment.");
 					return;
 				}
 
-				const overrideName = property.name.text;
-				const initializer = property.initializer;
+				const overrideName = override.name.text;
+				const initializer = override.initializer;
 				let func: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression | undefined;
 				let parameters: readonly ts.ParameterDeclaration[] | undefined;
 
@@ -463,10 +468,13 @@ export class FileOverrideFetcher
 				if (leftType && rightType)
 				{
 					metadata.push(new OperatorOverrideMetadata(
+						this._checker,
 						overrideName,
 						leftType,
 						rightType,
 						func,
+						this._checker.getSymbolAtLocation(declaration.name)!,
+						operatorSymbol
 					));
 				}
 				else
