@@ -14,5 +14,7 @@
 	"peerDependencies": {
 		"typescript": "^5.5.4"
 	},
-	"dependencies": {}
+	"dependencies": {
+		"ts-morph": "^24.0.0"
+	}
 }
