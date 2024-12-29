@@ -2,21 +2,18 @@ import * as path from "path";
 import {
 	Project,
 	Node,
-	type ClassDeclaration,
+	SyntaxKind,
 	type FunctionExpression,
 	type ArrowFunction,
 	type FunctionDeclaration,
-	SyntaxKind,
 	type Symbol as AstSymbol,
 } from "ts-morph";
 import { LIB_ROOT, OPERATOR_SYMBOLS_FILE } from "./consts";
 import { operatorMap, type OperatorName, type OperatorSyntaxKind } from "./operatorMap";
 
-type OverloadFunction =
-  | FunctionDeclaration
-  | ArrowFunction
-  | FunctionExpression;
+type OverloadFunction = FunctionDeclaration | ArrowFunction | FunctionExpression;
 
+type TypeName = string;
 const testFilePath = path.join(process.cwd(), "test", "test.ts");
 
 // Initialise the ts-morph project
@@ -36,10 +33,19 @@ const operatorSymbols = new Map<AstSymbol, OperatorSyntaxKind>(
 // Load test file
 const testFile = project.getSourceFileOrThrow(testFilePath);
 
-type TypeName = string;
-
 // Map to store results
-const overloads = new Map<OperatorSyntaxKind, Map<ClassDeclaration, Map<TypeName, OverloadFunction>>>();
+const overloads = new Map<
+	OperatorSyntaxKind,
+	Map<
+		TypeName, // LHS type
+		Map<
+			TypeName, // RHS type
+			OverloadFunction
+		>
+	>
+>();
+
+// Populate operator map structure
 for (const operatorSyntaxKind of Object.values(operatorMap))
 {
 	overloads.set(operatorSyntaxKind, new Map());
@@ -50,11 +56,11 @@ const classes = testFile.getClasses();
 
 classes.forEach((classDecl) =>
 {
-	// Iterate through class properties
-	classDecl.getInstanceProperties().forEach((property) =>
-	{
-		const propertyName = property.getName();
+	const classType = classDecl.getType().getText();
 
+	// Iterate through static properties
+	classDecl.getStaticProperties().forEach((property) =>
+	{
 		if (!Node.isPropertyDeclaration(property)) return; // Only process property declarations
 
 		const nameNode = property.getNameNode();
@@ -63,14 +69,13 @@ classes.forEach((classDecl) =>
 		const expression = nameNode.getExpression();
 
 		let symbol: AstSymbol | undefined;
-		if (expression.isKind(SyntaxKind.Identifier)) // e.g. [PLUS]
+		if (expression.isKind(SyntaxKind.Identifier))
 		{
 			symbol = expression.getSymbol();
 		}
-		else if (expression.isKind(SyntaxKind.PropertyAccessExpression)) // e.g. [ops.MULTIPLY]
+		else if (expression.isKind(SyntaxKind.PropertyAccessExpression))
 		{
 			const propNameNode = expression.getNameNode();
-
 			if (!Node.isIdentifier(propNameNode)) return;
 			symbol = propNameNode.getSymbol();
 		}
@@ -78,17 +83,14 @@ classes.forEach((classDecl) =>
 		{
 			return;
 		}
+
 		if (!symbol) return;
 
-		/**
-		 * If this symbol aliases another one, resolve that.
-		 * This can occur when using an deconstructing import statement,
-		 * e.g. `import { PLUS } from "boperators";`
-		 */
+		// Resolve aliased symbol if necessary
 		symbol = symbol.getAliasedSymbol() ?? symbol;
 
 		const syntaxKind = operatorSymbols.get(symbol);
-		if (!syntaxKind) return; // means it's not one of our operator Symbols
+		if (!syntaxKind) return; // Skip if not an operator symbol
 
 		const initializer = property.getInitializer();
 		if (!initializer || !Node.isArrayLiteralExpression(initializer)) return; // Ensure it's an array initializer
@@ -105,40 +107,134 @@ classes.forEach((classDecl) =>
 				return; // Skip non-function nodes
 			}
 
-			const parameter = element.getParameters()[0];
-			if (!parameter)
-				throw new Error(`Function ${element.getText()} has no parameters`);
-
-			const operatorOverloads = overloads.get(syntaxKind) ?? new Map<ClassDeclaration, Map<TypeName, OverloadFunction>>();
-			const classOverloads = operatorOverloads.get(classDecl) ?? new Map<TypeName, OverloadFunction>();
-
-			// Get the parameter type
-			const paramType = parameter.getType().getText();
-			if (classOverloads.has(paramType))
+			const parameters = element.getParameters();
+			if (parameters.length < 2)
 			{
 				throw new Error(
-					`Duplicate function with parameter type '${paramType}' for symbol '${propertyName}'`
+					`Function ${element.getText()} must have at least two parameters for LHS and RHS`
 				);
 			}
 
-			classOverloads.set(paramType, element);
-			operatorOverloads.set(classDecl, classOverloads);
+			const lhsType = parameters[0].getType().getText();
+			const rhsType = parameters[1].getType().getText();
+
+			if (lhsType !== classType && rhsType !== classType)
+			{
+				throw new Error(
+					`Function ${element.getText()} must have either LHS or RHS matching the class type '${classType}'`
+				);
+			}
+
+			const operatorOverloads = overloads.get(syntaxKind) ?? new Map<TypeName, Map<TypeName, OverloadFunction>>();
+			const lhsMap = operatorOverloads.get(lhsType) ?? new Map<TypeName, OverloadFunction>();
+
+			if (lhsMap.has(rhsType))
+			{
+				throw new Error(
+					`Duplicate overload for operator ${SyntaxKind[syntaxKind]} with LHS type ${lhsType} and RHS type ${rhsType}`
+				);
+			}
+
+			lhsMap.set(rhsType, element);
+			operatorOverloads.set(lhsType, lhsMap);
+			overloads.set(syntaxKind, operatorOverloads);
+		});
+	});
+
+	// Iterate through instance properties
+	classDecl.getInstanceProperties().forEach((property) =>
+	{
+		if (!Node.isPropertyDeclaration(property)) return; // Only process property declarations
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		const name = property.getName(); // nice to see in debugger
+
+		const nameNode = property.getNameNode();
+		if (!nameNode.isKind(SyntaxKind.ComputedPropertyName)) return;
+
+		const expression = nameNode.getExpression();
+
+		let symbol: AstSymbol | undefined;
+		if (expression.isKind(SyntaxKind.Identifier))
+		{
+			symbol = expression.getSymbol();
+		}
+		else if (expression.isKind(SyntaxKind.PropertyAccessExpression))
+		{
+			const propNameNode = expression.getNameNode();
+			if (!Node.isIdentifier(propNameNode)) return;
+			symbol = propNameNode.getSymbol();
+		}
+		else
+		{
+			return;
+		}
+
+		if (!symbol) return;
+
+		// Resolve aliased symbol if necessary
+		symbol = symbol.getAliasedSymbol() ?? symbol;
+
+		const syntaxKind = operatorSymbols.get(symbol);
+		if (!syntaxKind) return; // Skip if not an operator symbol
+
+		const initializer = property.getInitializer();
+		if (!initializer || !Node.isArrayLiteralExpression(initializer)) return; // Ensure it's an array initializer
+
+		initializer.getElements().forEach((element) =>
+		{
+			// Explicitly check for function-like node kinds
+			if (
+				!element.isKind(SyntaxKind.ArrowFunction)
+				&& !element.isKind(SyntaxKind.FunctionExpression)
+				&& !element.isKind(SyntaxKind.FunctionDeclaration)
+			)
+			{
+				return; // Skip non-function nodes
+			}
+
+			const parameters = element.getParameters();
+			if (parameters.length < 1)
+			{
+				throw new Error(
+					`Instance function ${element.getText()} must have at least one parameter.`
+				);
+			}
+
+			const rhsType = parameters[0].getType().getText();
+
+			const operatorOverloads = overloads.get(syntaxKind) ?? new Map<TypeName, Map<TypeName, OverloadFunction>>();
+			const lhsMap = operatorOverloads.get(classType) ?? new Map<TypeName, OverloadFunction>();
+
+			if (lhsMap.has(rhsType))
+			{
+				throw new Error(
+					`Duplicate overload for operator ${SyntaxKind[syntaxKind]} with LHS type ${classType} and RHS type ${rhsType}`
+				);
+			}
+
+			lhsMap.set(rhsType, element);
+			operatorOverloads.set(classType, lhsMap);
 			overloads.set(syntaxKind, operatorOverloads);
 		});
 	});
 });
 
 console.log("\n"); // padding
-for (const [operatorSyntaxKind, classMap] of overloads)
+for (const [operatorSyntaxKind, lhsMap] of overloads)
 {
-	for (const [classDecl, typeMap] of classMap)
+	for (const [lhsType, rhsMap] of lhsMap)
 	{
-		console.log(`Operator: ${SyntaxKind[operatorSyntaxKind]}`);
-		console.log(`  Class: ${classDecl.getName()}`);
-		for (const [type, overload] of typeMap)
+		for (const [rhsType, overload] of rhsMap)
 		{
-			console.log(`    Type: ${type}`);
-			console.log(`      Overload: ${overload.getText().replaceAll("\n", " ")}`);
+			console.log(`Operator: ${SyntaxKind[operatorSyntaxKind]}`);
+			console.log(`  LHS Type: ${lhsType}`);
+			console.log(`    RHS Type: ${rhsType}`);
+			console.log(
+				`    Overload: ${overload.getText()
+					.replace(/(\r\n|\n|\r)/g, " ")
+					.replace(/\s+/g, " ")
+				}`
+			);
 		}
 	}
 }
