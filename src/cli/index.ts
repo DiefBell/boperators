@@ -7,7 +7,6 @@ import {
 	type ArrowFunction,
 	type FunctionDeclaration,
 	SyntaxKind,
-	type Identifier,
 	type Symbol as AstSymbol,
 } from "ts-morph";
 import { LIB_ROOT, OPERATOR_SYMBOLS_FILE } from "./consts";
@@ -40,15 +39,17 @@ const testFile = project.getSourceFileOrThrow(testFilePath);
 type TypeName = string;
 
 // Map to store results
-const resultMap = new Map<ClassDeclaration, Map<TypeName, OverloadFunction>>();
+const overloads = new Map<OperatorSyntaxKind, Map<ClassDeclaration, Map<TypeName, OverloadFunction>>>();
+for (const operatorSyntaxKind of Object.values(operatorMap))
+{
+	overloads.set(operatorSyntaxKind, new Map());
+}
 
 // Find all classes in the file
 const classes = testFile.getClasses();
 
 classes.forEach((classDecl) =>
 {
-	const fieldMap = new Map<TypeName, OverloadFunction>();
-
 	// Iterate through class properties
 	classDecl.getInstanceProperties().forEach((property) =>
 	{
@@ -61,28 +62,33 @@ classes.forEach((classDecl) =>
 
 		const expression = nameNode.getExpression();
 
-		let identifier: Identifier;
+		let symbol: AstSymbol | undefined;
 		if (expression.isKind(SyntaxKind.Identifier)) // e.g. [PLUS]
 		{
-			identifier = expression;
+			symbol = expression.getSymbol();
 		}
 		else if (expression.isKind(SyntaxKind.PropertyAccessExpression)) // e.g. [ops.MULTIPLY]
 		{
-			// Get the "name node" part of the PropertyAccessExpression (MULTIPLY)
-			const propNameNode = expression.getNameNode(); // This will be the Identifier node for MULTIPLY
+			const propNameNode = expression.getNameNode();
 
 			if (!Node.isIdentifier(propNameNode)) return;
-			identifier = propNameNode; // Store the identifier (MULTIPLY)
+			symbol = propNameNode.getSymbol();
 		}
 		else
 		{
 			return;
 		}
-
-		const symbol = identifier.getSymbol();
 		if (!symbol) return;
 
-		if (!operatorSymbols.has(symbol)) return; // Skip if not an operator symbol
+		/**
+		 * If this symbol aliases another one, resolve that.
+		 * This can occur when using an deconstructing import statement,
+		 * e.g. `import { PLUS } from "boperators";`
+		 */
+		symbol = symbol.getAliasedSymbol() ?? symbol;
+
+		const syntaxKind = operatorSymbols.get(symbol);
+		if (!syntaxKind) return; // means it's not one of our operator Symbols
 
 		const initializer = property.getInitializer();
 		if (!initializer || !Node.isArrayLiteralExpression(initializer)) return; // Ensure it's an array initializer
@@ -103,33 +109,38 @@ classes.forEach((classDecl) =>
 			if (!parameter)
 				throw new Error(`Function ${element.getText()} has no parameters`);
 
+			const operatorOverloads = overloads.get(syntaxKind) ?? new Map<ClassDeclaration, Map<TypeName, OverloadFunction>>();
+			const classOverloads = operatorOverloads.get(classDecl) ?? new Map<TypeName, OverloadFunction>();
+
 			// Get the parameter type
 			const paramType = parameter.getType().getText();
-			if (fieldMap.has(paramType))
+			if (classOverloads.has(paramType))
 			{
 				throw new Error(
 					`Duplicate function with parameter type '${paramType}' for symbol '${propertyName}'`
 				);
 			}
 
-			// Store the function
-			fieldMap.set(paramType, element);
+			classOverloads.set(paramType, element);
+			operatorOverloads.set(classDecl, classOverloads);
+			overloads.set(syntaxKind, operatorOverloads);
 		});
 	});
-
-	// Store in resultMap
-	if (fieldMap.size > 0)
-	{
-		resultMap.set(classDecl, fieldMap);
-	}
 });
 
-// Log results
-resultMap.forEach((fieldMap, classNode) =>
+console.log("\n"); // padding
+for (const [operatorSyntaxKind, classMap] of overloads)
 {
-	console.log(`Class: ${classNode.getName()}`);
-	fieldMap.forEach((fnNode, argType) =>
+	for (const [classDecl, typeMap] of classMap)
 	{
-		console.log(`  Arg Type: ${argType}, Function: ${fnNode.getText()}`);
-	});
-});
+		console.log(`Operator: ${SyntaxKind[operatorSyntaxKind]}`);
+		console.log(`  Class: ${classDecl.getName()}`);
+		for (const [type, overload] of typeMap)
+		{
+			console.log(`    Type: ${type}`);
+			console.log(`      Overload: ${overload.getText().replaceAll("\n", " ")}`);
+		}
+	}
+}
+
+console.log("\n"); // padding
