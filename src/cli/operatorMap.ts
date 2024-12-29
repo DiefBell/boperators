@@ -32,3 +32,4 @@ export const operatorMap = {
 } as const;
 
 export type OperatorName = keyof typeof operatorMap;
+export type OperatorSyntaxKind = typeof operatorMap[OperatorName];
