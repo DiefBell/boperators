@@ -1,27 +1,23 @@
-import { ADD } from "../src/lib/index";
+import { PLUS } from "../src/lib/index";
 import * as ops from "../src/lib/index";
 
 export class Vector3
 {
-	public readonly [ops.MULTIPLY] = {
-		// @boperators/Commutative
-		"Multiply by a scalar": (rhs: number) =>
+	public readonly [ops.MULTIPLY] = [
+		(rhs: number) =>
 			new Vector3(this.x * rhs, this.y * rhs, this.y * rhs),
-	};
+	];
 
-	public readonly [ADD] = {
-		// print a warning, we don't need "commutative" if its the same type
-		// @boperators/Commutative
-		"Add another Vec3": function addAnotherVec3(rhs: Vector3)
+	public readonly [PLUS] = [
+		function addAnotherVec3(rhs: Vector3)
 		{
 			return new Vector3(this.x + rhs.x, this.y + rhs.y, this.z + rhs.z);
 		},
-		// @boperators/Commutative
-		"Add a number": function (rhs: number)
+		function (rhs: number)
 		{
 			return new Vector3(this.x + rhs, this.y + rhs, this.z + rhs);
 		},
-	};
+	];
 
 	x: number;
 	y: number;

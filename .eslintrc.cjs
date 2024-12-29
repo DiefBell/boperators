@@ -5,6 +5,7 @@ const config = {
 	],
 	rules: {
 		"no-console": "off",
+		"@stylistic/arrow-parens": ["error", "always"],
 	},
 };
 

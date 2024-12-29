@@ -1,32 +1,17 @@
-import { OperatorOverrideManger } from "./OperatorOverrideManager";
-// import { doIt } from "./doIt";
 import * as path from "path";
-import ts from "typescript";
+import { Project, type SyntaxKind, type VariableDeclaration } from "ts-morph";
+import { LIB_ROOT, OPERATOR_SYMBOLS_FILE } from "./consts";
+import { operatorMap, type OperatorName } from "./operatorMap";
 
-// doIt("test/test.ts");
 const testFilePath = path.join(process.cwd(), "test", "test.ts");
 
-console.log(path.join(process.cwd(), "src", "lib", "index.ts"));
+const project = new Project();
+project.addSourceFilesAtPaths([OPERATOR_SYMBOLS_FILE, LIB_ROOT, testFilePath]);
 
-const program = ts.createProgram({
-	rootNames: [
-		path.join(process.cwd(), "src", "lib", "operatorSymbols.ts"),
-		path.join(process.cwd(), "src", "lib", "index.ts"),
-		testFilePath,
-	],
-	options: {},
-});
-
-const oom = new OperatorOverrideManger(program);
-
-// console.log(1)
-const testSourceFile = program.getSourceFile(testFilePath);
-
-// console.log(2)
-if (!testSourceFile)
-{
-	throw new Error();
-}
-
-// console.log(3)
-oom.test();
+const operatorSymbolsFile = project.getSourceFile(OPERATOR_SYMBOLS_FILE);
+const operatorSymbols = new Map<VariableDeclaration, SyntaxKind>(
+	operatorSymbolsFile!
+		.getVariableDeclarations()
+		.filter((decl) => decl.getInitializer()?.getText().startsWith("Symbol"))
+		.map((decl) => [decl, operatorMap[decl.getName() as OperatorName]])
+);
