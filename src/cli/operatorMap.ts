@@ -32,4 +32,8 @@ export const operatorMap = {
 } as const;
 
 export type OperatorName = keyof typeof operatorMap;
+export const operatorSyntaxKinds = Object.values(operatorMap);
 export type OperatorSyntaxKind = typeof operatorMap[OperatorName];
+
+export const isOperatorSyntaxKind = (syntaxKind: SyntaxKind): syntaxKind is OperatorSyntaxKind =>
+	operatorSyntaxKinds.includes(syntaxKind as OperatorSyntaxKind);
