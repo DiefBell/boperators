@@ -14,7 +14,7 @@ const testFiles = [
 	path.join(testFilesRoot, "Vector3.ts"),
 	path.join(testFilesRoot, "test.ts"),
 	// uncomment this to check error logging is working correctly
-	path.join(testFilesRoot, "BadVector3.ts"),
+	// path.join(testFilesRoot, "BadVector3.ts"),
 ];
 
 const project = new TsMorphProject();
@@ -64,14 +64,17 @@ binaryExpressions.forEach((expression) =>
 	const overloadDesc = overloadsForLhs.get(rightType);
 	if (!overloadDesc) return; // No overloads for this RHS type
 
-	const { className, propName, index, isStatic } = overloadDesc;
+	const { classDecl, propSymbol, index, isStatic } = overloadDesc;
+
+	const className = classDecl.getName();
+	const propName = propSymbol.getName();
 
 	const overloadCall = isStatic
-		? `${className}${propName}[${index}](${lhs.getText()}, ${rhs.getText()})`
-		: `${lhs.getText()}${propName}[${index}](${rhs.getText()})`;
+		? `${className}[${propName}][${index}](${lhs.getText()}, ${rhs.getText()})`
+		: `${lhs.getText()}[${propName}][${index}](${rhs.getText()})`;
 
 	expression.replaceWithText(overloadCall);
 });
 
 // Print the modified content to the console
-// console.log(testFile.getFullText());
+console.log(testFile.getFullText());

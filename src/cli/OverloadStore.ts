@@ -3,6 +3,7 @@ import {
 	type Symbol as AstSymbol,
 	SyntaxKind,
 	Node,
+	type ClassDeclaration,
 } from "ts-morph";
 import { comparisonOperators, instanceOperators, operatorMap, type OperatorName, type OperatorSyntaxKind } from "./operatorMap";
 import * as path from "path";
@@ -20,8 +21,8 @@ type LhsTypeName = string;
 type RhsTypeName = string;
 type OverloadDescription = {
 	isStatic: boolean;
-	className: string;
-	propName: string;
+	classDecl: ClassDeclaration;
+	propSymbol: AstSymbol;
 	index: number;
 };
 
@@ -243,8 +244,8 @@ export class OverloadStore extends Map<
 
 					lhsMap.set(rhsType, {
 						isStatic,
-						className: classType,
-						propName: property.getName(),
+						classDecl,
+						propSymbol: symbol,
 						index,
 					});
 					operatorOverloads.set(lhsType, lhsMap);
