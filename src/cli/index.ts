@@ -54,6 +54,10 @@ binaryExpressions.forEach((expression) =>
 	{
 		rightType = "number";
 	}
+	else if (rhs.getKind() !== SyntaxKind.StringLiteral && (rightType === "true" || rightType === "false"))
+	{
+		rightType = "boolean";
+	}
 
 	const overloadsForOperator = overloadStore.get(operatorKind);
 	if (!overloadsForOperator) return; // No overloads for this operator
