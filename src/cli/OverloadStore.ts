@@ -4,8 +4,9 @@ import {
 	SyntaxKind,
 	Node,
 } from "ts-morph";
-import { operatorMap, type OperatorName, type OperatorSyntaxKind } from "./operatorMap";
+import { comparisonOperators, instanceOperators, operatorMap, type OperatorName, type OperatorSyntaxKind } from "./operatorMap";
 import * as path from "path";
+import { ErrorDescription, type ErrorManager } from "./ErrorManager";
 
 export const LIB_ROOT = path.join(
 	import.meta.dir, // consts
@@ -29,9 +30,13 @@ export class OverloadStore extends Map<
 	Map<LhsTypeName, Map<RhsTypeName, OverloadDescription>>
 >
 {
-	constructor(project: TsMorphProject)
+	private readonly _errorManager: ErrorManager;
+
+	constructor(project: TsMorphProject, errorManager: ErrorManager)
 	{
 		super();
+
+		this._errorManager = errorManager;
 
 		project.addSourceFileAtPath(OPERATOR_SYMBOLS_FILE);
 		const operatorSymbolsFile = project.getSourceFile(OPERATOR_SYMBOLS_FILE);
@@ -49,6 +54,15 @@ export class OverloadStore extends Map<
 					operatorMap[decl.getName() as OperatorName],
 				])
 		);
+
+		if (operatorSymbols.size === 0)
+		{
+			errorManager.addError(
+				"Failed to load operator symbols. "
+				+ "This may indicate that boperators is not correctly installed. Exiting..."
+			);
+			return;
+		}
 
 		const classes = project.getSourceFiles().flatMap((file) => file.getClasses());
 
@@ -88,15 +102,42 @@ export class OverloadStore extends Map<
 
 				// Resolve aliased symbol if necessary
 				symbol = symbol.getAliasedSymbol() ?? symbol;
+				const symbolText = symbol.getEscapedName();
 
 				const syntaxKind = operatorSymbols.get(symbol);
 				if (!syntaxKind) return; // Skip if not an operator symbol
 
+				if (
+					(isStatic && instanceOperators.has(syntaxKind))
+					|| (!isStatic && !instanceOperators.has(syntaxKind))
+				)
+				{
+					errorManager.addWarning(new ErrorDescription(
+						`Expected overload for operator ${symbolText} `
+						+ `to be ${isStatic ? "a static" : "an instance"} field.`,
+						property.getSourceFile().getFilePath(),
+						property.getStartLineNumber(),
+						property.getText().split("\n")[0]
+					));
+					return;
+				}
+
 				const initializer = property.getInitializer();
-				if (!initializer || !Node.isArrayLiteralExpression(initializer)) return; // Ensure it's an array initializer
+				if (!initializer || !Node.isArrayLiteralExpression(initializer))
+				{
+					errorManager.addWarning(new ErrorDescription(
+						`Overload field for operator ${symbolText} `
+						+ "must be an array of overload functions.",
+						expression.getSourceFile().getFilePath(),
+						expression.getStartLineNumber(),
+						this._minifyString(expression.getText())
+					));
+					return;
+				}
 
 				initializer.getElements().forEach((element, index) =>
 				{
+					let hasWarning = false;
 					// Explicitly check for function-like node kinds
 					if (
 						!element.isKind(SyntaxKind.ArrowFunction)
@@ -104,7 +145,13 @@ export class OverloadStore extends Map<
 						&& !element.isKind(SyntaxKind.FunctionDeclaration)
 					)
 					{
-						return; // Skip non-function nodes
+						errorManager.addWarning(new ErrorDescription(
+							`Expected overload ${index} for operator ${symbolText} to be a function.`,
+							element.getSourceFile().getFilePath(),
+							element.getStartLineNumber(),
+							this._minifyString(element.getText())
+						));
+						return;
 					}
 
 					const parameters = element.getParameters();
@@ -112,29 +159,70 @@ export class OverloadStore extends Map<
 					{
 						if (parameters.length !== 2)
 						{
-							throw new Error(
-								`Function ${element.getText()} must have two parameters for LHS and RHS`
-							);
+							errorManager.addWarning(new ErrorDescription(
+								`Overload function ${index} for operator ${symbolText} `
+								+ "must have two parameters for LHS and RHS.",
+								property.getSourceFile().getFilePath(),
+								property.getStartLineNumber(),
+								this._minifyString(element.getText())
+							));
+							hasWarning = true;
 						}
 					}
 					else
 					{
 						if (parameters.length !== 1)
 						{
-							throw new Error(
-								`Function ${element.getText()} must have one parameter for RHS`
-							);
+							errorManager.addWarning(new ErrorDescription(
+								`Overload function ${element.getText()} for operator ${symbolText} `
+								+ "must have exactly one parameter for the RHS.",
+								property.getSourceFile().getFilePath(),
+								property.getStartLineNumber(),
+								this._minifyString(element.getText())
+							));
+							hasWarning = true;
 						}
 					}
 
-					const lhsType = isStatic ? parameters[0].getType().getText() : classType;
-					const rhsType = isStatic ? parameters[1].getType().getText() : parameters[0].getType().getText();
+					const lhsType = isStatic ? parameters[0]?.getType().getText() : classType;
+					const rhsType = isStatic ? parameters[1]?.getType().getText() : parameters[0]?.getType().getText();
 
 					if (isStatic && lhsType !== classType && rhsType !== classType)
 					{
-						throw new Error(
-							`Function ${element.getText()} must have either LHS or RHS matching the class type '${classType}'`
-						);
+						errorManager.addWarning(new ErrorDescription(
+							`Overload for operator ${symbolText} `
+							+ "must have either LHS or RHS parameter matching its class type.",
+							property.getSourceFile().getFilePath(),
+							property.getStartLineNumber(),
+							this._minifyString(element.getText())
+						));
+						hasWarning = true;
+					}
+
+					const returnType = element.getReturnType().getText();
+
+					if (comparisonOperators.has(syntaxKind) && returnType !== "boolean")
+					{
+						errorManager.addWarning(new ErrorDescription(
+							`Overload function ${index} for comparison operator ${symbolText} `
+							+ `must have a return type of 'boolean', got '${returnType}'.`,
+							property.getSourceFile().getFilePath(),
+							property.getStartLineNumber(),
+							this._minifyString(element.getText())
+						));
+						hasWarning = true;
+					}
+
+					if (!isStatic && returnType !== "void")
+					{
+						errorManager.addWarning(new ErrorDescription(
+							`Overload function ${index} for instance operator ${symbolText} `
+							+ `must have a return type of 'void', got '${returnType}'.`,
+							property.getSourceFile().getFilePath(),
+							property.getStartLineNumber(),
+							this._minifyString(element.getText())
+						));
+						hasWarning = true;
 					}
 
 					const operatorOverloads = this.get(syntaxKind) ?? new Map<LhsTypeName, Map<RhsTypeName, OverloadDescription>>();
@@ -142,10 +230,16 @@ export class OverloadStore extends Map<
 
 					if (lhsMap.has(rhsType))
 					{
-						throw new Error(
-							`Duplicate overload for operator ${SyntaxKind[syntaxKind]} with LHS type ${lhsType} and RHS type ${rhsType}`
-						);
+						errorManager.addWarning(new ErrorDescription(
+							`Duplicate overload for operator ${symbolText} with LHS type ${lhsType} and RHS type ${rhsType}`,
+							property.getSourceFile().getFilePath(),
+							property.getStartLineNumber(),
+							this._minifyString(element.getText())
+						));
+						hasWarning = true;
 					}
+
+					if (hasWarning) return;
 
 					lhsMap.set(rhsType, {
 						isStatic,
@@ -158,6 +252,11 @@ export class OverloadStore extends Map<
 				});
 			});
 		});
+	}
+
+	private _minifyString(str: string): string
+	{
+		return str.replace(/\s+/g, " ").replace("\n", "").trim();
 	}
 
 	public override toString()

@@ -2,6 +2,7 @@ import * as path from "path";
 import { Project as TsMorphProject, SyntaxKind } from "ts-morph";
 import { OverloadStore } from "./OverloadStore";
 import { isOperatorSyntaxKind } from "./operatorMap";
+import { ErrorManager } from "./ErrorManager";
 
 const testFilesRoot = path.join(
 	import.meta.dir,
@@ -10,17 +11,18 @@ const testFilesRoot = path.join(
 	"test"
 );
 const testFiles = [
-	path.join(testFilesRoot, "vector3.ts"),
+	path.join(testFilesRoot, "Vector3.ts"),
 	path.join(testFilesRoot, "test.ts"),
+	// uncomment this to check error logging is working correctly
+	path.join(testFilesRoot, "BadVector3.ts"),
 ];
 
-// Initialise the ts-morph project
 const project = new TsMorphProject();
 project.addSourceFilesAtPaths(testFiles);
 
-// Get all overloads
-const overloadStore = new OverloadStore(project);
-// console.log(overloadStore.toString());
+const errorManager = new ErrorManager(process.argv.includes("--error-on-warning"));
+const overloadStore = new OverloadStore(project, errorManager);
+errorManager.throwIfErrorsElseLogWarnings();
 
 // Process the test.ts file
 const testFile = project.getSourceFileOrThrow(testFiles[1]);
@@ -31,13 +33,9 @@ const binaryExpressions = testFile.getDescendantsOfKind(
 
 binaryExpressions.forEach((expression) =>
 {
-	const text = expression.getText();
-	console.log(text);
-
 	const operatorKind = expression.getOperatorToken().getKind();
 	if (!isOperatorSyntaxKind(operatorKind))
 	{
-		console.log(`Operator kind ${SyntaxKind[operatorKind]} is not an operator we care about`);
 		return; // Not an operator we care about
 	}
 
@@ -76,4 +74,4 @@ binaryExpressions.forEach((expression) =>
 });
 
 // Print the modified content to the console
-console.log(testFile.getFullText());
+// console.log(testFile.getFullText());

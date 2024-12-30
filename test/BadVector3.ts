@@ -1,37 +1,41 @@
 import { PLUS as ADD, PLUS_EQUALS } from "../src/lib/index";
 import * as ops from "../src/lib/index";
 
-export class Vector3
+export class BadVector3
 {
-	public static readonly [ops.MULTIPLY] = [
-		(lhs: Vector3, rhs: number) =>
-			new Vector3(lhs.x * rhs, lhs.y * rhs, lhs.y * rhs),
+	public readonly [ops.MULTIPLY] = [
+		(lhs: BadVector3, rhs: number) =>
+			new BadVector3(lhs.x * rhs, lhs.y * rhs, lhs.y * rhs),
 	];
+
+	public [ops.DIVIDE] = 5;
 
 	public static readonly [ADD] = [
-		function addAnotherVec3(lhs: Vector3, rhs: Vector3)
+		"NOT A FUNCTION",
+		function addAnotherVec3(lhs: number, rhs: number)
 		{
-			return new Vector3(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
+			return lhs + rhs;
 		},
-		function (lhs: Vector3, rhs: number)
+		function (lhs: BadVector3, rhs: number)
 		{
-			return new Vector3(lhs.x + rhs, lhs.y + rhs, lhs.z + rhs);
+			return new BadVector3(lhs.x + rhs, lhs.y + rhs, lhs.z + rhs);
 		},
 	];
 
-	public readonly [PLUS_EQUALS] = [
-		function addAnotherVec3(rhs: Vector3)
+	public static readonly [PLUS_EQUALS] = [
+		function addAnotherVec3(rhs: BadVector3)
 		{
 			this.x += rhs.x;
 			this.y += rhs.y;
 			this.z += rhs.z;
+			return rhs;
 		},
 	];
 
 	public static readonly [ops.GREATER_THAN_EQUALS] = [
-		function (lhs: Vector3, rhs: Vector3)
+		function (lhs: BadVector3)
 		{
-			return lhs.magnitude() >= rhs.magnitude();
+			return lhs.x;
 		},
 	];
 

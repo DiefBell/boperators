@@ -19,6 +19,7 @@ const config = {
 				multilineDetection: "brackets",
 			},
 		],
+		"@stylistic/indent-binary-ops": ["warn", "tab"],
 	},
 };
 

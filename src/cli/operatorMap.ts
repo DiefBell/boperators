@@ -37,3 +37,31 @@ export type OperatorSyntaxKind = typeof operatorMap[OperatorName];
 
 export const isOperatorSyntaxKind = (syntaxKind: SyntaxKind): syntaxKind is OperatorSyntaxKind =>
 	operatorSyntaxKinds.includes(syntaxKind as OperatorSyntaxKind);
+
+/**
+ * Set of which operators whose overloads should be instance operators
+ * i.e. operate on the LHS object.
+ * These should return void.
+ */
+export const instanceOperators = new Set<OperatorSyntaxKind>([
+	operatorMap.INSTANCE_OF,
+	operatorMap.IN,
+	operatorMap.PLUS_EQUALS,
+	operatorMap.MINUS_EQUALS,
+	operatorMap.MULTIPLY_EQUALS,
+	operatorMap.DIVIDE_EQUALS,
+]);
+
+/**
+ * Set of operators where the expected return type of their overload is a boolean.
+ */
+export const comparisonOperators = new Set<OperatorSyntaxKind>([
+	operatorMap.GREATER_THAN,
+	operatorMap.GREATER_THAN_EQUALS,
+	operatorMap.LESS_THAN,
+	operatorMap.LESS_THAN_EQUALS,
+	operatorMap.EQUALS,
+	operatorMap.STRICT_EQUALS,
+	operatorMap.NOT_EQUALS,
+	operatorMap.STRICT_NOT_EQUALS,
+]);
