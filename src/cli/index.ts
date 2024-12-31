@@ -48,6 +48,17 @@ const getImportedNameForSymbol = (sourceFile: SourceFile, symbol: AstSymbol): st
 {
 	const aliasedSymbol = symbol.getAliasedSymbol() ?? symbol;
 
+	// Helper function to compare symbols by their declarations
+	const symbolsAreEquivalent = (a: AstSymbol | undefined, b: AstSymbol | undefined): boolean =>
+	{
+		if (!a || !b) return false;
+		const aDecls = a.getDeclarations();
+		const bDecls = b.getDeclarations();
+		if (aDecls.length !== bDecls.length) return false;
+		return aDecls.every((aDecl, i) => aDecl.getSourceFile() === bDecls[i].getSourceFile()
+			&& aDecl.getStart() === bDecls[i].getStart());
+	};
+
 	// Get all import declarations in the source file
 	const importDeclarations = sourceFile.getImportDeclarations();
 
@@ -58,7 +69,7 @@ const getImportedNameForSymbol = (sourceFile: SourceFile, symbol: AstSymbol): st
 		for (const namedImport of namedImports)
 		{
 			const importedSymbol = namedImport.getSymbol();
-			if (importedSymbol && importedSymbol.getAliasedSymbol() === aliasedSymbol)
+			if (symbolsAreEquivalent(importedSymbol?.getAliasedSymbol(), aliasedSymbol))
 			{
 				return namedImport.getAliasNode()?.getText() ?? namedImport.getNameNode().getText();
 			}
@@ -69,7 +80,7 @@ const getImportedNameForSymbol = (sourceFile: SourceFile, symbol: AstSymbol): st
 		if (defaultImport)
 		{
 			const defaultSymbol = defaultImport.getSymbol()?.getAliasedSymbol();
-			if (defaultSymbol === aliasedSymbol)
+			if (symbolsAreEquivalent(defaultSymbol, aliasedSymbol))
 			{
 				// Return the default import name
 				return defaultImport.getText();
@@ -87,7 +98,8 @@ const getImportedNameForSymbol = (sourceFile: SourceFile, symbol: AstSymbol): st
 				const exports = namespaceSymbol.getAliasedSymbol()?.getExports() ?? [];
 				for (const exportedSymbol of exports)
 				{
-					if (exportedSymbol.getAliasedSymbol() === aliasedSymbol)
+					const resolvedExportedSymbol = exportedSymbol.getAliasedSymbol() ?? exportedSymbol;
+					if (symbolsAreEquivalent(resolvedExportedSymbol, aliasedSymbol))
 					{
 						// Return namespace-qualified name (e.g., v3.Vector3)
 						return `${namespaceImport.getText()}.${exportedSymbol.getName()}`;
