@@ -23,6 +23,7 @@ const config = {
 		"@stylistic/indent": ["warn", "tab", {
 			offsetTernaryExpressions: true,
 		}],
+		"arrow-body-style": ["off"],
 	},
 };
 

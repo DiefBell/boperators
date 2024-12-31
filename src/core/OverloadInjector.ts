@@ -1,4 +1,4 @@
-import { SyntaxKind, type Project as TsMorphProject } from "ts-morph";
+import { type SourceFile, SyntaxKind, type Project as TsMorphProject } from "ts-morph";
 import type { OverloadStore } from "./OverloadStore";
 import { isOperatorSyntaxKind } from "./operatorMap";
 import { getModuleSpecifier } from "./helpers/getModuleSpecifier";
@@ -19,7 +19,7 @@ export class OverloadInjector
 	{
 	}
 
-	public overloadFile(filePath: string)
+	public overloadFile(filePath: string): SourceFile
 	{
 		const sourceFile = this._project.getSourceFileOrThrow(filePath);
 
@@ -94,5 +94,7 @@ export class OverloadInjector
 
 			expression.replaceWithText(overloadCall);
 		});
+
+		return sourceFile;
 	}
 }

@@ -5,6 +5,7 @@ import {
 	type Identifier,
 	SyntaxKind,
 	Node,
+	SourceFile,
 } from "ts-morph";
 import {
 	type OperatorName,
@@ -90,9 +91,9 @@ export class OverloadStore extends Map<
 		}
 	}
 
-	public addOverloadsFromFile(filePath: string)
+	public addOverloadsFromFile(file: string | SourceFile)
 	{
-		const sourceFile = this._project.getSourceFileOrThrow(filePath);
+		const sourceFile = file instanceof SourceFile ? file : this._project.getSourceFileOrThrow(file);
 		const classes = sourceFile.getClasses();
 
 		classes.forEach((classDecl) =>
