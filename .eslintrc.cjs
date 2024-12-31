@@ -20,6 +20,9 @@ const config = {
 			},
 		],
 		"@stylistic/indent-binary-ops": ["warn", "tab"],
+		"@stylistic/indent": ["warn", "tab", {
+			offsetTernaryExpressions: true,
+		}],
 	},
 };
 

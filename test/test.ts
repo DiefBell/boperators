@@ -1,9 +1,9 @@
-import { Vector3 } from "./vector3";
+import * as V3 from "./vector3";
 
-const v1 = new Vector3(1, 2, 3);
-const v2 = new Vector3(7, 10, 13);
+const v1 = new V3.Vector3(1, 2, 3);
+const v2 = new V3.Vector3(7, 10, 13);
 
-let v3: Vector3 = v1 + v2;
+let v3: V3.default = v1 + v2;
 console.log(v3);
 
 v3 += v1;

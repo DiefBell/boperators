@@ -4,6 +4,7 @@ import {
 	SyntaxKind,
 	Node,
 	type ClassDeclaration,
+	type Identifier,
 } from "ts-morph";
 import { comparisonOperators, instanceOperators, operatorMap, type OperatorName, type OperatorSyntaxKind } from "./operatorMap";
 import * as path from "path";
@@ -22,7 +23,7 @@ type RhsTypeName = string;
 type OverloadDescription = {
 	isStatic: boolean;
 	classDecl: ClassDeclaration;
-	propSymbol: AstSymbol;
+	propIdentifier: Identifier;
 	index: number;
 };
 
@@ -83,24 +84,15 @@ export class OverloadStore extends Map<
 
 				const expression = nameNode.getExpression();
 
-				let symbol: AstSymbol | undefined;
-				if (expression.isKind(SyntaxKind.Identifier))
-				{
-					symbol = expression.getSymbol();
-				}
-				else if (expression.isKind(SyntaxKind.PropertyAccessExpression))
-				{
-					const propNameNode = expression.getNameNode();
-					if (!Node.isIdentifier(propNameNode)) return;
-					symbol = propNameNode.getSymbol();
-				}
-				else
-				{
-					return;
-				}
+				const propIdentifier = expression.isKind(SyntaxKind.Identifier)
+					? expression
+					: expression.isKind(SyntaxKind.PropertyAccessExpression)
+						? expression.getNameNode()
+						: null;
+				if (!propIdentifier) return;
 
+				let symbol = propIdentifier.getSymbol();
 				if (!symbol) return;
-
 				// Resolve aliased symbol if necessary
 				symbol = symbol.getAliasedSymbol() ?? symbol;
 				const symbolText = symbol.getEscapedName();
@@ -245,7 +237,7 @@ export class OverloadStore extends Map<
 					lhsMap.set(rhsType, {
 						isStatic,
 						classDecl,
-						propSymbol: symbol,
+						propIdentifier,
 						index,
 					});
 					operatorOverloads.set(lhsType, lhsMap);
