@@ -1,4 +1,4 @@
-import { type SourceFile, SyntaxKind, type Project as TsMorphProject } from "ts-morph";
+import { SourceFile, SyntaxKind, type Project as TsMorphProject } from "ts-morph";
 import type { OverloadStore } from "./OverloadStore";
 import { isOperatorSyntaxKind } from "./operatorMap";
 import { getModuleSpecifier } from "./helpers/getModuleSpecifier";
@@ -19,9 +19,9 @@ export class OverloadInjector
 	{
 	}
 
-	public overloadFile(filePath: string): SourceFile
+	public overloadFile(file: string | SourceFile): SourceFile
 	{
-		const sourceFile = this._project.getSourceFileOrThrow(filePath);
+		const sourceFile = file instanceof SourceFile ? file : this._project.getSourceFileOrThrow(file);
 
 		const binaryExpressions = sourceFile.getDescendantsOfKind(
 			SyntaxKind.BinaryExpression

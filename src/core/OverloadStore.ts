@@ -18,7 +18,7 @@ import * as path from "path";
 import { type ErrorManager, ErrorDescription } from "./ErrorManager";
 
 export const LIB_ROOT = path.join(
-	import.meta.dir, // consts
+	__dirname, // consts
 	"..", // src
 	"lib"
 );
@@ -56,6 +56,7 @@ export class OverloadStore extends Map<
 	private readonly _project: TsMorphProject;
 	private readonly _errorManager: ErrorManager;
 	private readonly _operatorSymbols: Map<AstSymbol, OperatorSyntaxKind>;
+	private readonly _parsedFiles: Set<SourceFile> = new Set();
 
 	constructor(project: TsMorphProject, errorManager: ErrorManager)
 	{
@@ -94,6 +95,9 @@ export class OverloadStore extends Map<
 	public addOverloadsFromFile(file: string | SourceFile)
 	{
 		const sourceFile = file instanceof SourceFile ? file : this._project.getSourceFileOrThrow(file);
+		if (this._parsedFiles.has(sourceFile)) return;
+		this._parsedFiles.add(sourceFile);
+
 		const classes = sourceFile.getClasses();
 
 		classes.forEach((classDecl) =>

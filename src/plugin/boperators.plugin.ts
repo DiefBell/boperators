@@ -33,8 +33,8 @@ const boperatorsPlugin: BunPlugin = {
 
 			const updatedSourceFile = overloadInjector.overloadFile(args.path);
 
-			const contents = updatedSourceFile.getFullText();
-			console.log(contents);
+			const emitResult = project.emitToMemory({ targetSourceFile: updatedSourceFile });
+			const contents = emitResult.getFiles()[0]?.text;
 
 			return {
 				contents,

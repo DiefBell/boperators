@@ -2,10 +2,13 @@
 	"name": "boperators",
 	"module": "index.ts",
 	"type": "module",
+	"version": "0.1.0",
+	"license": "MIT",
 	"scripts": {
+		"build": "tsc",
+		"prepublish": "rm *.g.tz; bun run build && bun pm pack",
 		"lint": "bun eslint ./src/**/*.ts",
-		"lint:fix": "bun lint --fix",
-		"run-test": "bun run ./src/cli"
+		"lint:fix": "bun lint --fix"
 	},
 	"devDependencies": {
 		"@dief/prefs": "github:DiefBell/prefs#1.1.0",
@@ -15,6 +18,17 @@
 		"typescript": "^5.5.4"
 	},
 	"dependencies": {
+		"@commander-js/extra-typings": "^13.0.0",
 		"ts-morph": "^24.0.0"
-	}
+	},
+	"bin": {
+		"bop": "bin/index.js",
+		"boperate": "bin/index.js"
+	},
+	"files": [
+		"package.json",
+		"license.txt",
+		"README.md",
+		"dist"
+	]
 }

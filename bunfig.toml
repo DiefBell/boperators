@@ -1,2 +1,0 @@
-# preload = ["./src/plugin/basic.plugin.ts"]
-preload = ["./src/plugin/boperators.plugin.ts"]
