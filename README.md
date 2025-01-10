@@ -80,8 +80,8 @@ The CLI can be used to generate your JavaScript files
 | STRICT_NOT_EQUALS     | `!==`     | yes       |
 | AND                   | `&&`      | yes       |
 | AND_EQUALS            | `&&=`     | no        |
-| OR                    | `\|\|`      | yes       |
-| OR_EQUALS             | `\|\|=`     | no        |
+| OR                    | `\|\|`    | yes       |
+| OR_EQUALS             | `\|\|=`   | no        |
 | IN                    | `in`      | no        |
 | INSTANCEOF            | `instanceof` | no     |
 
@@ -100,7 +100,7 @@ readonly [INSTANCEOF] = [
 ## Creating Libraries with Overloads
 Currently, doing this is completely untested. I think it'll work, but that's because currently we check every single dependency, including whatever's in `node_modules` (I think? Who knows.)
 
-When creating a library that uses `boperators` and offers use of these overloads to your library's users, you'll need to add `boperators` as a **peer dependency**, not as a regular dependency.
+When creating a library that uses `boperators` and offers use of these overloads to your library's users, you'll need to add `boperators` as a **peer dependency**, not as a regular dependency, otherwise there's a risk of having two separate versions of `boperators` in the project and the operator Symbols won't be the same.
 
 ## API
 ToDo
