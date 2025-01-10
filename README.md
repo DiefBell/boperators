@@ -13,7 +13,7 @@ To define an operator overload, import an operator symbol, use it as the name fo
 This uses an arrow function to overload adding two vectors together using `v1 + v2`, an anonymous function to overload adding a vector to the current one using `v3 += v4`, and a named function for multiplying by a number `v5 *= 10`. Note how the overload fields are arrays: you can define multiple overloads for different types, and `boperators` will then insert the correct one!
 
 ```typescript
-import { PLUS, PLUS_EQUALS } from "boperators";
+import { PLUS, PLUS_EQUALS, MULTIPLY_EQUALS } from "boperators";
 
 class Vector3 {
     public x: number;
@@ -104,8 +104,7 @@ $> boperate --ts-out --js-out --project ./tsconfig.custom.json
 | INSTANCEOF            | `instanceof` | yes    |
 
 ### InstanceOf
-The `instanceof` overload is a special case. It's essentially just shorthand for a typeguard. Define it as any other typeguard function,
-and `boperators` will work out which to use:
+The `instanceof` overload is a special case. It's essentially just shorthand for a typeguard. Define it as any other typeguard function, and `boperators` will work out which to use based on the `is <TYPE>`.
 ```typescript
 static readonly [INSTANCEOF] = [
     // Kinda contrived example
