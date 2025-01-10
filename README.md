@@ -136,5 +136,3 @@ ToDo
 ### Conflicts
 When first parsing your operator overloads, if there are any overloads with matching types for the left- and right-hand side respectively then a warning will be shows.
 If the operator overload is then needed anywhere, then no JavaScript can be generated. TypeScript will still be generated, which is helpful for debugging, but this also cannot be run.
-
-If you have a conflict where both sides of your overload function have the same type, e.g. adding two `Vector3`s together then `this` will refer to the one on the left-hand side of the operator.
