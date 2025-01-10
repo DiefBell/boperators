@@ -117,22 +117,6 @@ ToDo
 - `instanceof` doesn't work yet
 
 
-
-
-If you need to define an operator overload where the current class will be on the right-hand-side,
-just put two parameters in your overload function with the type of the second being `this`.
-```typescript
-import * as bops from "boperators";
-
-class Vector3 {
-    [bops.DIVIDE]: {
-        "Divide a scalar by this": function (lhs: number, rhs: this) {
-            return new Vector3(lhs / rhs.x, lhs / rhs.y, lhs / rhs.z);
-        }
-    }
-}
-```
-
 Once you've written your code, you can either compile it to a resolved TypeScript file (for debugging, or to directly run with `Bun`/`ts-node`),
 or transpile it to JavaScript to run with NodeJS:
 ```sh
