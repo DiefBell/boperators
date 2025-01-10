@@ -101,7 +101,7 @@ $> boperate --ts-out --js-out --project ./tsconfig.custom.json
 | OR                    | `\|\|`    | yes       |
 | OR_EQUALS             | `\|\|=`   | no        |
 | IN                    | `in`      | no        |
-| INSTANCEOF            | `instanceof` | yes    |
+| INSTANCEOF (NOT IMPLEMENTED)      | `instanceof` | yes |
 
 ### InstanceOf
 The `instanceof` overload is a special case. It's essentially just shorthand for a typeguard. Define it as any other typeguard function, and `boperators` will work out which to use based on the `is <TYPE>`.
