@@ -83,16 +83,16 @@ The CLI can be used to generate your JavaScript files
 | OR                    | `\|\|`    | yes       |
 | OR_EQUALS             | `\|\|=`   | no        |
 | IN                    | `in`      | no        |
-| INSTANCEOF            | `instanceof` | no     |
+| INSTANCEOF            | `instanceof` | yes     |
 
 ### InstanceOf
 The `instanceof` overload is a special case. It's essentially just shorthand for a typeguard. Define it as any other typeguard function,
 and `boperators` will work out which to use:
 ```typescript
-readonly [INSTANCEOF] = [
+static readonly [INSTANCEOF] = [
     // Kinda contrived example
-    function(this: Vector3): this is UnitVector {
-        return this.magnitude === 1;
+    function(vec: Vector3): this is UnitVector {
+        return vec.magnitude === 1;
     }
 ];
 ```
