@@ -62,7 +62,8 @@ $> boperate src/**/*.ts -t ./debug -j ./debug -v
 
 `boperators` will respect your `tsconfig.json` file for input and output directories, or you can specify a specific `tsconfig.json`:
 ```sh
-$> boperate --ts-out --js-out --project ./tsconfig.custom.json # tell it we want both TypeScript and JavaScript output, else it won't output any files and just does a dry run.
+# tell it we want to output files, else it won't output any files and just does a dry run.
+$> boperate --ts-out --js-out --project ./tsconfig.custom.json 
 ```
 
 | Argument 	| Aliases	| Description                                       |
