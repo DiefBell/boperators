@@ -109,7 +109,7 @@ and `boperators` will work out which to use:
 ```typescript
 static readonly [INSTANCEOF] = [
     // Kinda contrived example
-    function(vec: Vector3): this is UnitVector {
+    function(vec: Vector3): vec is UnitVector {
         return vec.magnitude === 1;
     }
 ];
