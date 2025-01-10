@@ -80,8 +80,8 @@ The CLI can be used to generate your JavaScript files
 | STRICT_NOT_EQUALS     | `!==`     | yes       |
 | AND                   | `&&`      | yes       |
 | AND_EQUALS            | `&&=`     | no        |
-| OR                    | `||`      | yes       |
-| OR_EQUALS             | `||=`     | no        |
+| OR                    | `\|\|`      | yes       |
+| OR_EQUALS             | `\|\|=`     | no        |
 | IN                    | `in`      | no        |
 | INSTANCEOF            | `instanceof` | no     |
 
