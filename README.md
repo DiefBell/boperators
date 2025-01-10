@@ -53,7 +53,24 @@ preload = ["./node_modules/boperators/dist/plugin/index.js"]
 ```
 
 ## CLI
-The CLI can be used to generate your JavaScript files 
+
+The CLI can be used to either generate out JavaScript files, or TypeScript files for debugging, futher processing, or just running directly with a tool such as Bun or TS-Node.
+```sh
+$> boperate src/**/*.ts --ts-out ./debug --js-out ./build --verbose
+$> boperate src/**/*.ts -t ./debug -j ./debug -v
+```
+
+`boperators` will respect your `tsconfig.json` file for input and output directories, or you can specify a specific `tsconfig.json`:
+```sh
+$> boperate --ts-out --js-out --project ./tsconfig.custom.json # tell it we want both TypeScript and JavaScript output, else it won't output any files and just does a dry run.
+```
+
+| Argument 	| Aliases	| Description                                       |
+|----------	|--------	|---------------------------------------------------|
+| --ts-out 	| -t      	| Output directory for TypeScript files.            |
+| --js-out 	| -j      	| Output directory for transpiled JavaScript files.	|
+| --project	| -p		| Path to `tsconfig` file to use.					|
+| --verbose | -v		| Verbose output (not yet implemented.)				|
 
 
 ## Supported Operators
@@ -83,7 +100,7 @@ The CLI can be used to generate your JavaScript files
 | OR                    | `\|\|`    | yes       |
 | OR_EQUALS             | `\|\|=`   | no        |
 | IN                    | `in`      | no        |
-| INSTANCEOF            | `instanceof` | yes     |
+| INSTANCEOF            | `instanceof` | yes    |
 
 ### InstanceOf
 The `instanceof` overload is a special case. It's essentially just shorthand for a typeguard. Define it as any other typeguard function,
@@ -115,20 +132,6 @@ ToDo
 - Check how type unions work in the overloading
 - Address inheritence when checking overload typings
 - `instanceof` doesn't work yet
-
-
-Once you've written your code, you can either compile it to a resolved TypeScript file (for debugging, or to directly run with `Bun`/`ts-node`),
-or transpile it to JavaScript to run with NodeJS:
-```sh
-$> boperate src/**/*.ts --ts-out ./debug --js-out ./build --verbose
-$> boperate src/**/*.ts -t ./debug -j ./debug -v
-```
-
-Boperators will also respect your `tsconfig.json` file for input and output directories if you specify a directory containing one:
-```sh
-$> boperate . --ts-out --js-out # tell it we want both TypeScript and JavaScript output, else it won't output any files and just does a dry run.
-```
-
 
 ### Conflicts
 When first parsing your operator overloads, if there are any overloads with matching types for the left- and right-hand side respectively then a warning will be shows.
