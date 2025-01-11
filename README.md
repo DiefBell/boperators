@@ -5,7 +5,7 @@
 
 </center>
 
-`boperators` is a package to allow you to "overload" operators (`+-/*`) in your TypeScript classes, similar to what a lot of other languages allow.
+`boperators` is a package to allow you to "overload" operators, e.g. -, *, +=, etc, in your TypeScript classes, similar to what a lot of other languages allow.
 To define an operator overload, import an operator symbol, use it as the name for a property in your class, and define your overrides!
 
 ## Basic example
