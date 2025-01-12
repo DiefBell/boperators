@@ -17,8 +17,6 @@ const boperatorsPlugin: BunPlugin = {
 
 		build.onLoad({ filter: /\.ts$/ }, async (args) =>
 		{
-			console.log("Loading file at path", args.path);
-
 			project.addSourceFileAtPath(args.path);
 			const dependencies = project.resolveSourceFileDependencies();
 
@@ -33,13 +31,9 @@ const boperatorsPlugin: BunPlugin = {
 
 			const updatedSourceFile = overloadInjector.overloadFile(args.path);
 
-			const emitResult = project.emitToMemory({ targetSourceFile: updatedSourceFile });
-			const contents = emitResult.getFiles()[0]?.text;
+			const contents = updatedSourceFile.getFullText();
 
-			return {
-				contents,
-				loader: "ts",
-			};
+			return { contents, loader: "ts" };
 		});
 	},
 };

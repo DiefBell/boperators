@@ -6,9 +6,11 @@
 	"license": "MIT",
 	"scripts": {
 		"build": "tsc",
+		"watch": "tsc -w",
 		"prepublish": "rm *.g.tz; bun run build && bun pm pack",
 		"lint": "bun eslint ./src/**/*.ts",
-		"lint:fix": "bun lint --fix"
+		"lint:fix": "bun lint --fix",
+		"example": "cd example && bun run start"
 	},
 	"devDependencies": {
 		"@dief/prefs": "github:DiefBell/prefs#1.1.0",

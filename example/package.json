@@ -1,0 +1,14 @@
+{
+  "name": "@boperators/example",
+  "module": "src/index.ts",
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "start": "bun run ./src/index.ts"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "^1.1.16"
+  }
+}
