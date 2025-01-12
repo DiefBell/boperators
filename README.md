@@ -91,7 +91,7 @@ $> boperate --ts-out --js-out --project ./tsconfig.custom.json
 | LESS_THAN             | `<`       | yes       |
 | LESS_THAN_EQUALS      | `<=`      | yes       |
 | MODULO                | `%`       | yes       |
-| MODULE_EQUALS         | `%=`      | yes       |
+| MODULO_EQUALS         | `%=`      | yes       |
 | EQUALS                | `==`      | yes       |
 | STRICT_EQUALS         | `===`     | yes       |
 | NOT_EQUALS            | `!=`      | yes       |
