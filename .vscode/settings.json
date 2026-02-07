@@ -2,4 +2,7 @@
 	"editor.codeActionsOnSave": {
 		"source.fixAll.ts": "always"
 	},
+	"files.eol": "\n",
+  	"files.insertFinalNewline": true,
+  	"files.trimFinalNewlines": true
 }
