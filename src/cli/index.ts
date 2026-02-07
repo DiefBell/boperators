@@ -79,10 +79,16 @@ if (options.tsOut)
 		fs.mkdirSync(tsOutDir, { recursive: true });
 	}
 
+	// Use rootDir from tsconfig (falls back to tsconfig directory)
+	const compilerOptions = project.getCompilerOptions();
+	const rootDir = compilerOptions.rootDir
+		? path.resolve(path.dirname(tsConfigFilePath), compilerOptions.rootDir)
+		: path.dirname(tsConfigFilePath);
+
 	projectFiles.forEach((file) =>
 	{
 		const relativePath = path.relative(
-			path.dirname(tsConfigFilePath),
+			rootDir,
 			file.getFilePath()
 		);
 		const outPath = path.join(tsOutDir, relativePath);

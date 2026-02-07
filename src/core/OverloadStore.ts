@@ -50,7 +50,6 @@ export class OverloadStore extends Map<
 {
 	private readonly _project: TsMorphProject;
 	private readonly _errorManager: ErrorManager;
-	private readonly _operatorSymbols: Map<AstSymbol, OperatorSyntaxKind>;
 	private readonly _parsedFiles: Set<SourceFile> = new Set();
 
 	constructor(project: TsMorphProject, errorManager: ErrorManager)
@@ -60,31 +59,27 @@ export class OverloadStore extends Map<
 		this._project = project;
 		this._errorManager = errorManager;
 
+		// Add operator symbols file so ts-morph can resolve imports from it
 		project.addSourceFileAtPath(OPERATOR_SYMBOLS_FILE);
-		const operatorSymbolsFile = project.getSourceFile(OPERATOR_SYMBOLS_FILE);
-		this._operatorSymbols = new Map<AstSymbol, OperatorSyntaxKind>(
-			operatorSymbolsFile!
-				.getVariableDeclarations()
-				.filter((decl) => decl.getInitializer()?.getText().startsWith("Symbol"))
-				.filter(
-					(decl) =>
-						decl.getNameNode().isKind(SyntaxKind.Identifier)
-						&& !!decl.getNameNode().getSymbol()
-				)
-				.map((decl) => [
-					decl.getNameNode().getSymbol()!,
-					operatorMap[decl.getName() as OperatorName],
-				])
-		);
+	}
 
-		if (this._operatorSymbols.size === 0)
-		{
-			this._errorManager.addError(
-				"Failed to load operator symbols. "
-				+ "This may indicate that boperators is not correctly installed. Exiting..."
-			);
-			return;
-		}
+	/**
+	 * Checks if the given symbol (after alias resolution) is an operator symbol
+	 * by matching its name against the known operator names in operatorMap.
+	 */
+	public isOperatorSymbol(symbol: AstSymbol): boolean
+	{
+		const resolved = symbol.getAliasedSymbol() ?? symbol;
+		return Object.hasOwn(operatorMap, resolved.getName());
+	}
+
+	/**
+	 * Gets the OperatorSyntaxKind for the given symbol, or undefined if not an operator symbol.
+	 */
+	private _getOperatorSyntaxKind(symbol: AstSymbol): OperatorSyntaxKind | undefined
+	{
+		const name = symbol.getEscapedName();
+		return Object.hasOwn(operatorMap, name) ? operatorMap[name as OperatorName] : undefined;
 	}
 
 	public addOverloadsFromFile(file: string | SourceFile)
@@ -124,7 +119,7 @@ export class OverloadStore extends Map<
 				symbol = symbol.getAliasedSymbol() ?? symbol;
 				const symbolText = symbol.getEscapedName();
 
-				const syntaxKind = this._operatorSymbols.get(symbol);
+				const syntaxKind = this._getOperatorSyntaxKind(symbol);
 				if (!syntaxKind) return; // Skip if not an operator symbol
 
 				if (
@@ -311,15 +306,6 @@ export class OverloadStore extends Map<
 				});
 			});
 		});
-	}
-
-	/**
-	 * Checks if the given symbol (after alias resolution) is an operator symbol.
-	 */
-	public isOperatorSymbol(symbol: AstSymbol): boolean
-	{
-		const resolved = symbol.getAliasedSymbol() ?? symbol;
-		return this._operatorSymbols.has(resolved);
 	}
 
 	private _minifyString(str: string): string

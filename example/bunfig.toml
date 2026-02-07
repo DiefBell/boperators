@@ -1,1 +1,1 @@
-preload = ["../src/plugin/boperators.plugin.ts"]
+preload = ["../dist/plugin/boperators.plugin.js"]
