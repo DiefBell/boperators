@@ -116,11 +116,12 @@ ToDo
 - API
 - Inheritance
 - Ensure libraries work as expected
-- Maybe make the overload field an object so overloads have names? For debugging?
+- Log function names, if named functions.
 - Write tests, sort CI
 - Check how type unions work in the overloading
 - Address inheritence when checking overload typings
-- `instanceof` doesn't work yet
+- Inline function.
+- Use `.apply` to ensure instance functions are correctly bound?
 
 ### Conflicts
 When first parsing your operator overloads, if there are any overloads with matching types for the left- and right-hand side respectively then a warning will be shows.

@@ -10,7 +10,9 @@ export class Angle
 	}
 
 	public static readonly [MODULO] = [
-		// Return a new angle where the radians are the remainder of the division
+		/**
+		 * Return a new angle where the radians are the remainder of the division.
+		 */
 		(angle: Angle, rads: number): Angle =>
 		{
 			return new Angle(angle.radians % rads);
@@ -18,7 +20,9 @@ export class Angle
 	];
 
 	public readonly [MODULO_EQUALS] = [
-		// Set the radians to the remainder of the division
+		/**
+		 * Set the radians to the remainder of the division.
+		 */
 		(rads: number): void =>
 		{
 			this.radians %= rads;

@@ -14,7 +14,9 @@ export class Vector3
 	}
 
 	public static readonly [PLUS] = [
-		// add two Vec3s
+		/**
+		 * Add two Vec3s.
+		 */
 		(a: Vector3, b: Vector3) =>
 		{
 			return new Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
@@ -22,7 +24,9 @@ export class Vector3
 	];
 
 	public readonly [PLUS_EQUALS] = [
-		// add another Vec3 to this
+		/**
+		 * Add another Vec3 to this.
+		 */
 		(b: Vector3): void =>
 		{
 			this.x += b.x;
@@ -32,7 +36,9 @@ export class Vector3
 	];
 
 	public static readonly [MULTIPLY] = [
-		// The cross-product of two Vec3s
+		/**
+		 * The cross-product of two Vec3s.
+		 */
 		(a: Vector3, b: Vector3): Vector3 =>
 		{
 			return new Vector3(
@@ -41,7 +47,9 @@ export class Vector3
 				a.x * b.y - a.y * b.x
 			);
 		},
-		// Multiply a Vec3 by a scalar
+		/**
+		 * Multiply a Vec3 by a scalar.
+		 */
 		(a: Vector3, b: number): Vector3 =>
 		{
 			return new Vector3(a.x * b, a.y * b, a.z * b);
@@ -49,7 +57,9 @@ export class Vector3
 	] as const;
 
 	public readonly [MULTIPLY_EQUALS] = [
-		// Multiply this Vec3 by a scalar
+		/**
+		 * Multiply this Vec3 by a scalar.
+		 */
 		(a: number): void =>
 		{
 			this.x *= a;
@@ -59,7 +69,9 @@ export class Vector3
 	];
 
 	public static readonly [DIVIDE] = [
-		// Divide by a scalar
+		/**
+		 * Divide by a scalar.
+		 */
 		(a: Vector3, b: number): Vector3 =>
 		{
 			return new Vector3(a.x / b, a.y / b, a.z / b);
@@ -67,7 +79,9 @@ export class Vector3
 	];
 
 	public readonly [DIVIDE_EQUALS] = [
-		// Divide this Vec3 by a scalar
+		/**
+		 * Divide this Vec3 by a scalar.
+		 */
 		(a: number): void =>
 		{
 			this.x /= a;
@@ -77,7 +91,9 @@ export class Vector3
 	];
 
 	public static readonly [GREATER_THAN] = [
-		// lhs magnitude is greater than rhs magnitude
+		/** 
+		 * lhs magnitude is greater than rhs magnitude
+		 */
 		(a: Vector3, b: Vector3): boolean =>
 		{
 			return a.length() > b.length();
@@ -85,7 +101,9 @@ export class Vector3
 	];
 
 	public static readonly [GREATER_THAN_EQUAL_TO] = [
-		// lhs magnitude is greater than or equal to rhs magnitude
+		/**
+		 * lhs magnitude is greater than or equal to rhs magnitude
+		 */
 		(a: Vector3, b: Vector3): boolean =>
 		{
 			return a.length() >= b.length();
@@ -93,7 +111,9 @@ export class Vector3
 	];
 
 	public static readonly [LESS_THAN] = [
-		// lhs magnitude is less than rhs magnitude
+		/** 
+		 * lhs magnitude is less than rhs magnitude
+		 */
 		(a: Vector3, b: Vector3): boolean =>
 		{
 			return a.length() < b.length();
@@ -101,7 +121,9 @@ export class Vector3
 	];
 
 	public static readonly [LESS_THAN_EQUAL_TO] = [
-		// lhs magnitude is less than or equal to rhs magnitude
+		/**
+		 * lhs magnitude is less than or equal to rhs magnitude
+		 */
 		(a: Vector3, b: Vector3): boolean =>
 		{
 			return a.length() <= b.length();
@@ -109,7 +131,9 @@ export class Vector3
 	];
 
 	public static readonly [EQUALS] = [
-		// vectors' lenghs are equal
+		/**
+		 * vectors' lengths are equal
+		 */
 		(a: Vector3, b: Vector3): boolean =>
 		{
 			return a.length() === b.length();
@@ -117,7 +141,9 @@ export class Vector3
 	];
 
 	public static readonly [STRICT_EQUALS] = [
-		// vectors' components are equal
+		/**
+		 * vectors' components are equal
+		 */
 		(a: Vector3, b: Vector3): boolean =>
 		{
 			return a.x === b.x && a.y === b.y && a.z === b.z;
@@ -125,7 +151,9 @@ export class Vector3
 	];
 
 	public static readonly [NOT_EQUALS] = [
-		// vectors' lengths are not equal
+		/**
+		 * vectors' lengths are not equal
+		 */
 		(a: Vector3, b: Vector3): boolean =>
 		{
 			return a.length() !== b.length();
@@ -133,7 +161,9 @@ export class Vector3
 	];
 
 	public static readonly [STRICT_NOT_EQUALS] = [
-		// vectors' components are not equal
+		/**
+		 * vectors' components are not equal
+		 */
 		(a: Vector3, b: Vector3): boolean =>
 		{
 			return a.x !== b.x || a.y !== b.y || a.z !== b.z;
@@ -141,7 +171,9 @@ export class Vector3
 	];
 
 	public static readonly [AND] = [
-		// both vectors' magnitudes are greater than 0
+		/**
+		 * both vectors' magnitudes are greater than 0
+		 */
 		(a: Vector3, b: Vector3): boolean =>
 		{
 			return a.length() > 0 && b.length() > 0;
@@ -149,7 +181,9 @@ export class Vector3
 	];
 
 	public static readonly [AND_EQUALS] = [
-		// return b if magnitudes are both greater than zero, else return a
+		/**
+		 * return b if magnitudes are both greater than zero, else return a
+		 */
 		(a: Vector3, b: Vector3): Vector3 =>
 		{
 			return Vector3[AND][0] ? b : a;
@@ -157,7 +191,9 @@ export class Vector3
 	];
 
 	public static readonly [OR] = [
-		// either vector's magnitude is greater than 0
+		/**
+		 * either vector's magnitude is greater than 0
+		 */
 		(a: Vector3, b: Vector3): boolean =>
 		{
 			return a.length() > 0 || b.length() > 0;
@@ -165,7 +201,9 @@ export class Vector3
 	];
 
 	public static readonly [OR_EQUALS] = [
-		// return b if either magnitude is greater than zero, else return a
+		/**
+		 * return b if either magnitude is greater than zero, else return a
+		 */
 		(a: Vector3, b: Vector3): Vector3 =>
 		{
 			return Vector3[OR][0] ? b : a;

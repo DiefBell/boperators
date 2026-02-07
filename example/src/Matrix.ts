@@ -25,7 +25,9 @@ export class Matrix
 	}
 
 	public readonly [IN] = [
-		// check if a value exists in the matrix
+		/**
+		 * Check if a value exists in the matrix.
+		 */
 		(value: number): boolean =>
 		{
 			for (let row = 0; row < this.rows; row++)
@@ -41,7 +43,9 @@ export class Matrix
 
 			return false;
 		},
-		// check if a row or column exists in the matrix
+		/**
+		 * Check if a row or column exists in the matrix.
+		 */
 		(rowOrCol: number[]): boolean =>
 		{
 			if (rowOrCol.length !== this.cols)
