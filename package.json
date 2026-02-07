@@ -1,14 +1,11 @@
 {
 	"name": "boperators",
-	"module": "./dist/index.js",
+	"module": "./src/index.ts",
 	"type": "module",
 	"version": "0.1.0",
 	"license": "MIT",
 	"types": "./src/index.ts",
 	"scripts": {
-		"build": "tsc",
-		"watch": "tsc -w",
-		"prepublish": "rm *.g.tz; bun run build && bun pm pack",
 		"example": "cd example && bun run start"
 	},
 	"devDependencies": {
@@ -22,14 +19,13 @@
 		"ts-morph": "^24.0.0"
 	},
 	"bin": {
-		"bop": "bin/index.js",
-		"boperate": "bin/index.js"
+		"bop": "src/cli/index.ts",
+		"boperate": "src/cli/index.ts"
 	},
 	"files": [
 		"package.json",
 		"license.txt",
 		"README.md",
-		"dist",
-		"files"
+		"src"
 	]
 }

@@ -6,7 +6,8 @@
   },
   "scripts": {
     "start": "bun run ./src/index.ts",
-    "bop": "bun run ../dist/cli/index.js --ts-out ./transformed"
+    "bop": "rm -rf ./transformed && bun run ../src/cli/index.ts --ts-out ./transformed",
+    "start:transformed": "bun run ./transformed/src/index.ts"
   },
   "type": "module",
   "devDependencies": {

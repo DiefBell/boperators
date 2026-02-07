@@ -46,13 +46,25 @@ const errorManager = new ErrorManager(options.errorOnWarning);
 const overloadStore = new OverloadStore(project, errorManager);
 const overloadInjector = new OverloadInjector(project, overloadStore);
 
-const files = project.getSourceFiles();
+const allFiles = project.getSourceFiles();
 
-files.forEach((file) => overloadStore.addOverloadsFromFile(file));
+// Only transform and write files within the user's project directory
+// ts-morph normalizes paths to forward slashes, so we must match that
+const projectDir = path.dirname(tsConfigFilePath).replaceAll("\\", "/") + "/";
+const projectFiles = allFiles.filter((file) =>
+	file.getFilePath().startsWith(projectDir)
+);
+
+// Parse ALL files for overload definitions (including library dependencies)
+allFiles.forEach((file) => overloadStore.addOverloadsFromFile(file));
 errorManager.throwIfErrorsElseLogWarnings();
 
-files.forEach((file) => overloadInjector.overloadFile(file));
+// Only transform files belonging to the user's project
+projectFiles.forEach((file) => overloadInjector.overloadFile(file));
 errorManager.throwIfErrorsElseLogWarnings();
+
+// Replace operator symbol references with Symbol.for() and remove boperators imports
+projectFiles.forEach((file) => overloadInjector.replaceSymbolReferences(file));
 
 if (options.dryRun)
 {
@@ -67,7 +79,7 @@ if (options.tsOut)
 		fs.mkdirSync(tsOutDir, { recursive: true });
 	}
 
-	files.forEach((file) =>
+	projectFiles.forEach((file) =>
 	{
 		const relativePath = path.relative(
 			path.dirname(tsConfigFilePath),

@@ -53,7 +53,7 @@ class Vector3 {
 ## Bun Plugin
 The easiest way to use `boperators` is as a plugin for Bun. To ensure that it is called each time you, add the plugin to your `bunfig.toml`:
 ```toml
-preload = ["./node_modules/boperators/dist/plugin/index.js"]
+preload = ["./node_modules/boperators/src/plugin/boperators.plugin.ts"]
 ```
 
 ## CLI
@@ -73,7 +73,7 @@ $> boperate --ts-out --project ./tsconfig.custom.json
 |-------------------- |--------	|---------------------------------------------------------------|
 | --ts-out 	          | -t      | Output directory for TypeScript files.                        |
 | --project	          | -p		| Path to `tsconfig` file to use.					            |
-| --dry-run           | -d      | Preview only without writing files.                           |
+| --dry-run           | -d      | Preview only without writing JavaScript files.                |
 | --error-on-warning  |         | Instead of showing a warning, error on conflicting overloads. |
 
 

@@ -1,4 +1,4 @@
-import path from "path";
+import { posix as path } from "path";
 import type { SourceFile } from "ts-morph";
 
 export const getModuleSpecifier = (fromFile: SourceFile, toFile: SourceFile): string =>

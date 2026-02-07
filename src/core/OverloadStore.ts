@@ -16,9 +16,9 @@ import {
 } from "./operatorMap";
 import path from "path";
 import { type ErrorManager, ErrorDescription } from "./ErrorManager";
-import { SRC_DIR } from "../utils/dirs";
+import { LIB_DIR } from "../utils/dirs";
 
-export const OPERATOR_SYMBOLS_FILE = path.join(SRC_DIR, "lib", "operatorSymbols.ts");
+export const OPERATOR_SYMBOLS_FILE = path.join(LIB_DIR, "operatorSymbols.ts");
 
 /**
  * Name of the type of node on the left-hand side of the operator.
@@ -311,6 +311,15 @@ export class OverloadStore extends Map<
 				});
 			});
 		});
+	}
+
+	/**
+	 * Checks if the given symbol (after alias resolution) is an operator symbol.
+	 */
+	public isOperatorSymbol(symbol: AstSymbol): boolean
+	{
+		const resolved = symbol.getAliasedSymbol() ?? symbol;
+		return this._operatorSymbols.has(resolved);
 	}
 
 	private _minifyString(str: string): string

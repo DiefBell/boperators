@@ -11,7 +11,7 @@
  * ```ts
  * public static readonly [PLUS] = [
  *    // add two Vec3s
- *   (a: Vector3, b: Vector3) => {
+ *   function (a: Vector3, b: Vector3) {
  *     return new Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
  *   },
  * ];
@@ -34,7 +34,7 @@ export const PLUS = Symbol("+");
  * ```ts
  * public readonly [PLUS_EQUALS] = [
  *   // add another Vec3 to this
- *  (b: Vector3): void => {
+ *  function (this: Vector3, b: Vector3): void {
  *    this.x += b.x;
  *    this.y += b.y;
  *    this.z += b.z;

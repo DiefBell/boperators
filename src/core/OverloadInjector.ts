@@ -19,6 +19,66 @@ export class OverloadInjector
 	{
 	}
 
+	/**
+	 * Replaces all references to operator symbols (e.g., `PLUS`, `MULTIPLY`) with
+	 * string keys (e.g., `"__bop_PLUS"`), and removes the now-unused imports.
+	 * This makes the transformed code standalone with no runtime dependency on boperators.
+	 */
+	public replaceSymbolReferences(file: string | SourceFile): SourceFile
+	{
+		const sourceFile = file instanceof SourceFile ? file : this._project.getSourceFileOrThrow(file);
+
+		// Replace all identifier references to operator symbols (outside of import declarations)
+		const identifiers = sourceFile.getDescendantsOfKind(SyntaxKind.Identifier);
+		for (let i = identifiers.length - 1; i >= 0; i--)
+		{
+			const id = identifiers[i];
+
+			// Skip identifiers inside import declarations
+			if (id.getFirstAncestorByKind(SyntaxKind.ImportDeclaration)) continue;
+
+			const symbol = id.getSymbol();
+			if (!symbol) continue;
+
+			if (!this._overloadStore.isOperatorSymbol(symbol)) continue;
+
+			const resolved = symbol.getAliasedSymbol() ?? symbol;
+			id.replaceWithText(`"__bop_${resolved.getName()}"`);
+		}
+
+		// Remove operator symbol imports
+		const importDecls = sourceFile.getImportDeclarations();
+		for (let i = importDecls.length - 1; i >= 0; i--)
+		{
+			const importDecl = importDecls[i];
+			const namedImports = importDecl.getNamedImports();
+
+			for (let j = namedImports.length - 1; j >= 0; j--)
+			{
+				const namedImport = namedImports[j];
+				const symbol = namedImport.getSymbol();
+				if (!symbol) continue;
+
+				if (this._overloadStore.isOperatorSymbol(symbol))
+				{
+					namedImport.remove();
+				}
+			}
+
+			// Remove the entire import declaration if no imports remain
+			if (
+				importDecl.getNamedImports().length === 0
+				&& !importDecl.getDefaultImport()
+				&& !importDecl.getNamespaceImport()
+			)
+			{
+				importDecl.remove();
+			}
+		}
+
+		return sourceFile;
+	}
+
 	public overloadFile(file: string | SourceFile): SourceFile
 	{
 		const sourceFile = file instanceof SourceFile ? file : this._project.getSourceFileOrThrow(file);
