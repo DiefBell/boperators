@@ -66,12 +66,13 @@ $> boperate src/**/*.ts -t ./debug -j ./debug -v
 $> boperate --ts-out --js-out --project ./tsconfig.custom.json 
 ```
 
-| Argument 	| Aliases	| Description                                       |
-|----------	|--------	|---------------------------------------------------|
-| --ts-out 	| -t      	| Output directory for TypeScript files.            |
-| --js-out 	| -j      	| Output directory for transpiled JavaScript files.	|
-| --project	| -p		| Path to `tsconfig` file to use.					|
-| --verbose | -v		| Verbose output (not yet implemented.)				|
+| Argument 	          | Aliases	| Description                                                   |
+|-------------------- |--------	|---------------------------------------------------------------|
+| --ts-out 	          | -t      | Output directory for TypeScript files.                        |
+| --js-out 	          | -j      | Output directory for transpiled JavaScript files.	            |
+| --project	          | -p		| Path to `tsconfig` file to use.					            |
+| --verbose           | -v		| Verbose output (not yet implemented.)				            |
+| --error-on-conflict | -e      | Instead of showing a warning, error on conflicting overloads. |
 
 
 ## Supported Operators
@@ -100,18 +101,6 @@ $> boperate --ts-out --js-out --project ./tsconfig.custom.json
 | AND_EQUALS            | `&&=`     | no        |
 | OR                    | `\|\|`    | yes       |
 | OR_EQUALS             | `\|\|=`   | no        |
-| IN                    | `in`      | no        |
-| INSTANCEOF (NOT IMPLEMENTED)      | `instanceof` | yes |
-
-### InstanceOf
-The `instanceof` overload is a special case. It's essentially just shorthand for a typeguard. Define it as any other typeguard function, and `boperators` will work out which to use based on the `is <TYPE>`.
-```typescript
-static readonly [INSTANCEOF] = [
-    // Kinda contrived example
-    function(vec: Vector3): vec is UnitVector {
-        return vec.magnitude === 1;
-    }
-];
 ```
 
 ## Creating Libraries with Overloads
