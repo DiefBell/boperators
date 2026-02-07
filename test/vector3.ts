@@ -1,11 +1,13 @@
 import { PLUS as ADD, PLUS_EQUALS } from "../src/lib/index";
-import * as ops from "../src/lib/index";
+import fs from "fs";ops from "../src/lib/index";
 
 export class Vector3
 {
 	public static readonly [ops.MULTIPLY] = [
-		(lhs: Vector3, rhs: number) =>
-			new Vector3(lhs.x * rhs, lhs.y * rhs, lhs.y * rhs),
+		function (lhs: Vector3, rhs: number)
+		{
+			return new Vector3(lhs.x * rhs, lhs.y * rhs, lhs.y * rhs);
+		},
 	];
 
 	public static readonly [ADD] = [
@@ -20,7 +22,7 @@ export class Vector3
 	];
 
 	public readonly [PLUS_EQUALS] = [
-		function addAnotherVec3(rhs: Vector3)
+		function addAnotherVec3(this: Vector3, rhs: Vector3)
 		{
 			this.x += rhs.x;
 			this.y += rhs.y;
@@ -28,7 +30,7 @@ export class Vector3
 		},
 	];
 
-	public static readonly [ops.GREATER_THAN_EQUALS] = [
+	public static readonly [ops.GREATER_THAN_EQUAL_TO] = [
 		function (lhs: Vector3, rhs: Vector3)
 		{
 			return lhs.magnitude() >= rhs.magnitude();

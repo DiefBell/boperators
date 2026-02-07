@@ -1,4 +1,4 @@
-import * as path from "path";
+import path from "path";
 
 /**
  * Stores information about an error or warning for later use.
@@ -108,7 +108,7 @@ export class ErrorManager
 		const shouldThrow = this._errors.length > 0 || (this._errorOnWarning && this._warnings.length > 0);
 		if (!shouldThrow) return;
 
-		const errorString = this.getErrorsString() + this._errorOnWarning ? this.getWarningString() : "";
+		const errorString = this.getErrorsString() + (this._errorOnWarning ? this.getWarningString() : "");
 		throw new Error(errorString);
 	}
 

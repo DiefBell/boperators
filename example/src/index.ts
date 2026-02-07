@@ -1,17 +1,7 @@
-import { Matrix } from "./Matrix";
+import { Vector3 } from "./Vector3";
 
-const m1 = new Matrix(3, 3, [
-	[1, 0, 0],
-	[0, 1, 0],
-	[0, 0, 1],
-]);
+const v1 = new Vector3(1, 2, 3);
+const v2 = new Vector3(4, 5, 6);
 
-
-const m2 = new Matrix(3, 3, [
-	[1, 2, 3],
-	[6, 5, 4],
-	[7, 8, 9],
-]);
-
-const m3 = m1 + m2;
-console.log(m3);
+const v3 = v1 + v2;
+console.log(v3);

@@ -1,4 +1,4 @@
-import * as V3 from "./vector3";
+import fs from "fs";V3 from "./vector3";
 
 const v1 = new V3.Vector3(1, 2, 3);
 console.log(v1);

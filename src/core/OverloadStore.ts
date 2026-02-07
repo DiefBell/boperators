@@ -14,8 +14,10 @@ import {
 	instanceOperators,
 	operatorMap,
 } from "./operatorMap";
-import * as path from "path";
+import path from "path";
 import { type ErrorManager, ErrorDescription } from "./ErrorManager";
+
+const __dirname = import.meta.dir;
 
 export const LIB_ROOT = path.join(
 	__dirname, // consts
@@ -23,7 +25,7 @@ export const LIB_ROOT = path.join(
 	"lib"
 );
 
-export const OPERATOR_SYMBOLS_FILE = path.join(LIB_ROOT, "operatorSymbols.ts");
+export const OPERATOR_SYMBOLS_FILE = path.join(LIB_ROOT, "operatorSymbols.js");
 
 /**
  * Name of the type of node on the left-hand side of the operator.
@@ -167,10 +169,23 @@ export class OverloadStore extends Map<
 				initializer.getElements().forEach((element, index) =>
 				{
 					let hasWarning = false;
-					// Explicitly check for function-like node kinds
+
+					if (element.isKind(SyntaxKind.ArrowFunction))
+					{
+						this._errorManager.addError(
+							new ErrorDescription(
+								`Overload ${index} for operator ${symbolText} must not be an arrow function. `
+								+ "Use a function expression instead, as arrow functions cannot bind `this` correctly for instance operators.",
+								element.getSourceFile().getFilePath(),
+								element.getStartLineNumber(),
+								this._minifyString(element.getText())
+							)
+						);
+						return;
+					}
+
 					if (
-						!element.isKind(SyntaxKind.ArrowFunction)
-						&& !element.isKind(SyntaxKind.FunctionExpression)
+						!element.isKind(SyntaxKind.FunctionExpression)
 						&& !element.isKind(SyntaxKind.FunctionDeclaration)
 					)
 					{

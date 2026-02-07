@@ -1,11 +1,13 @@
 import { PLUS as ADD, PLUS_EQUALS } from "../src/lib/index";
-import * as ops from "../src/lib/index";
+import fs from "fs";ops from "../src/lib/index";
 
 export class BadVector3
 {
 	public readonly [ops.MULTIPLY] = [
-		(lhs: BadVector3, rhs: number) =>
-			new BadVector3(lhs.x * rhs, lhs.y * rhs, lhs.y * rhs),
+		function (lhs: BadVector3, rhs: number)
+		{
+			return new BadVector3(lhs.x * rhs, lhs.y * rhs, lhs.y * rhs);
+		},
 	];
 
 	public [ops.DIVIDE] = 5;
@@ -32,7 +34,7 @@ export class BadVector3
 		},
 	];
 
-	public static readonly [ops.GREATER_THAN_EQUALS] = [
+	public static readonly [ops.GREATER_THAN_EQUAL_TO] = [
 		function (lhs: BadVector3)
 		{
 			return lhs.x;

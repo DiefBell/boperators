@@ -4,8 +4,8 @@ import { Project as TsMorphProject } from "ts-morph";
 import { OverloadStore } from "../core/OverloadStore";
 import { ErrorManager } from "../core/ErrorManager";
 import { OverloadInjector } from "../core/OverloadInjector";
-import * as path from "path";
-import * as fs from "fs";
+import path from "path";
+import fs from "fs";
 import { version } from "../../package.json";
 
 

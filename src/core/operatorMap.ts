@@ -13,9 +13,9 @@ export const operatorMap = {
 	DIVIDE: SyntaxKind.SlashToken,
 	DIVIDE_EQUALS: SyntaxKind.SlashEqualsToken,
 	GREATER_THAN: SyntaxKind.GreaterThanToken,
-	GREATER_THAN_EQUALS: SyntaxKind.GreaterThanEqualsToken,
+	GREATER_THAN_EQUAL_TO: SyntaxKind.GreaterThanEqualsToken,
 	LESS_THAN: SyntaxKind.LessThanToken,
-	LESS_THAN_EQUALS: SyntaxKind.LessThanEqualsToken,
+	LESS_THAN_EQUAL_TO: SyntaxKind.LessThanEqualsToken,
 	MODULO: SyntaxKind.PercentToken,
 	MODULO_EQUALS: SyntaxKind.PercentEqualsToken,
 	EQUALS: SyntaxKind.EqualsEqualsToken,
@@ -26,8 +26,6 @@ export const operatorMap = {
 	AND_EQUALS: SyntaxKind.AmpersandAmpersandEqualsToken,
 	OR: SyntaxKind.BarBarToken,
 	OR_EQUALS: SyntaxKind.BarBarEqualsToken,
-	IN: SyntaxKind.InKeyword,
-	INSTANCE_OF: SyntaxKind.InstanceOfKeyword,
 	NULLISH: SyntaxKind.QuestionQuestionToken,
 } as const;
 
@@ -44,12 +42,13 @@ export const isOperatorSyntaxKind = (syntaxKind: SyntaxKind): syntaxKind is Oper
  * These should return void.
  */
 export const instanceOperators = new Set<OperatorSyntaxKind>([
-	operatorMap.INSTANCE_OF,
-	operatorMap.IN,
 	operatorMap.PLUS_EQUALS,
 	operatorMap.MINUS_EQUALS,
 	operatorMap.MULTIPLY_EQUALS,
 	operatorMap.DIVIDE_EQUALS,
+	operatorMap.MODULO_EQUALS,
+	operatorMap.AND_EQUALS,
+	operatorMap.OR_EQUALS,
 ]);
 
 /**
@@ -57,9 +56,9 @@ export const instanceOperators = new Set<OperatorSyntaxKind>([
  */
 export const comparisonOperators = new Set<OperatorSyntaxKind>([
 	operatorMap.GREATER_THAN,
-	operatorMap.GREATER_THAN_EQUALS,
+	operatorMap.GREATER_THAN_EQUAL_TO,
 	operatorMap.LESS_THAN,
-	operatorMap.LESS_THAN_EQUALS,
+	operatorMap.LESS_THAN_EQUAL_TO,
 	operatorMap.EQUALS,
 	operatorMap.STRICT_EQUALS,
 	operatorMap.NOT_EQUALS,

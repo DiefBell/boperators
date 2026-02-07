@@ -13,7 +13,7 @@ export class Angle
 		/**
 		 * Return a new angle where the radians are the remainder of the division.
 		 */
-		(angle: Angle, rads: number): Angle =>
+		function (angle: Angle, rads: number): Angle
 		{
 			return new Angle(angle.radians % rads);
 		},
@@ -23,7 +23,7 @@ export class Angle
 		/**
 		 * Set the radians to the remainder of the division.
 		 */
-		(rads: number): void =>
+		function (this: Angle, rads: number): void
 		{
 			this.radians %= rads;
 		},

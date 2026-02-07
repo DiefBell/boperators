@@ -73,7 +73,4 @@ export const AND_EQUALS = Symbol("&&=");
 export const OR = Symbol("||");
 export const OR_EQUALS = Symbol("||=");
 
-export const IN = Symbol("in");
-export const INSTANCE_OF = Symbol("instanceof");
-
 export const NULLISH = Symbol("??");
