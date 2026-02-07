@@ -16,16 +16,9 @@ import {
 } from "./operatorMap";
 import path from "path";
 import { type ErrorManager, ErrorDescription } from "./ErrorManager";
+import { SRC_DIR } from "../utils/dirs";
 
-const __dirname = import.meta.dir;
-
-export const LIB_ROOT = path.join(
-	__dirname, // consts
-	"..", // src
-	"lib"
-);
-
-export const OPERATOR_SYMBOLS_FILE = path.join(LIB_ROOT, "operatorSymbols.js");
+export const OPERATOR_SYMBOLS_FILE = path.join(SRC_DIR, "lib", "operatorSymbols.ts");
 
 /**
  * Name of the type of node on the left-hand side of the operator.

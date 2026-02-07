@@ -1,7 +1,6 @@
 <center>
 
 # boperators
-
 ### Operator Overloading for TypeScript
 
 </center>
@@ -52,9 +51,7 @@ class Vector3 {
 ```
 
 ## Bun Plugin
-
 The easiest way to use `boperators` is as a plugin for Bun. To ensure that it is called each time you, add the plugin to your `bunfig.toml`:
-
 ```toml
 preload = ["./node_modules/boperators/dist/plugin/index.js"]
 ```
@@ -62,24 +59,23 @@ preload = ["./node_modules/boperators/dist/plugin/index.js"]
 ## CLI
 
 The CLI can be used to generate TypeScript files for debugging, further processing, or just running directly with a tool such as Bun or TS-Node.
-
 ```sh
 $> boperate --ts-out ./debug
 $> boperate -t ./debug -p ./tsconfig.custom.json
 ```
 
 `boperators` will respect your `tsconfig.json` file for input and output directories, or you can specify a specific `tsconfig.json`:
-
 ```sh
 $> boperate --ts-out --project ./tsconfig.custom.json
 ```
 
-| Argument             | Aliases | Description                                                   |
-|----------------------|---------|---------------------------------------------------------------|
-| --ts-out             | -t      | Output directory for TypeScript files.                        |
-| --project            | -p      | Path to `tsconfig` file to use.                               |
-| --dry-run            | -d      | Preview only without writing files.                           |
-| --error-on-warning   |         | Instead of showing a warning, error on conflicting overloads. |
+| Argument 	          | Aliases	| Description                                                   |
+|-------------------- |--------	|---------------------------------------------------------------|
+| --ts-out 	          | -t      | Output directory for TypeScript files.                        |
+| --project	          | -p		| Path to `tsconfig` file to use.					            |
+| --dry-run           | -d      | Preview only without writing files.                           |
+| --error-on-warning  |         | Instead of showing a warning, error on conflicting overloads. |
+
 
 ## Supported Operators
 
@@ -110,17 +106,14 @@ $> boperate --ts-out --project ./tsconfig.custom.json
 | NULLISH                 | `??`      | yes       |
 
 ## Creating Libraries with Overloads
-
 Currently, doing this is completely untested. I think it'll work, but that's because currently we check every single dependency, including whatever's in `node_modules` (I think? Who knows.)
 
 When creating a library that uses `boperators` and offers use of these overloads to your library's users, you'll need to add `boperators` as a **peer dependency**, not as a regular dependency, otherwise there's a risk of having two separate versions of `boperators` in the project and the operator Symbols won't be the same.
 
 ## API
-
 ToDo
 
 ## Planned Features; To-Do; Known Issues
-
 - TypeScript Language Server plugin to sort intellisense!
 - API
 - Inheritance
@@ -134,6 +127,5 @@ ToDo
 - Option to use object instead of array of functions for even more verbose code output?
 
 ### Conflicts
-
 When first parsing your operator overloads, if there are any overloads with matching types for the left- and right-hand side respectively then a warning will be shows.
 If the operator overload is then needed anywhere, then no JavaScript can be generated. TypeScript will still be generated, which is helpful for debugging, but this also cannot be run.

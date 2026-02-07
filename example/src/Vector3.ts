@@ -248,6 +248,6 @@ export class Vector3
 
 	public toString(): string
 	{
-		return `(${this.x}, ${this.y}, ${this.z})`;
+		return `Vector3(${this.x}, ${this.y}, ${this.z})`;
 	}
 }

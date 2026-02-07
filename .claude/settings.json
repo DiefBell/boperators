@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"c:\\\\Users\\\\dief.bell\\\\Documents\\\\GitHub\\\\boperators\\\\example\\\\node_modules\\\\boperators\\\\dist\\\\plugin\"\" 2>/dev/null || echo \"Path does not exist \")"
+    ]
+  }
+}

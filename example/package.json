@@ -5,11 +5,11 @@
     "typescript": "^5.0.0"
   },
   "scripts": {
-    "start": "bun run ./src/index.ts"
+    "start": "bun run ./src/index.ts",
+    "bop": "bun run ../dist/cli/index.js --ts-out ./transformed"
   },
   "type": "module",
   "devDependencies": {
-    "@types/bun": "^1.1.16",
-    "boperators": ".."
+    "@types/bun": "^1.1.16"
   }
 }

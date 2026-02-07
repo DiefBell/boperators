@@ -1,9 +1,10 @@
 {
 	"name": "boperators",
-	"module": "index.ts",
+	"module": "./dist/index.js",
 	"type": "module",
 	"version": "0.1.0",
 	"license": "MIT",
+	"types": "./src/index.ts",
 	"scripts": {
 		"build": "tsc",
 		"watch": "tsc -w",
@@ -28,6 +29,7 @@
 		"package.json",
 		"license.txt",
 		"README.md",
-		"dist"
+		"dist",
+		"files"
 	]
 }
