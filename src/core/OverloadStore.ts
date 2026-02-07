@@ -16,9 +16,7 @@ import {
 } from "./operatorMap";
 import path from "path";
 import { type ErrorManager, ErrorDescription } from "./ErrorManager";
-import { LIB_DIR } from "../utils/dirs";
-
-export const OPERATOR_SYMBOLS_FILE = path.join(LIB_DIR, "operatorSymbols.ts");
+import { OPERATOR_SYMBOLS_FILE } from "../utils/paths";
 
 /**
  * Name of the type of node on the left-hand side of the operator.

@@ -5,7 +5,10 @@ import { ErrorManager } from "../core/ErrorManager";
 import { OverloadInjector } from "../core/OverloadInjector";
 import path from "path";
 import fs from "fs";
-import { version } from "../../package.json";
+import { PACKAGE_JSON_PATH } from "../utils/paths";
+
+const packageJson = fs.readFileSync(PACKAGE_JSON_PATH, "utf-8");
+const { version } = JSON.parse(packageJson);
 
 const program = new Command()
 	.name("boperate")
