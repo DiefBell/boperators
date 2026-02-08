@@ -49,9 +49,13 @@ class Vector3 {
 ```
 
 ## Bun Plugin
-The easiest way to use `boperators` is as a plugin for Bun. To ensure that it is called each time you, add the plugin to your `bunfig.toml`:
+The easiest way to use `boperators` is as a plugin for Bun. To ensure that it is called each time you, add the plugin to your Bun config. First, create a `preload.ts` somewhere in your project, such as at the root:
+```ts
+import "@boperators/plugin-bun"
+```
+Then create a `bunfig.toml` file:
 ```toml
-preload = ["./node_modules/boperators/src/plugin/boperators.plugin.ts"]
+preload = ["./preload.ts"]
 ```
 
 ## CLI

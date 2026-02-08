@@ -2,7 +2,7 @@
 	"name": "@boperators/plugin-bun",
 	"version": "0.1.0",
 	"license": "MIT",
-	"main": "./src/boperators.plugin.ts",
+	"main": "./index.ts",
 	"peerDependencies": {
 		"boperators": "0.1.0"
 	},
