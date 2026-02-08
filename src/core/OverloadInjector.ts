@@ -65,15 +65,13 @@ export class OverloadInjector
 			const overloadDesc = overloadsForLhs.get(rightType);
 			if (!overloadDesc) return;
 
-			const { classDecl, operatorString, index, isStatic } = overloadDesc;
+			const { className: classNameRaw, classFilePath, operatorString, index, isStatic } = overloadDesc;
+
+			// Look up the fresh ClassDeclaration from the project
+			const classSourceFile = this._project.getSourceFileOrThrow(classFilePath);
+			const classDecl = classSourceFile.getClassOrThrow(classNameRaw);
 
 			// Ensure class is imported, get its textual name
-			const classSymbol = classDecl.getSymbol()!;
-			const aliasedClassSymbol = classSymbol.getAliasedSymbol() ?? classSymbol;
-
-			const classSourceFile = aliasedClassSymbol?.getDeclarations()?.[0]?.getSourceFile();
-			if (!classSourceFile) throw new Error("Failed to determine source file for class.");
-
 			const classModuleSpecifier = getModuleSpecifier(sourceFile, classSourceFile);
 			const className = ensureImportedName(sourceFile, classDecl.getSymbol()!, classModuleSpecifier);
 

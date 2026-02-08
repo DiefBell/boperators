@@ -40,19 +40,22 @@ export function init(modules: { typescript: typeof tsRuntime }): tsRuntime.serve
 
 			try
 			{
-				// createSourceFile with overwrite invalidates AST nodes from
-				// the previous version of this file, so clear the store to
-				// avoid stale classDecl references in OverloadDescriptions.
-				overloadStore.reset();
+				// Invalidate this file's old overload entries before overwriting.
+				// If it previously defined overloads, other files' cached
+				// snapshots may reference those stale overloads.
+				const hadOverloads = overloadStore.invalidateFile(fileName);
+				if (hadOverloads) cache.clear();
 
 				// Add/update the file in our ts-morph project
 				project.createSourceFile(fileName, source, { overwrite: true });
 
-				// Resolve any new dependencies, then re-scan ALL project
-				// files for overloads (reset() cleared previous results).
-				project.resolveSourceFileDependencies();
-				for (const sf of project.getSourceFiles())
-					overloadStore.addOverloadsFromFile(sf);
+				// Resolve any new dependencies and scan for overloads.
+				// Only the changed file and newly resolved deps are scanned;
+				// other files remain cached in the overload store.
+				const deps = project.resolveSourceFileDependencies();
+				for (const dep of deps)
+					overloadStore.addOverloadsFromFile(dep);
+				overloadStore.addOverloadsFromFile(fileName);
 				errorManager.throwIfErrorsElseLogWarnings();
 
 				// Transform binary expressions

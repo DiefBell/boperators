@@ -118,6 +118,8 @@ ToDo
 - Inline functions. Could allow `@inline` in the comments of a function? If `ts-morph` can read it.
 - Use `.apply` to ensure instance functions are correctly bound?
 - Option to use object instead of array of functions for even more verbose code output?
+- Can we make class overload fields just `+=` etc WITHOUT being strings? And hide the error in the language server?
+- We should separate out the server and the main package into separate folders. That way we can transpile the package to CommonJS AND ESM, but transpile the language server plugin to CJS only. Also means we don't need the janky `Object.assign`.
 
 ### Conflicts
 When first parsing your operator overloads, if there are any overloads with matching types for the left- and right-hand side respectively then a warning will be shows.

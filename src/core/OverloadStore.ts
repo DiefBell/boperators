@@ -1,6 +1,5 @@
 import {
 	type Project as TsMorphProject,
-	type ClassDeclaration,
 	SyntaxKind,
 	Node,
 	SourceFile,
@@ -33,7 +32,8 @@ type RhsTypeName = string;
  */
 type OverloadDescription = {
 	isStatic: boolean;
-	classDecl: ClassDeclaration;
+	className: string;
+	classFilePath: string;
 	operatorString: string;
 	index: number;
 };
@@ -45,7 +45,10 @@ export class OverloadStore extends Map<
 {
 	private readonly _project: TsMorphProject;
 	private readonly _errorManager: ErrorManager;
-	private readonly _parsedFiles: Set<SourceFile> = new Set();
+	private readonly _parsedFiles: Set<string> = new Set();
+
+	/** Tracks which map entries came from which file, for targeted invalidation. */
+	private readonly _fileEntries = new Map<string, Array<{ syntaxKind: OperatorSyntaxKind; lhsType: string; rhsType: string }>>();
 
 	constructor(project: TsMorphProject, errorManager: ErrorManager)
 	{
@@ -56,21 +59,35 @@ export class OverloadStore extends Map<
 	}
 
 	/**
-	 * Clears all stored overloads and parsed file tracking.
-	 * Must be called before re-scanning files whose AST nodes may have changed
-	 * (e.g. in the language server plugin where files are repeatedly rewritten).
+	 * Removes all overload entries that originated from the given file
+	 * and marks it as unparsed so it will be re-scanned on the next call
+	 * to `addOverloadsFromFile`.
+	 *
+	 * @returns `true` if the file had any overload entries (meaning files
+	 * that were transformed using those overloads may now be stale).
 	 */
-	public reset(): void
+	public invalidateFile(filePath: string): boolean
 	{
-		this.clear();
-		this._parsedFiles.clear();
+		this._parsedFiles.delete(filePath);
+
+		const entries = this._fileEntries.get(filePath);
+		if (!entries) return false;
+
+		for (const { syntaxKind, lhsType, rhsType } of entries)
+		{
+			this.get(syntaxKind)?.get(lhsType)?.delete(rhsType);
+		}
+
+		this._fileEntries.delete(filePath);
+		return true;
 	}
 
 	public addOverloadsFromFile(file: string | SourceFile)
 	{
 		const sourceFile = file instanceof SourceFile ? file : this._project.getSourceFileOrThrow(file);
-		if (this._parsedFiles.has(sourceFile)) return;
-		this._parsedFiles.add(sourceFile);
+		const filePath = sourceFile.getFilePath();
+		if (this._parsedFiles.has(filePath)) return;
+		this._parsedFiles.add(filePath);
 
 		const classes = sourceFile.getClasses();
 
@@ -294,12 +311,22 @@ export class OverloadStore extends Map<
 
 					lhsMap.set(rhsType, {
 						isStatic,
-						classDecl,
+						className: classDecl.getName()!,
+						classFilePath: filePath,
 						operatorString,
 						index,
 					});
 					operatorOverloads.set(lhsType, lhsMap);
 					this.set(syntaxKind, operatorOverloads);
+
+					// Track this entry for file-level invalidation
+					let fileEntries = this._fileEntries.get(filePath);
+					if (!fileEntries)
+					{
+						fileEntries = [];
+						this._fileEntries.set(filePath, fileEntries);
+					}
+					fileEntries.push({ syntaxKind, lhsType, rhsType });
 				});
 			});
 		});
