@@ -30,8 +30,6 @@ const boperatorsPlugin: BunPlugin = {
 			errorManager.throwIfErrorsElseLogWarnings();
 
 			const updatedSourceFile = overloadInjector.overloadFile(args.path);
-			overloadInjector.replaceSymbolReferences(updatedSourceFile);
-
 			const contents = updatedSourceFile.getFullText();
 
 			return { contents, loader: "ts" };

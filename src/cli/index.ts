@@ -66,9 +66,6 @@ errorManager.throwIfErrorsElseLogWarnings();
 projectFiles.forEach((file) => overloadInjector.overloadFile(file));
 errorManager.throwIfErrorsElseLogWarnings();
 
-// Replace operator symbol references with Symbol.for() and remove boperators imports
-projectFiles.forEach((file) => overloadInjector.replaceSymbolReferences(file));
-
 if (options.dryRun)
 {
 	process.exit(0);

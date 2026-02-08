@@ -1,22 +1,19 @@
 import {
 	type Project as TsMorphProject,
-	type Symbol as AstSymbol,
 	type ClassDeclaration,
-	type Identifier,
 	SyntaxKind,
 	Node,
 	SourceFile,
 } from "ts-morph";
 import {
-	type OperatorName,
+	type OperatorString,
 	type OperatorSyntaxKind,
 	comparisonOperators,
 	instanceOperators,
 	operatorMap,
 } from "./operatorMap";
-import path from "path";
 import { type ErrorManager, ErrorDescription } from "./ErrorManager";
-import { OPERATOR_SYMBOLS_FILE } from "../utils/paths";
+import { operatorSymbols } from "../lib/operatorSymbols";
 
 /**
  * Name of the type of node on the left-hand side of the operator.
@@ -37,7 +34,7 @@ type RhsTypeName = string;
 type OverloadDescription = {
 	isStatic: boolean;
 	classDecl: ClassDeclaration;
-	propIdentifier: Identifier;
+	operatorString: string;
 	index: number;
 };
 
@@ -56,28 +53,6 @@ export class OverloadStore extends Map<
 
 		this._project = project;
 		this._errorManager = errorManager;
-
-		// Add operator symbols file so ts-morph can resolve imports from it
-		project.addSourceFileAtPath(OPERATOR_SYMBOLS_FILE);
-	}
-
-	/**
-	 * Checks if the given symbol (after alias resolution) is an operator symbol
-	 * by matching its name against the known operator names in operatorMap.
-	 */
-	public isOperatorSymbol(symbol: AstSymbol): boolean
-	{
-		const resolved = symbol.getAliasedSymbol() ?? symbol;
-		return Object.hasOwn(operatorMap, resolved.getName());
-	}
-
-	/**
-	 * Gets the OperatorSyntaxKind for the given symbol, or undefined if not an operator symbol.
-	 */
-	private _getOperatorSyntaxKind(symbol: AstSymbol): OperatorSyntaxKind | undefined
-	{
-		const name = symbol.getEscapedName();
-		return Object.hasOwn(operatorMap, name) ? operatorMap[name as OperatorName] : undefined;
 	}
 
 	public addOverloadsFromFile(file: string | SourceFile)
@@ -104,21 +79,26 @@ export class OverloadStore extends Map<
 
 				const expression = nameNode.getExpression();
 
-				const propIdentifier = expression.isKind(SyntaxKind.Identifier)
-					? expression
-					: expression.isKind(SyntaxKind.PropertyAccessExpression)
-						? expression.getNameNode()
-						: null;
-				if (!propIdentifier) return;
+				// Try to get the operator string value from the computed property name
+				let operatorString: string | undefined;
+				if (expression.isKind(SyntaxKind.StringLiteral))
+				{
+					operatorString = expression.getLiteralValue();
+				}
+				else
+				{
+					// Handle Operator.PLUS style (enum member access)
+					const literalValue = expression.getType().getLiteralValue();
+					if (typeof literalValue === "string")
+					{
+						operatorString = literalValue;
+					}
+				}
 
-				let symbol = propIdentifier.getSymbol();
-				if (!symbol) return;
-				// Resolve aliased symbol if necessary
-				symbol = symbol.getAliasedSymbol() ?? symbol;
-				const symbolText = symbol.getEscapedName();
+				if (!operatorString || !operatorSymbols.includes(operatorString)) return;
 
-				const syntaxKind = this._getOperatorSyntaxKind(symbol);
-				if (!syntaxKind) return; // Skip if not an operator symbol
+				const syntaxKind = operatorMap[operatorString as OperatorString];
+				if (!syntaxKind) return;
 
 				if (
 					(isStatic && instanceOperators.has(syntaxKind))
@@ -127,7 +107,7 @@ export class OverloadStore extends Map<
 				{
 					this._errorManager.addWarning(
 						new ErrorDescription(
-							`Expected overload for operator ${symbolText} `
+							`Expected overload for operator ${operatorString} `
 							+ `to be ${isStatic ? "a static" : "an instance"} field.`,
 							property.getSourceFile().getFilePath(),
 							property.getStartLineNumber(),
@@ -137,12 +117,18 @@ export class OverloadStore extends Map<
 					return;
 				}
 
-				const initializer = property.getInitializer();
+				// Unwrap `as const` / `satisfies` if present
+				let initializer = property.getInitializer();
+				if (initializer && Node.isAsExpression(initializer))
+					initializer = initializer.getExpression();
+				if (initializer && Node.isSatisfiesExpression(initializer))
+					initializer = initializer.getExpression();
+
 				if (!initializer || !Node.isArrayLiteralExpression(initializer))
 				{
 					this._errorManager.addWarning(
 						new ErrorDescription(
-							`Overload field for operator ${symbolText} `
+							`Overload field for operator ${operatorString} `
 							+ "must be an array of overload functions.",
 							expression.getSourceFile().getFilePath(),
 							expression.getStartLineNumber(),
@@ -160,7 +146,7 @@ export class OverloadStore extends Map<
 					{
 						this._errorManager.addError(
 							new ErrorDescription(
-								`Overload ${index} for operator ${symbolText} must not be an arrow function. `
+								`Overload ${index} for operator ${operatorString} must not be an arrow function. `
 								+ "Use a function expression instead, as arrow functions cannot bind `this` correctly for instance operators.",
 								element.getSourceFile().getFilePath(),
 								element.getStartLineNumber(),
@@ -177,7 +163,7 @@ export class OverloadStore extends Map<
 					{
 						this._errorManager.addWarning(
 							new ErrorDescription(
-								`Expected overload ${index} for operator ${symbolText} to be a function.`,
+								`Expected overload ${index} for operator ${operatorString} to be a function.`,
 								element.getSourceFile().getFilePath(),
 								element.getStartLineNumber(),
 								this._minifyString(element.getText())
@@ -186,14 +172,16 @@ export class OverloadStore extends Map<
 						return;
 					}
 
-					const parameters = element.getParameters();
+					// Exclude `this` pseudo-parameter from count
+					const parameters = element.getParameters()
+						.filter((p) => p.getName() !== "this");
 					if (isStatic)
 					{
 						if (parameters.length !== 2)
 						{
 							this._errorManager.addWarning(
 								new ErrorDescription(
-									`Overload function ${index} for operator ${symbolText} `
+									`Overload function ${index} for operator ${operatorString} `
 									+ "must have two parameters for LHS and RHS.",
 									property.getSourceFile().getFilePath(),
 									property.getStartLineNumber(),
@@ -209,7 +197,7 @@ export class OverloadStore extends Map<
 						{
 							this._errorManager.addWarning(
 								new ErrorDescription(
-									`Overload function ${element.getText()} for operator ${symbolText} `
+									`Overload function ${element.getText()} for operator ${operatorString} `
 									+ "must have exactly one parameter for the RHS.",
 									property.getSourceFile().getFilePath(),
 									property.getStartLineNumber(),
@@ -231,7 +219,7 @@ export class OverloadStore extends Map<
 					{
 						this._errorManager.addWarning(
 							new ErrorDescription(
-								`Overload for operator ${symbolText} `
+								`Overload for operator ${operatorString} `
 								+ "must have either LHS or RHS parameter matching its class type.",
 								property.getSourceFile().getFilePath(),
 								property.getStartLineNumber(),
@@ -247,7 +235,7 @@ export class OverloadStore extends Map<
 					{
 						this._errorManager.addWarning(
 							new ErrorDescription(
-								`Overload function ${index} for comparison operator ${symbolText} `
+								`Overload function ${index} for comparison operator ${operatorString} `
 								+ `must have a return type of 'boolean', got '${returnType}'.`,
 								property.getSourceFile().getFilePath(),
 								property.getStartLineNumber(),
@@ -261,7 +249,7 @@ export class OverloadStore extends Map<
 					{
 						this._errorManager.addWarning(
 							new ErrorDescription(
-								`Overload function ${index} for instance operator ${symbolText} `
+								`Overload function ${index} for instance operator ${operatorString} `
 								+ `must have a return type of 'void', got '${returnType}'.`,
 								property.getSourceFile().getFilePath(),
 								property.getStartLineNumber(),
@@ -282,7 +270,7 @@ export class OverloadStore extends Map<
 					{
 						this._errorManager.addWarning(
 							new ErrorDescription(
-								`Duplicate overload for operator ${symbolText} with LHS type ${lhsType} and RHS type ${rhsType}`,
+								`Duplicate overload for operator ${operatorString} with LHS type ${lhsType} and RHS type ${rhsType}`,
 								property.getSourceFile().getFilePath(),
 								property.getStartLineNumber(),
 								this._minifyString(element.getText())
@@ -296,7 +284,7 @@ export class OverloadStore extends Map<
 					lhsMap.set(rhsType, {
 						isStatic,
 						classDecl,
-						propIdentifier,
+						operatorString,
 						index,
 					});
 					operatorOverloads.set(lhsType, lhsMap);

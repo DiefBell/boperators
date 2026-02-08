@@ -1,5 +1,3 @@
-import { AND, AND_EQUALS, DIVIDE, DIVIDE_EQUALS, EQUALS, GREATER_THAN, GREATER_THAN_EQUAL_TO, LESS_THAN, LESS_THAN_EQUAL_TO, MULTIPLY, MULTIPLY_EQUALS, NOT_EQUALS, OR, OR_EQUALS, PLUS, PLUS_EQUALS, STRICT_EQUALS, STRICT_NOT_EQUALS } from "boperators";
-
 export class Vector3
 {
 	public x: number;
@@ -13,7 +11,7 @@ export class Vector3
 		this.z = z;
 	}
 
-	public static readonly [PLUS] = [
+	public static readonly ["+"] = [
 		/**
 		 * Add two Vec3s.
 		 */
@@ -23,7 +21,7 @@ export class Vector3
 		},
 	];
 
-	public readonly [PLUS_EQUALS] = [
+	public readonly ["+="] = [
 		/**
 		 * Add another Vec3 to this.
 		 */
@@ -35,7 +33,7 @@ export class Vector3
 		},
 	];
 
-	public static readonly [MULTIPLY] = [
+	public static readonly ["*"] = [
 		/**
 		 * The cross-product of two Vec3s.
 		 */
@@ -56,7 +54,7 @@ export class Vector3
 		},
 	] as const;
 
-	public readonly [MULTIPLY_EQUALS] = [
+	public readonly ["*="] = [
 		/**
 		 * Multiply this Vec3 by a scalar.
 		 */
@@ -68,7 +66,7 @@ export class Vector3
 		},
 	];
 
-	public static readonly [DIVIDE] = [
+	public static readonly ["/"] = [
 		/**
 		 * Divide by a scalar.
 		 */
@@ -78,7 +76,7 @@ export class Vector3
 		},
 	];
 
-	public readonly [DIVIDE_EQUALS] = [
+	public readonly ["/="] = [
 		/**
 		 * Divide this Vec3 by a scalar.
 		 */
@@ -90,7 +88,7 @@ export class Vector3
 		},
 	];
 
-	public static readonly [GREATER_THAN] = [
+	public static readonly [">"] = [
 		/**
 		 * lhs magnitude is greater than rhs magnitude
 		 */
@@ -100,7 +98,7 @@ export class Vector3
 		},
 	];
 
-	public static readonly [GREATER_THAN_EQUAL_TO] = [
+	public static readonly [">="] = [
 		/**
 		 * lhs magnitude is greater than or equal to rhs magnitude
 		 */
@@ -110,7 +108,7 @@ export class Vector3
 		},
 	];
 
-	public static readonly [LESS_THAN] = [
+	public static readonly ["<"] = [
 		/**
 		 * lhs magnitude is less than rhs magnitude
 		 */
@@ -120,7 +118,7 @@ export class Vector3
 		},
 	];
 
-	public static readonly [LESS_THAN_EQUAL_TO] = [
+	public static readonly ["<="] = [
 		/**
 		 * lhs magnitude is less than or equal to rhs magnitude
 		 */
@@ -130,7 +128,7 @@ export class Vector3
 		},
 	];
 
-	public static readonly [EQUALS] = [
+	public static readonly ["=="] = [
 		/**
 		 * vectors' lengths are equal
 		 */
@@ -140,7 +138,7 @@ export class Vector3
 		},
 	];
 
-	public static readonly [STRICT_EQUALS] = [
+	public static readonly ["==="] = [
 		/**
 		 * vectors' components are equal
 		 */
@@ -150,7 +148,7 @@ export class Vector3
 		},
 	];
 
-	public static readonly [NOT_EQUALS] = [
+	public static readonly ["!="] = [
 		/**
 		 * vectors' lengths are not equal
 		 */
@@ -160,7 +158,7 @@ export class Vector3
 		},
 	];
 
-	public static readonly [STRICT_NOT_EQUALS] = [
+	public static readonly ["!=="] = [
 		/**
 		 * vectors' components are not equal
 		 */
@@ -170,7 +168,7 @@ export class Vector3
 		},
 	];
 
-	public static readonly [AND] = [
+	public static readonly ["&&"] = [
 		/**
 		 * both vectors' magnitudes are greater than 0
 		 */
@@ -180,7 +178,7 @@ export class Vector3
 		},
 	];
 
-	public readonly [AND_EQUALS] = [
+	public readonly ["&&="] = [
 		/**
 		 * if both magnitudes are greater than zero, replace this with b
 		 */
@@ -195,7 +193,7 @@ export class Vector3
 		},
 	];
 
-	public static readonly [OR] = [
+	public static readonly ["||"] = [
 		/**
 		 * either vector's magnitude is greater than 0
 		 */
@@ -205,7 +203,7 @@ export class Vector3
 		},
 	];
 
-	public readonly [OR_EQUALS] = [
+	public readonly ["||="] = [
 		/**
 		 * if this has zero magnitude, replace this with b
 		 */
@@ -227,7 +225,7 @@ export class Vector3
 
 	public static cross(a: Vector3, b: Vector3): Vector3
 	{
-		return Vector3[MULTIPLY][0](a, b);
+		return Vector3["*"][0](a, b);
 	}
 
 	public length(): number

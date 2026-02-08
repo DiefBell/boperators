@@ -6,7 +6,7 @@
 </center>
 
 `boperators` is a package to allow you to "overload" operators, e.g. -, *, +=, etc, in your TypeScript classes, similar to what a lot of other languages allow.
-To define an operator overload, import an operator symbol, use it as the name for a property in your class, and define your overrides!
+To define an operator overload, use the operator string as a computed property name in your class and define your overrides!
 
 ## Basic example
 
@@ -15,22 +15,20 @@ This uses an anonymous function to overload adding two vectors together using `v
 Arrow functions are not allowed in overloads, as they cannot bind `this` correctly for instance operators.
 
 ```typescript
-import { PLUS, PLUS_EQUALS, MULTIPLY_EQUALS } from "boperators";
-
 class Vector3 {
     public x: number;
     public y: number;
     public z: number;
 
-    // Note the use of square brackets!
-    static readonly [PLUS] = [
+    // Use the operator string as a computed property name
+    static readonly ["+"] = [
         function(lhs: Vector3, rhs: Vector3): Vector3 {
             return new Vector3(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
         },
     ];
 
     // Assignment operators use instance fields
-    readonly [PLUS_EQUALS] = [
+    readonly ["+="] = [
         function(this: Vector3, rhs: Vector3): void {
             this.x += rhs.x;
             this.y += rhs.y;
@@ -38,7 +36,7 @@ class Vector3 {
         }
     ];
 
-    readonly [MULTIPLY_EQUALS] = [
+    readonly ["*="] = [
         function multiplyByAScalar(this: Vector3, scalar: number): void {
             this.x *= scalar;
             this.y *= scalar;
@@ -79,36 +77,31 @@ $> boperate --ts-out --project ./tsconfig.custom.json
 
 ## Supported Operators
 
-| Symbol                  | Operator  | Static    |
-|-------------------------|-----------|-----------|
-| PLUS                    | `+`       | yes       |
-| PLUS_EQUALS             | `+=`      | no        |
-| MINUS                   | `-`       | yes       |
-| MINUS_EQUALS            | `-=`      | no        |
-| MULTIPLY                | `*`       | yes       |
-| MULTIPLY_EQUALS         | `*=`      | no        |
-| DIVIDE                  | `/`       | yes       |
-| DIVIDE_EQUALS           | `/=`      | no        |
-| MODULO                  | `%`       | yes       |
-| MODULO_EQUALS           | `%=`      | no        |
-| GREATER_THAN            | `>`       | yes       |
-| GREATER_THAN_EQUAL_TO   | `>=`      | yes       |
-| LESS_THAN               | `<`       | yes       |
-| LESS_THAN_EQUAL_TO      | `<=`      | yes       |
-| EQUALS                  | `==`      | yes       |
-| STRICT_EQUALS           | `===`     | yes       |
-| NOT_EQUALS              | `!=`      | yes       |
-| STRICT_NOT_EQUALS       | `!==`     | yes       |
-| AND                     | `&&`      | yes       |
-| AND_EQUALS              | `&&=`     | no        |
-| OR                      | `\|\|`    | yes       |
-| OR_EQUALS               | `\|\|=`   | no        |
-| NULLISH                 | `??`      | yes       |
-
-## Creating Libraries with Overloads
-Currently, doing this is completely untested. I think it'll work, but that's because currently we check every single dependency, including whatever's in `node_modules` (I think? Who knows.)
-
-When creating a library that uses `boperators` and offers use of these overloads to your library's users, you'll need to add `boperators` as a **peer dependency**, not as a regular dependency, otherwise there's a risk of having two separate versions of `boperators` in the project and the operator Symbols won't be the same.
+| Operator  | Static    |
+|-----------|-----------|
+| `+`       | yes       |
+| `+=`      | no        |
+| `-`       | yes       |
+| `-=`      | no        |
+| `*`       | yes       |
+| `*=`      | no        |
+| `/`       | yes       |
+| `/=`      | no        |
+| `%`       | yes       |
+| `%=`      | no        |
+| `>`       | yes       |
+| `>=`      | yes       |
+| `<`       | yes       |
+| `<=`      | yes       |
+| `==`      | yes       |
+| `===`     | yes       |
+| `!=`      | yes       |
+| `!==`     | yes       |
+| `&&`      | yes       |
+| `&&=`     | no        |
+| `\|\|`    | yes       |
+| `\|\|=`   | no        |
+| `??`      | yes       |
 
 ## API
 ToDo
