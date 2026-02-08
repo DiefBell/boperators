@@ -1,4 +1,7 @@
-import { init } from "./language-server-plugin";
-import * as lib from "./lib"
+// Core transformation pipeline
+export { OverloadStore } from "./core/OverloadStore";
+export { OverloadInjector } from "./core/OverloadInjector";
+export { ErrorManager, ErrorDescription } from "./core/ErrorManager";
 
-export = Object.assign(init, lib) as typeof init & typeof lib;
+// Operator definitions
+export { Operator, operatorSymbols } from "./lib/operatorSymbols";

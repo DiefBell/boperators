@@ -1,3 +1,12 @@
 {
-	"name": "@boperators/plugin-bun"
+	"name": "@boperators/plugin-bun",
+	"version": "0.1.0",
+	"license": "MIT",
+	"main": "./src/boperators.plugin.ts",
+	"peerDependencies": {
+		"boperators": "0.1.0"
+	},
+	"dependencies": {
+		"ts-morph": "^24.0.0"
+	}
 }

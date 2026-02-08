@@ -2,15 +2,22 @@
   "name": "@boperators/example",
   "module": "src/index.ts",
   "peerDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "boperators": "0.1.0",
+    "@boperators/plugin-bun": "0.1.0",
+    "@boperators/plugin-ts-language-server": "0.1.0"
   },
   "scripts": {
     "start": "bun run ./src/index.ts",
-    "bop": "rm -rf ./transformed && bun run ../dist/cli/index.js --ts-out ./transformed",
+    "bop": "rm -rf ./transformed && bun run ../cli/dist/index.js --ts-out ./transformed",
     "start:transformed": "bun run ./transformed/index.ts"
   },
   "type": "module",
   "devDependencies": {
-    "@types/bun": "^1.1.16"
+    "@types/bun": "^1.1.16",
+    "boperators": "file:../package",
+    "@boperators/plugin-bun": "file:../plugins/bun",
+    "@boperators/plugin-ts-language-server": "file:../plugins/ts-language-server"
   }
+
 }

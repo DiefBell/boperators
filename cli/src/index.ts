@@ -1,13 +1,15 @@
+#!/usr/bin/env node
+
 import { Command } from "@commander-js/extra-typings";
 import { Project as TsMorphProject } from "ts-morph";
-import { OverloadStore } from "../core/OverloadStore";
-import { ErrorManager } from "../core/ErrorManager";
-import { OverloadInjector } from "../core/OverloadInjector";
+import { OverloadStore, ErrorManager, OverloadInjector } from "boperators";
 import path from "path";
 import fs from "fs";
-import { PACKAGE_JSON_PATH } from "../utils/paths";
+import { fileURLToPath } from "url";
 
-const packageJson = fs.readFileSync(PACKAGE_JSON_PATH, "utf-8");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const packageJsonPath = path.join(__dirname, "..", "package.json");
+const packageJson = fs.readFileSync(packageJsonPath, "utf-8");
 const { version } = JSON.parse(packageJson);
 
 const program = new Command()

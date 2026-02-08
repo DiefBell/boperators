@@ -1,8 +1,6 @@
 import tsRuntime from "typescript/lib/tsserverlibrary";
 import { Project as TsMorphProject } from "ts-morph";
-import { ErrorManager } from "../core/ErrorManager";
-import { OverloadStore } from "../core/OverloadStore";
-import { OverloadInjector } from "../core/OverloadInjector";
+import { ErrorManager, OverloadStore, OverloadInjector } from "boperators";
 
 export function init(modules: { typescript: typeof tsRuntime }): tsRuntime.server.PluginModule
 {
@@ -11,7 +9,7 @@ export function init(modules: { typescript: typeof tsRuntime }): tsRuntime.serve
 	function create(info: tsRuntime.server.PluginCreateInfo): tsRuntime.LanguageService
 	{
 		const log = (msg: string) => info.project.projectService.logger.info(`[boperators] ${msg}`);
-    log("Creating language service plugin for project: " + info.project.getProjectName());
+		log("Creating language service plugin for project: " + info.project.getProjectName());
 		const host = info.languageServiceHost;
 
 		// Set up ts-morph transformation pipeline (same pattern as the Bun plugin)

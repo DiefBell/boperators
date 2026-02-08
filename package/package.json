@@ -1,38 +1,27 @@
 {
 	"name": "boperators",
-	"main": "./dist/index.js",
-	"type": "commonjs",
 	"version": "0.1.0",
 	"license": "MIT",
-	"types": "./dist/index.d.ts",
+	"main": "./dist/cjs/index.js",
+	"module": "./dist/esm/index.js",
+	"types": "./dist/esm/index.d.ts",
 	"exports": {
 		".": {
-			"types": "./dist/index.d.ts",
-			"default": "./dist/index.js"
-		},
-		"./language-server-plugin": {
-			"types": "./dist/language-server-plugin/index.d.ts",
-			"default": "./dist/language-server-plugin/index.js"
+			"require": "./dist/cjs/index.js",
+			"import": "./dist/esm/index.js",
+			"types": "./dist/esm/index.d.ts"
 		}
 	},
 	"scripts": {
-		"build": "tsc",
-		"watch": "tsc -w",
-		"example": "cd example && bun run start"
+		"build": "tsc -p tsconfig.cjs.json && tsc -p tsconfig.esm.json",
+		"watch": "concurrently \"tsc -p tsconfig.cjs.json -w\" \"tsc -p tsconfig.esm.json -w\"",
+		"postinstall": "bun run build"
 	},
-	"devDependencies": {
-		"@types/bun": "latest"
+	"dependencies": {
+		"ts-morph": "^24.0.0"
 	},
 	"peerDependencies": {
 		"typescript": "^5.5.4"
-	},
-	"dependencies": {
-		"@commander-js/extra-typings": "^13.0.0",
-		"ts-morph": "^24.0.0"
-	},
-	"bin": {
-		"bop": "dist/cli/index.js",
-		"boperate": "dist/cli/index.js"
 	},
 	"files": [
 		"package.json",
@@ -40,5 +29,8 @@
 		"README.md",
 		"src",
 		"dist"
-	]
+	],
+	"devDependencies": {
+		"concurrently": "^9.2.1"
+	}
 }

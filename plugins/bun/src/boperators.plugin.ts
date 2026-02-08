@@ -1,8 +1,6 @@
 import { plugin, type BunPlugin, type PluginBuilder } from "bun";
 import { Project as TsMorphProject } from "ts-morph";
-import { ErrorManager } from "../core/ErrorManager";
-import { OverloadStore } from "../core/OverloadStore";
-import { OverloadInjector } from "../core/OverloadInjector";
+import { ErrorManager, OverloadStore, OverloadInjector } from "boperators";
 
 const boperatorsPlugin: BunPlugin = {
 	name: "boperators",

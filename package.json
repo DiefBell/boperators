@@ -2,9 +2,14 @@
 	"workspaces": [
 		"package",
 		"plugins/*",
+		"cli",
 		"example"
 	],
 	"scripts": {
-		
+		"build:boperators": "bun run --filter boperators build",
+		"build:cli": "bun run --filter @boperators/cli build",
+		"build:ts-server-plugin": "bun run --filter @boperators/plugin-ts-language-server build",
+		"build:bun-plugin": "bun run --filter @boperators/plugin-bun build",
+		"build": "bun run --filter '*' build"
 	}
 }

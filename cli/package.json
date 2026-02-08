@@ -1,0 +1,18 @@
+{
+	"name": "@boperators/cli",
+	"version": "0.1.0",
+	"license": "MIT",
+	"type": "module",
+	"bin": {
+		"bop": "dist/index.js",
+		"boperate": "dist/index.js"
+	},
+	"scripts": {
+		"build": "tsc"
+	},
+	"dependencies": {
+		"@commander-js/extra-typings": "^13.0.0",
+		"boperators": "0.1.0",
+		"ts-morph": "^24.0.0"
+	}
+}
