@@ -1,15 +1,3 @@
 # @boperators/example
 
-To install dependencies:
-
-```bash
-bun install
-```
-
-To run:
-
-```bash
-bun run src/index.ts
-```
-
-This project was created using `bun init` in bun v1.1.41. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+From the root folder, run `bun link` to enable linking to Boperators. Then in this folder, run `bun link boperators`. You then need to open this folder in a separate editor window to the root package folder to get the language server features.

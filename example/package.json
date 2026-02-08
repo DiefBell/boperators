@@ -11,7 +11,6 @@
   },
   "type": "module",
   "devDependencies": {
-    "@types/bun": "^1.1.16",
-    "boperators": "file:../"
+    "@types/bun": "^1.1.16"
   }
 }

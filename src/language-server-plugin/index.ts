@@ -1,41 +1,79 @@
 import tsRuntime from "typescript/lib/tsserverlibrary";
+import { Project as TsMorphProject } from "ts-morph";
+import { ErrorManager } from "../core/ErrorManager";
+import { OverloadStore } from "../core/OverloadStore";
+import { OverloadInjector } from "../core/OverloadInjector";
 
-// TODO: use our library for this!
-// TODO: caching and incremental parsing if we can make it work with the language server's caching system
-const rewrite = (source: string, fileName: string) => {
-	return source;
-};
+export function init(modules: { typescript: typeof tsRuntime }): tsRuntime.server.PluginModule
+{
+	const ts = modules.typescript;
 
-export function init(modules: { typescript: typeof tsRuntime }): tsRuntime.server.PluginModule {
-  const ts = modules.typescript;
+	function create(info: tsRuntime.server.PluginCreateInfo): tsRuntime.LanguageService
+	{
+		const log = (msg: string) => info.project.projectService.logger.info(`[boperators] ${msg}`);
+    log("Creating language service plugin for project: " + info.project.getProjectName());
+		const host = info.languageServiceHost;
 
-  function create(info: tsRuntime.server.PluginCreateInfo): tsRuntime.LanguageService {
-    const host = info.languageServiceHost;
+		// Set up ts-morph transformation pipeline (same pattern as the Bun plugin)
+		const project = new TsMorphProject({ skipFileDependencyResolution: true });
+		const errorManager = new ErrorManager(false);
+		const overloadStore = new OverloadStore(project, errorManager);
+		const overloadInjector = new OverloadInjector(project, overloadStore);
 
-    const originalGetSnapshot = host.getScriptSnapshot?.bind(host);
-    const originalGetVersion = host.getScriptVersion?.bind(host);
+		const originalGetSnapshot = host.getScriptSnapshot?.bind(host);
+		const originalGetVersion = host.getScriptVersion?.bind(host);
+		const cache = new Map<string, { version: string; text: string }>();
 
-    const cache = new Map<string, { version: string; text: string }>();
+		host.getScriptSnapshot = (fileName: string) =>
+		{
+			const snap = originalGetSnapshot?.(fileName);
+			if (!snap || !fileName.endsWith(".ts") || fileName.endsWith(".d.ts")) return snap;
 
-    host.getScriptSnapshot = (fileName: string) => {
-      const snap = originalGetSnapshot?.(fileName);
-      if (!snap || !fileName.endsWith(".ts")) return snap;
+			const version = originalGetVersion?.(fileName) ?? "0";
+			const cached = cache.get(fileName);
+			if (cached?.version === version)
+			{
+				return ts.ScriptSnapshot.fromString(cached.text);
+			}
 
-      const version = originalGetVersion?.(fileName) ?? "0";
-      const cached = cache.get(fileName);
-      if (cached?.version === version) {
-        return ts.ScriptSnapshot.fromString(cached.text);
-      }
+			const source = snap.getText(0, snap.getLength());
 
-      const source = snap.getText(0, snap.getLength());
-      const rewritten = rewrite(source, fileName);
+			try
+			{
+				// createSourceFile with overwrite invalidates AST nodes from
+				// the previous version of this file, so clear the store to
+				// avoid stale classDecl references in OverloadDescriptions.
+				overloadStore.reset();
 
-      cache.set(fileName, { version, text: rewritten });
-      return ts.ScriptSnapshot.fromString(rewritten);
-    };
+				// Add/update the file in our ts-morph project
+				project.createSourceFile(fileName, source, { overwrite: true });
 
-    return info.languageService;
-  }
+				// Resolve any new dependencies, then re-scan ALL project
+				// files for overloads (reset() cleared previous results).
+				project.resolveSourceFileDependencies();
+				for (const sf of project.getSourceFiles())
+					overloadStore.addOverloadsFromFile(sf);
+				errorManager.throwIfErrorsElseLogWarnings();
 
-  return { create };
+				// Transform binary expressions
+				const transformed = overloadInjector.overloadFile(fileName);
+				const rewritten = transformed.getFullText();
+
+				cache.set(fileName, { version, text: rewritten });
+				return ts.ScriptSnapshot.fromString(rewritten);
+			}
+			catch (e)
+			{
+				// If transformation fails, return original source untouched
+				log(`Error transforming ${fileName}: ${e}`);
+				cache.set(fileName, { version, text: source });
+				return snap;
+			}
+		};
+
+		log("Plugin loaded");
+		return info.languageService;
+	}
+
+	return { create };
 }

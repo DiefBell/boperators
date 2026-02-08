@@ -55,6 +55,17 @@ export class OverloadStore extends Map<
 		this._errorManager = errorManager;
 	}
 
+	/**
+	 * Clears all stored overloads and parsed file tracking.
+	 * Must be called before re-scanning files whose AST nodes may have changed
+	 * (e.g. in the language server plugin where files are repeatedly rewritten).
+	 */
+	public reset(): void
+	{
+		this.clear();
+		this._parsedFiles.clear();
+	}
+
 	public addOverloadsFromFile(file: string | SourceFile)
 	{
 		const sourceFile = file instanceof SourceFile ? file : this._project.getSourceFileOrThrow(file);
