@@ -107,9 +107,9 @@ $> boperate --ts-out --project ./tsconfig.custom.json
 ToDo
 
 ## Planned Features; To-Do; Known Issues
-- TypeScript Language Server plugin to sort intellisense!
-- API
-- Inheritance
+- [ ] TypeScript Language Server plugin to sort intellisense!
+- [ ] API
+- [ ] Inheritance over overload properties.
 - Ensure libraries work as expected
 - Log function names, if named functions.
 - Write tests, sort CI
@@ -119,7 +119,8 @@ ToDo
 - Use `.apply` to ensure instance functions are correctly bound?
 - Option to use object instead of array of functions for even more verbose code output?
 - Can we make class overload fields just `+=` etc WITHOUT being strings? And hide the error in the language server?
-- We should separate out the server and the main package into separate folders. That way we can transpile the package to CommonJS AND ESM, but transpile the language server plugin to CJS only. Also means we don't need the janky `Object.assign`.
+- [x] We should separate out the server and the main package into separate folders. That way we can transpile the package to CommonJS AND ESM, but transpile the language server plugin to CJS only. Also means we don't need the janky `Object.assign`.
+- Check up inheritence tree when searching for matching overloads.
 
 ### Conflicts
 When first parsing your operator overloads, if there are any overloads with matching types for the left- and right-hand side respectively then a warning will be shows.

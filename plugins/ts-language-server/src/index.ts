@@ -1,6 +1,34 @@
 import tsRuntime from "typescript/lib/tsserverlibrary";
-import { Project as TsMorphProject } from "ts-morph";
+import { Project as TsMorphProject, SyntaxKind, Node, type SourceFile as TsMorphSourceFile } from "ts-morph";
 import { ErrorManager, OverloadStore, OverloadInjector } from "boperators";
+import { SourceMap } from "./SourceMap";
+
+// ----- Types -----
+
+type CacheEntry = {
+	version: string;
+	text: string;
+	sourceMap: SourceMap;
+	overloadEdits: OverloadEditInfo[];
+};
+
+type OverloadEditInfo = {
+	/** Start of the operator token in the original source */
+	operatorStart: number;
+	/** End of the operator token in the original source */
+	operatorEnd: number;
+	/** Start of the full binary expression in the original source */
+	exprStart: number;
+	/** End of the full binary expression in the original source */
+	exprEnd: number;
+	className: string;
+	classFilePath: string;
+	operatorString: string;
+	index: number;
+	isStatic: boolean;
+};
+
+// ----- Plugin entry -----
 
 export = function init(modules: { typescript: typeof tsRuntime }): tsRuntime.server.PluginModule
 {
@@ -12,7 +40,7 @@ export = function init(modules: { typescript: typeof tsRuntime }): tsRuntime.ser
 		log("Creating language service plugin for project: " + info.project.getProjectName());
 		const host = info.languageServiceHost;
 
-		// Set up ts-morph transformation pipeline (same pattern as the Bun plugin)
+		// Set up ts-morph transformation pipeline
 		const project = new TsMorphProject({ skipFileDependencyResolution: true });
 		const errorManager = new ErrorManager(false);
 		const overloadStore = new OverloadStore(project, errorManager);
@@ -20,7 +48,7 @@ export = function init(modules: { typescript: typeof tsRuntime }): tsRuntime.ser
 
 		const originalGetSnapshot = host.getScriptSnapshot?.bind(host);
 		const originalGetVersion = host.getScriptVersion?.bind(host);
-		const cache = new Map<string, { version: string; text: string }>();
+		const cache = new Map<string, CacheEntry>();
 
 		host.getScriptSnapshot = (fileName: string) =>
 		{
@@ -39,8 +67,6 @@ export = function init(modules: { typescript: typeof tsRuntime }): tsRuntime.ser
 			try
 			{
 				// Invalidate this file's old overload entries before overwriting.
-				// If it previously defined overloads, other files' cached
-				// snapshots may reference those stale overloads.
 				const hadOverloads = overloadStore.invalidateFile(fileName);
 				if (hadOverloads) cache.clear();
 
@@ -48,33 +74,593 @@ export = function init(modules: { typescript: typeof tsRuntime }): tsRuntime.ser
 				project.createSourceFile(fileName, source, { overwrite: true });
 
 				// Resolve any new dependencies and scan for overloads.
-				// Only the changed file and newly resolved deps are scanned;
-				// other files remain cached in the overload store.
 				const deps = project.resolveSourceFileDependencies();
 				for (const dep of deps)
 					overloadStore.addOverloadsFromFile(dep);
 				overloadStore.addOverloadsFromFile(fileName);
 				errorManager.throwIfErrorsElseLogWarnings();
 
+				// Before transforming, scan for overload binary expressions
+				// so we can record their operator positions for hover info.
+				const sourceFile = project.getSourceFileOrThrow(fileName);
+				const overloadEdits = findOverloadEdits(sourceFile, overloadStore);
+
 				// Transform binary expressions
 				const transformed = overloadInjector.overloadFile(fileName);
 				const rewritten = transformed.getFullText();
 
-				cache.set(fileName, { version, text: rewritten });
+				// Build source map from original vs transformed text
+				const sourceMap = new SourceMap(source, rewritten);
+
+				cache.set(fileName, { version, text: rewritten, sourceMap, overloadEdits });
 				return ts.ScriptSnapshot.fromString(rewritten);
 			}
 			catch (e)
 			{
-				// If transformation fails, return original source untouched
 				log(`Error transforming ${fileName}: ${e}`);
-				cache.set(fileName, { version, text: source });
+				cache.set(fileName, {
+					version,
+					text: source,
+					sourceMap: new SourceMap(source, source),
+					overloadEdits: [],
+				});
 				return snap;
 			}
 		};
 
+		// Create the language service proxy with position remapping
+		const proxy = createProxy(ts, info.languageService, cache, project, log);
+
 		log("Plugin loaded");
-		return info.languageService;
+		return proxy;
 	}
 
 	return { create };
+};
+
+// ----- Overload edit scanner -----
+
+/**
+ * Before transformation, find all binary expressions that match
+ * registered overloads and record their operator token positions.
+ * This duplicates the lookup logic from OverloadInjector but
+ * captures position data needed for hover info.
+ */
+function findOverloadEdits(
+	sourceFile: TsMorphSourceFile,
+	overloadStore: OverloadStore,
+): OverloadEditInfo[]
+{
+	const edits: OverloadEditInfo[] = [];
+	const binaryExpressions = sourceFile.getDescendantsOfKind(SyntaxKind.BinaryExpression);
+
+	for (const expression of binaryExpressions)
+	{
+		const operatorToken = expression.getOperatorToken();
+		const operatorKind = operatorToken.getKind();
+
+		// Check if this operator has any overloads registered
+		const overloadsForOperator = overloadStore.get(operatorKind as any);
+		if (!overloadsForOperator) continue;
+
+		const lhs = expression.getLeft();
+		let leftType = lhs.getType().getText();
+		if (lhs.getKind() === SyntaxKind.NumericLiteral)
+		{
+			leftType = "number";
+		}
+		else if (leftType === "any")
+		{
+			const decl = lhs.getSymbol()?.getValueDeclaration();
+			if (decl) leftType = decl.getType().getText();
+		}
+
+		const rhs = expression.getRight();
+		let rightType = rhs.getType().getText();
+		if (rhs.getKind() === SyntaxKind.NumericLiteral)
+		{
+			rightType = "number";
+		}
+		else if (
+			rhs.getKind() !== SyntaxKind.StringLiteral
+			&& (rightType === "true" || rightType === "false")
+		)
+		{
+			rightType = "boolean";
+		}
+		else if (rightType === "any")
+		{
+			const decl = rhs.getSymbol()?.getValueDeclaration();
+			if (decl) rightType = decl.getType().getText();
+		}
+
+		const overloadsForLhs = overloadsForOperator.get(leftType);
+		if (!overloadsForLhs) continue;
+
+		const overloadDesc = overloadsForLhs.get(rightType);
+		if (!overloadDesc) continue;
+
+		edits.push({
+			operatorStart: operatorToken.getStart(),
+			operatorEnd: operatorToken.getEnd(),
+			exprStart: expression.getStart(),
+			exprEnd: expression.getEnd(),
+			className: overloadDesc.className,
+			classFilePath: overloadDesc.classFilePath,
+			operatorString: overloadDesc.operatorString,
+			index: overloadDesc.index,
+			isStatic: overloadDesc.isStatic,
+		});
+	}
+
+	return edits;
+}
+
+// ----- Overload hover info -----
+
+/**
+ * Build a QuickInfo response for hovering over an operator token
+ * that corresponds to an overloaded operator. Extracts the function
+ * signature and JSDoc from the overload definition.
+ */
+function getOverloadHoverInfo(
+	ts: typeof tsRuntime,
+	project: TsMorphProject,
+	edit: OverloadEditInfo,
+): tsRuntime.QuickInfo | undefined
+{
+	try
+	{
+		const classSourceFile = project.getSourceFile(edit.classFilePath);
+		if (!classSourceFile) return undefined;
+
+		const classDecl = classSourceFile.getClass(edit.className);
+		if (!classDecl) return undefined;
+
+		// Find the property with the matching operator string
+		const prop = classDecl.getProperties().find((p) =>
+		{
+			const nameNode = p.getNameNode();
+			if (!nameNode.isKind(SyntaxKind.ComputedPropertyName)) return false;
+			const expr = nameNode.getExpression();
+			if (expr.isKind(SyntaxKind.StringLiteral))
+			{
+				return expr.getLiteralValue() === edit.operatorString;
+			}
+			const literalValue = expr.getType().getLiteralValue();
+			return typeof literalValue === "string" && literalValue === edit.operatorString;
+		});
+		if (!prop) return undefined;
+
+		// Unwrap `as const` / `satisfies` if present
+		let initializer = prop.getInitializer();
+		if (initializer && Node.isAsExpression(initializer))
+			initializer = initializer.getExpression();
+		if (initializer && Node.isSatisfiesExpression(initializer))
+			initializer = initializer.getExpression();
+		if (!initializer || !Node.isArrayLiteralExpression(initializer))
+			return undefined;
+
+		const element = initializer.getElements()[edit.index];
+		if (!element || !Node.isFunctionExpression(element))
+			return undefined;
+
+		// Build signature string
+		const params = element.getParameters()
+			.filter((p) => p.getName() !== "this")
+			.map((p) => `${p.getName()}: ${p.getType().getText()}`);
+		const returnType = element.getReturnType().getText();
+
+		const prefix = edit.isStatic
+			? "(static operator overload) "
+			: "(operator overload) ";
+		const signature = `${edit.className}["${edit.operatorString}"](${params.join(", ")}): ${returnType}`;
+
+		// Extract JSDoc comment
+		const jsDocs = element.getJsDocs();
+		let docText: string | undefined;
+		if (jsDocs.length > 0)
+		{
+			const raw = jsDocs[0].getText();
+			docText = raw
+				.replace(/^\/\*\*\s*/, "")
+				.replace(/\s*\*\/$/, "")
+				.replace(/^\s*\* ?/gm, "")
+				.trim();
+		}
+
+		return {
+			kind: ts.ScriptElementKind.functionElement,
+			kindModifiers: edit.isStatic ? "static" : "",
+			textSpan: {
+				start: edit.operatorStart,
+				length: edit.operatorEnd - edit.operatorStart,
+			},
+			displayParts: [
+				{ text: prefix + signature, kind: "text" },
+			],
+			documentation: docText
+				? [{ text: docText, kind: "text" }]
+				: undefined,
+			tags: [],
+		};
+	}
+	catch
+	{
+		return undefined;
+	}
+}
+
+// ----- LanguageService proxy -----
+
+function getSourceMapForFile(
+	cache: Map<string, CacheEntry>,
+	fileName: string,
+): SourceMap | undefined
+{
+	const entry = cache.get(fileName);
+	if (!entry || entry.sourceMap.isEmpty) return undefined;
+	return entry.sourceMap;
+}
+
+function remapDiagnosticSpan(
+	diag: { start?: number; length?: number },
+	sourceMap: SourceMap,
+): void
+{
+	if (diag.start !== undefined && diag.length !== undefined)
+	{
+		const remapped = sourceMap.remapSpan({ start: diag.start, length: diag.length });
+		diag.start = remapped.start;
+		diag.length = remapped.length;
+	}
+}
+
+function createProxy(
+	ts: typeof tsRuntime,
+	ls: tsRuntime.LanguageService,
+	cache: Map<string, CacheEntry>,
+	project: TsMorphProject,
+	_log: (msg: string) => void,
+): tsRuntime.LanguageService
+{
+	// Copy all methods from the underlying language service
+	const proxy = Object.create(null) as tsRuntime.LanguageService;
+	for (const key of Object.keys(ls))
+	{
+		(proxy as any)[key] = (ls as any)[key];
+	}
+
+	// --- Diagnostics: remap output spans ---
+
+	proxy.getSemanticDiagnostics = (fileName) =>
+	{
+		const result = ls.getSemanticDiagnostics(fileName);
+		const sourceMap = getSourceMapForFile(cache, fileName);
+		if (!sourceMap) return result;
+
+		for (const diag of result)
+		{
+			remapDiagnosticSpan(diag, sourceMap);
+			if (diag.relatedInformation)
+			{
+				for (const related of diag.relatedInformation)
+				{
+					const relatedMap = related.file
+						? getSourceMapForFile(cache, related.file.fileName)
+						: undefined;
+					if (relatedMap) remapDiagnosticSpan(related, relatedMap);
+				}
+			}
+		}
+		return result;
+	};
+
+	proxy.getSyntacticDiagnostics = (fileName) =>
+	{
+		const result = ls.getSyntacticDiagnostics(fileName);
+		const sourceMap = getSourceMapForFile(cache, fileName);
+		if (!sourceMap) return result;
+
+		for (const diag of result)
+		{
+			remapDiagnosticSpan(diag, sourceMap);
+			if (diag.relatedInformation)
+			{
+				for (const related of diag.relatedInformation)
+				{
+					const relatedMap = related.file
+						? getSourceMapForFile(cache, related.file.fileName)
+						: undefined;
+					if (relatedMap) remapDiagnosticSpan(related, relatedMap);
+				}
+			}
+		}
+		return result;
+	};
+
+	proxy.getSuggestionDiagnostics = (fileName) =>
+	{
+		const result = ls.getSuggestionDiagnostics(fileName);
+		const sourceMap = getSourceMapForFile(cache, fileName);
+		if (!sourceMap) return result;
+
+		for (const diag of result)
+		{
+			remapDiagnosticSpan(diag, sourceMap);
+		}
+		return result;
+	};
+
+	// --- Hover: remap input position + output span, custom operator hover ---
+
+	proxy.getQuickInfoAtPosition = (fileName, position) =>
+	{
+		// Check if hovering over an overloaded operator
+		const entry = cache.get(fileName);
+		if (entry)
+		{
+			const operatorEdit = entry.overloadEdits.find(
+				(e) => position >= e.operatorStart && position < e.operatorEnd
+			);
+			if (operatorEdit)
+			{
+				const hoverInfo = getOverloadHoverInfo(ts, project, operatorEdit);
+				if (hoverInfo) return hoverInfo;
+			}
+		}
+
+		const sourceMap = entry?.sourceMap.isEmpty === false ? entry.sourceMap : undefined;
+		const transformedPos = sourceMap
+			? sourceMap.originalToTransformed(position)
+			: position;
+
+		const result = ls.getQuickInfoAtPosition(fileName, transformedPos);
+		if (!result || !sourceMap) return result;
+
+		result.textSpan = sourceMap.remapSpan(result.textSpan);
+		return result;
+	};
+
+	// --- Go-to-definition: remap input position + output spans ---
+
+	proxy.getDefinitionAndBoundSpan = (fileName, position) =>
+	{
+		const sourceMap = getSourceMapForFile(cache, fileName);
+		const transformedPos = sourceMap
+			? sourceMap.originalToTransformed(position)
+			: position;
+
+		const result = ls.getDefinitionAndBoundSpan(fileName, transformedPos);
+		if (!result) return result;
+
+		// Remap the bound span (in the current file)
+		if (sourceMap)
+		{
+			result.textSpan = sourceMap.remapSpan(result.textSpan);
+		}
+
+		// Remap definition spans (may be in other files)
+		if (result.definitions)
+		{
+			for (const def of result.definitions)
+			{
+				const defMap = getSourceMapForFile(cache, def.fileName);
+				if (defMap)
+				{
+					def.textSpan = defMap.remapSpan(def.textSpan);
+					if (def.contextSpan)
+					{
+						def.contextSpan = defMap.remapSpan(def.contextSpan);
+					}
+				}
+			}
+		}
+
+		return result;
+	};
+
+	proxy.getDefinitionAtPosition = (fileName, position) =>
+	{
+		const sourceMap = getSourceMapForFile(cache, fileName);
+		const transformedPos = sourceMap
+			? sourceMap.originalToTransformed(position)
+			: position;
+
+		const result = ls.getDefinitionAtPosition(fileName, transformedPos);
+		if (!result) return result;
+
+		return result.map((def) =>
+		{
+			const defMap = getSourceMapForFile(cache, def.fileName);
+			if (!defMap) return def;
+			return {
+				...def,
+				textSpan: defMap.remapSpan(def.textSpan),
+				contextSpan: def.contextSpan ? defMap.remapSpan(def.contextSpan) : undefined,
+			};
+		});
+	};
+
+	proxy.getTypeDefinitionAtPosition = (fileName, position) =>
+	{
+		const sourceMap = getSourceMapForFile(cache, fileName);
+		const transformedPos = sourceMap
+			? sourceMap.originalToTransformed(position)
+			: position;
+
+		const result = ls.getTypeDefinitionAtPosition(fileName, transformedPos);
+		if (!result) return result;
+
+		return result.map((def) =>
+		{
+			const defMap = getSourceMapForFile(cache, def.fileName);
+			if (!defMap) return def;
+			return {
+				...def,
+				textSpan: defMap.remapSpan(def.textSpan),
+				contextSpan: def.contextSpan ? defMap.remapSpan(def.contextSpan) : undefined,
+			};
+		});
+	};
+
+	// --- Completions: remap input position ---
+
+	proxy.getCompletionsAtPosition = (fileName, position, options, formattingSettings) =>
+	{
+		const sourceMap = getSourceMapForFile(cache, fileName);
+		const transformedPos = sourceMap
+			? sourceMap.originalToTransformed(position)
+			: position;
+
+		const result = ls.getCompletionsAtPosition(fileName, transformedPos, options, formattingSettings);
+		if (!result || !sourceMap) return result;
+
+		// Remap replacement spans in completion entries
+		if (result.optionalReplacementSpan)
+		{
+			result.optionalReplacementSpan = sourceMap.remapSpan(result.optionalReplacementSpan);
+		}
+		for (const entry of result.entries)
+		{
+			if (entry.replacementSpan)
+			{
+				entry.replacementSpan = sourceMap.remapSpan(entry.replacementSpan);
+			}
+		}
+
+		return result;
+	};
+
+	// --- References: remap input + output ---
+
+	proxy.getReferencesAtPosition = (fileName, position) =>
+	{
+		const sourceMap = getSourceMapForFile(cache, fileName);
+		const transformedPos = sourceMap
+			? sourceMap.originalToTransformed(position)
+			: position;
+
+		const result = ls.getReferencesAtPosition(fileName, transformedPos);
+		if (!result) return result;
+
+		return result.map((ref) =>
+		{
+			const refMap = getSourceMapForFile(cache, ref.fileName);
+			if (!refMap) return ref;
+			return {
+				...ref,
+				textSpan: refMap.remapSpan(ref.textSpan),
+				contextSpan: ref.contextSpan ? refMap.remapSpan(ref.contextSpan) : undefined,
+			};
+		});
+	};
+
+	proxy.findReferences = (fileName, position) =>
+	{
+		const sourceMap = getSourceMapForFile(cache, fileName);
+		const transformedPos = sourceMap
+			? sourceMap.originalToTransformed(position)
+			: position;
+
+		const result = ls.findReferences(fileName, transformedPos);
+		if (!result) return result;
+
+		return result.map((group) => ({
+			...group,
+			references: group.references.map((ref) =>
+			{
+				const refMap = getSourceMapForFile(cache, ref.fileName);
+				if (!refMap) return ref;
+				return {
+					...ref,
+					textSpan: refMap.remapSpan(ref.textSpan),
+					contextSpan: ref.contextSpan ? refMap.remapSpan(ref.contextSpan) : undefined,
+				};
+			}),
+		}));
+	};
+
+	// --- Signature help: remap input position + applicableSpan ---
+
+	proxy.getSignatureHelpItems = (fileName, position, options) =>
+	{
+		const sourceMap = getSourceMapForFile(cache, fileName);
+		const transformedPos = sourceMap
+			? sourceMap.originalToTransformed(position)
+			: position;
+
+		const result = ls.getSignatureHelpItems(fileName, transformedPos, options);
+		if (!result || !sourceMap) return result;
+
+		result.applicableSpan = sourceMap.remapSpan(result.applicableSpan);
+		return result;
+	};
+
+	// --- Rename: remap input + output ---
+
+	proxy.findRenameLocations = (fileName, position, findInStrings, findInComments, preferences) =>
+	{
+		const sourceMap = getSourceMapForFile(cache, fileName);
+		const transformedPos = sourceMap
+			? sourceMap.originalToTransformed(position)
+			: position;
+
+		const result = (ls.findRenameLocations as Function)(fileName, transformedPos, findInStrings, findInComments, preferences) as readonly tsRuntime.RenameLocation[] | undefined;
+		if (!result) return result;
+
+		return result.map((loc) =>
+		{
+			const locMap = getSourceMapForFile(cache, loc.fileName);
+			if (!locMap) return loc;
+			return {
+				...loc,
+				textSpan: locMap.remapSpan(loc.textSpan),
+				contextSpan: loc.contextSpan ? locMap.remapSpan(loc.contextSpan) : undefined,
+			};
+		});
+	};
+
+	proxy.getRenameInfo = (fileName, position, preferences) =>
+	{
+		const sourceMap = getSourceMapForFile(cache, fileName);
+		const transformedPos = sourceMap
+			? sourceMap.originalToTransformed(position)
+			: position;
+
+		const result = ls.getRenameInfo(fileName, transformedPos, preferences);
+		if (!sourceMap) return result;
+
+		if ("triggerSpan" in result && result.triggerSpan)
+		{
+			result.triggerSpan = sourceMap.remapSpan(result.triggerSpan);
+		}
+		return result;
+	};
+
+	// --- Implementation location: remap input + output ---
+
+	proxy.getImplementationAtPosition = (fileName, position) =>
+	{
+		const sourceMap = getSourceMapForFile(cache, fileName);
+		const transformedPos = sourceMap
+			? sourceMap.originalToTransformed(position)
+			: position;
+
+		const result = ls.getImplementationAtPosition(fileName, transformedPos);
+		if (!result) return result;
+
+		return result.map((impl) =>
+		{
+			const implMap = getSourceMapForFile(cache, impl.fileName);
+			if (!implMap) return impl;
+			return {
+				...impl,
+				textSpan: implMap.remapSpan(impl.textSpan),
+				contextSpan: impl.contextSpan ? implMap.remapSpan(impl.contextSpan) : undefined,
+			};
+		});
+	};
+
+	return proxy;
 }

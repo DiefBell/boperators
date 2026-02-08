@@ -41,6 +41,15 @@ export class OverloadInjector
 			{
 				leftType = "number";
 			}
+			else if (leftType === "any")
+			{
+				// Type resolution can fail for compound assignments (+=, *=, etc.)
+				// because TS tries to compute the result type of the underlying
+				// binary operation, which it can't do for overloaded types.
+				// Fall back to the declared type of the symbol.
+				const decl = lhs.getSymbol()?.getValueDeclaration();
+				if (decl) leftType = decl.getType().getText();
+			}
 
 			const rhs = expression.getRight();
 			let rightType = rhs.getType().getText();
@@ -54,6 +63,11 @@ export class OverloadInjector
 			)
 			{
 				rightType = "boolean";
+			}
+			else if (rightType === "any")
+			{
+				const decl = rhs.getSymbol()?.getValueDeclaration();
+				if (decl) rightType = decl.getType().getText();
 			}
 
 			const overloadsForOperator = this._overloadStore.get(operatorKind);
@@ -78,7 +92,7 @@ export class OverloadInjector
 			// Build the text code to replace the binary operator with the overload call
 			const overloadCall = isStatic
 				? `${className}["${operatorString}"][${index}](${lhs.getText()}, ${rhs.getText()})`
-				: `${lhs.getText()}["${operatorString}"][${index}](${rhs.getText()})`;
+				: `${lhs.getText()}["${operatorString}"][${index}].call(${lhs.getText()}, ${rhs.getText()})`;
 
 			expression.replaceWithText(overloadCall);
 		});
