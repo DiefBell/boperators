@@ -3,8 +3,8 @@
 		"source.fixAll.ts": "always"
 	},
 	"files.eol": "\n",
-  	"files.insertFinalNewline": true,
+	"files.insertFinalNewline": true,
 	"files.trimFinalNewlines": true,
 	"typescript.tsdk": "node_modules\\typescript\\lib",
-	"typescript.tsserver.log": "verbose",
+	"typescript.tsserver.log": "verbose"
 }

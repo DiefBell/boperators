@@ -1,7 +1,8 @@
 // Core transformation pipeline
-export { OverloadStore } from "./core/OverloadStore";
+
+export { ErrorDescription, ErrorManager } from "./core/ErrorManager";
 export { OverloadInjector } from "./core/OverloadInjector";
-export { ErrorManager, ErrorDescription } from "./core/ErrorManager";
+export { OverloadStore } from "./core/OverloadStore";
 
 // Operator definitions
 export { Operator, operatorSymbols } from "./lib/operatorSymbols";

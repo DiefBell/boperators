@@ -1,6 +1,11 @@
-import tsRuntime from "typescript/lib/tsserverlibrary";
-import { Project as TsMorphProject, SyntaxKind, Node, type SourceFile as TsMorphSourceFile } from "ts-morph";
-import { ErrorManager, OverloadStore, OverloadInjector } from "boperators";
+import { ErrorManager, OverloadInjector, OverloadStore } from "boperators";
+import {
+	Node,
+	SyntaxKind,
+	Project as TsMorphProject,
+	type SourceFile as TsMorphSourceFile,
+} from "ts-morph";
+import type tsRuntime from "typescript/lib/tsserverlibrary";
 import { SourceMap } from "./SourceMap";
 
 // ----- Types -----
@@ -30,14 +35,19 @@ type OverloadEditInfo = {
 
 // ----- Plugin entry -----
 
-export = function init(modules: { typescript: typeof tsRuntime }): tsRuntime.server.PluginModule
-{
+export = function init(modules: {
+	typescript: typeof tsRuntime;
+}): tsRuntime.server.PluginModule {
 	const ts = modules.typescript;
 
-	function create(info: tsRuntime.server.PluginCreateInfo): tsRuntime.LanguageService
-	{
-		const log = (msg: string) => info.project.projectService.logger.info(`[boperators] ${msg}`);
-		log("Creating language service plugin for project: " + info.project.getProjectName());
+	function create(
+		info: tsRuntime.server.PluginCreateInfo,
+	): tsRuntime.LanguageService {
+		const log = (msg: string) =>
+			info.project.projectService.logger.info(`[boperators] ${msg}`);
+		log(
+			`Creating language service plugin for project: ${info.project.getProjectName()}`,
+		);
 		const host = info.languageServiceHost;
 
 		// Set up ts-morph transformation pipeline
@@ -50,22 +60,20 @@ export = function init(modules: { typescript: typeof tsRuntime }): tsRuntime.ser
 		const originalGetVersion = host.getScriptVersion?.bind(host);
 		const cache = new Map<string, CacheEntry>();
 
-		host.getScriptSnapshot = (fileName: string) =>
-		{
+		host.getScriptSnapshot = (fileName: string) => {
 			const snap = originalGetSnapshot?.(fileName);
-			if (!snap || !fileName.endsWith(".ts") || fileName.endsWith(".d.ts")) return snap;
+			if (!snap || !fileName.endsWith(".ts") || fileName.endsWith(".d.ts"))
+				return snap;
 
 			const version = originalGetVersion?.(fileName) ?? "0";
 			const cached = cache.get(fileName);
-			if (cached?.version === version)
-			{
+			if (cached?.version === version) {
 				return ts.ScriptSnapshot.fromString(cached.text);
 			}
 
 			const source = snap.getText(0, snap.getLength());
 
-			try
-			{
+			try {
 				// Invalidate this file's old overload entries before overwriting.
 				const hadOverloads = overloadStore.invalidateFile(fileName);
 				if (hadOverloads) cache.clear();
@@ -75,8 +83,7 @@ export = function init(modules: { typescript: typeof tsRuntime }): tsRuntime.ser
 
 				// Resolve any new dependencies and scan for overloads.
 				const deps = project.resolveSourceFileDependencies();
-				for (const dep of deps)
-					overloadStore.addOverloadsFromFile(dep);
+				for (const dep of deps) overloadStore.addOverloadsFromFile(dep);
 				overloadStore.addOverloadsFromFile(fileName);
 				errorManager.throwIfErrorsElseLogWarnings();
 
@@ -92,11 +99,14 @@ export = function init(modules: { typescript: typeof tsRuntime }): tsRuntime.ser
 				// Build source map from original vs transformed text
 				const sourceMap = new SourceMap(source, rewritten);
 
-				cache.set(fileName, { version, text: rewritten, sourceMap, overloadEdits });
+				cache.set(fileName, {
+					version,
+					text: rewritten,
+					sourceMap,
+					overloadEdits,
+				});
 				return ts.ScriptSnapshot.fromString(rewritten);
-			}
-			catch (e)
-			{
+			} catch (e) {
 				log(`Error transforming ${fileName}: ${e}`);
 				cache.set(fileName, {
 					version,
@@ -129,13 +139,13 @@ export = function init(modules: { typescript: typeof tsRuntime }): tsRuntime.ser
 function findOverloadEdits(
 	sourceFile: TsMorphSourceFile,
 	overloadStore: OverloadStore,
-): OverloadEditInfo[]
-{
+): OverloadEditInfo[] {
 	const edits: OverloadEditInfo[] = [];
-	const binaryExpressions = sourceFile.getDescendantsOfKind(SyntaxKind.BinaryExpression);
+	const binaryExpressions = sourceFile.getDescendantsOfKind(
+		SyntaxKind.BinaryExpression,
+	);
 
-	for (const expression of binaryExpressions)
-	{
+	for (const expression of binaryExpressions) {
 		const operatorToken = expression.getOperatorToken();
 		const operatorKind = operatorToken.getKind();
 
@@ -145,31 +155,23 @@ function findOverloadEdits(
 
 		const lhs = expression.getLeft();
 		let leftType = lhs.getType().getText();
-		if (lhs.getKind() === SyntaxKind.NumericLiteral)
-		{
+		if (lhs.getKind() === SyntaxKind.NumericLiteral) {
 			leftType = "number";
-		}
-		else if (leftType === "any")
-		{
+		} else if (leftType === "any") {
 			const decl = lhs.getSymbol()?.getValueDeclaration();
 			if (decl) leftType = decl.getType().getText();
 		}
 
 		const rhs = expression.getRight();
 		let rightType = rhs.getType().getText();
-		if (rhs.getKind() === SyntaxKind.NumericLiteral)
-		{
+		if (rhs.getKind() === SyntaxKind.NumericLiteral) {
 			rightType = "number";
-		}
-		else if (
-			rhs.getKind() !== SyntaxKind.StringLiteral
-			&& (rightType === "true" || rightType === "false")
-		)
-		{
+		} else if (
+			rhs.getKind() !== SyntaxKind.StringLiteral &&
+			(rightType === "true" || rightType === "false")
+		) {
 			rightType = "boolean";
-		}
-		else if (rightType === "any")
-		{
+		} else if (rightType === "any") {
 			const decl = rhs.getSymbol()?.getValueDeclaration();
 			if (decl) rightType = decl.getType().getText();
 		}
@@ -207,10 +209,8 @@ function getOverloadHoverInfo(
 	ts: typeof tsRuntime,
 	project: TsMorphProject,
 	edit: OverloadEditInfo,
-): tsRuntime.QuickInfo | undefined
-{
-	try
-	{
+): tsRuntime.QuickInfo | undefined {
+	try {
 		const classSourceFile = project.getSourceFile(edit.classFilePath);
 		if (!classSourceFile) return undefined;
 
@@ -218,17 +218,17 @@ function getOverloadHoverInfo(
 		if (!classDecl) return undefined;
 
 		// Find the property with the matching operator string
-		const prop = classDecl.getProperties().find((p) =>
-		{
+		const prop = classDecl.getProperties().find((p) => {
 			const nameNode = p.getNameNode();
 			if (!nameNode.isKind(SyntaxKind.ComputedPropertyName)) return false;
 			const expr = nameNode.getExpression();
-			if (expr.isKind(SyntaxKind.StringLiteral))
-			{
+			if (expr.isKind(SyntaxKind.StringLiteral)) {
 				return expr.getLiteralValue() === edit.operatorString;
 			}
 			const literalValue = expr.getType().getLiteralValue();
-			return typeof literalValue === "string" && literalValue === edit.operatorString;
+			return (
+				typeof literalValue === "string" && literalValue === edit.operatorString
+			);
 		});
 		if (!prop) return undefined;
 
@@ -242,11 +242,11 @@ function getOverloadHoverInfo(
 			return undefined;
 
 		const element = initializer.getElements()[edit.index];
-		if (!element || !Node.isFunctionExpression(element))
-			return undefined;
+		if (!element || !Node.isFunctionExpression(element)) return undefined;
 
 		// Build signature string
-		const params = element.getParameters()
+		const params = element
+			.getParameters()
 			.filter((p) => p.getName() !== "this")
 			.map((p) => `${p.getName()}: ${p.getType().getText()}`);
 		const returnType = element.getReturnType().getText();
@@ -259,8 +259,7 @@ function getOverloadHoverInfo(
 		// Extract JSDoc comment
 		const jsDocs = element.getJsDocs();
 		let docText: string | undefined;
-		if (jsDocs.length > 0)
-		{
+		if (jsDocs.length > 0) {
 			const raw = jsDocs[0].getText();
 			docText = raw
 				.replace(/^\/\*\*\s*/, "")
@@ -276,17 +275,11 @@ function getOverloadHoverInfo(
 				start: edit.operatorStart,
 				length: edit.operatorEnd - edit.operatorStart,
 			},
-			displayParts: [
-				{ text: prefix + signature, kind: "text" },
-			],
-			documentation: docText
-				? [{ text: docText, kind: "text" }]
-				: undefined,
+			displayParts: [{ text: prefix + signature, kind: "text" }],
+			documentation: docText ? [{ text: docText, kind: "text" }] : undefined,
 			tags: [],
 		};
-	}
-	catch
-	{
+	} catch {
 		return undefined;
 	}
 }
@@ -296,8 +289,7 @@ function getOverloadHoverInfo(
 function getSourceMapForFile(
 	cache: Map<string, CacheEntry>,
 	fileName: string,
-): SourceMap | undefined
-{
+): SourceMap | undefined {
 	const entry = cache.get(fileName);
 	if (!entry || entry.sourceMap.isEmpty) return undefined;
 	return entry.sourceMap;
@@ -306,11 +298,12 @@ function getSourceMapForFile(
 function remapDiagnosticSpan(
 	diag: { start?: number; length?: number },
 	sourceMap: SourceMap,
-): void
-{
-	if (diag.start !== undefined && diag.length !== undefined)
-	{
-		const remapped = sourceMap.remapSpan({ start: diag.start, length: diag.length });
+): void {
+	if (diag.start !== undefined && diag.length !== undefined) {
+		const remapped = sourceMap.remapSpan({
+			start: diag.start,
+			length: diag.length,
+		});
 		diag.start = remapped.start;
 		diag.length = remapped.length;
 	}
@@ -322,30 +315,24 @@ function createProxy(
 	cache: Map<string, CacheEntry>,
 	project: TsMorphProject,
 	_log: (msg: string) => void,
-): tsRuntime.LanguageService
-{
+): tsRuntime.LanguageService {
 	// Copy all methods from the underlying language service
 	const proxy = Object.create(null) as tsRuntime.LanguageService;
-	for (const key of Object.keys(ls))
-	{
+	for (const key of Object.keys(ls)) {
 		(proxy as any)[key] = (ls as any)[key];
 	}
 
 	// --- Diagnostics: remap output spans ---
 
-	proxy.getSemanticDiagnostics = (fileName) =>
-	{
+	proxy.getSemanticDiagnostics = (fileName) => {
 		const result = ls.getSemanticDiagnostics(fileName);
 		const sourceMap = getSourceMapForFile(cache, fileName);
 		if (!sourceMap) return result;
 
-		for (const diag of result)
-		{
+		for (const diag of result) {
 			remapDiagnosticSpan(diag, sourceMap);
-			if (diag.relatedInformation)
-			{
-				for (const related of diag.relatedInformation)
-				{
+			if (diag.relatedInformation) {
+				for (const related of diag.relatedInformation) {
 					const relatedMap = related.file
 						? getSourceMapForFile(cache, related.file.fileName)
 						: undefined;
@@ -356,19 +343,15 @@ function createProxy(
 		return result;
 	};
 
-	proxy.getSyntacticDiagnostics = (fileName) =>
-	{
+	proxy.getSyntacticDiagnostics = (fileName) => {
 		const result = ls.getSyntacticDiagnostics(fileName);
 		const sourceMap = getSourceMapForFile(cache, fileName);
 		if (!sourceMap) return result;
 
-		for (const diag of result)
-		{
+		for (const diag of result) {
 			remapDiagnosticSpan(diag, sourceMap);
-			if (diag.relatedInformation)
-			{
-				for (const related of diag.relatedInformation)
-				{
+			if (diag.relatedInformation) {
+				for (const related of diag.relatedInformation) {
 					const relatedMap = related.file
 						? getSourceMapForFile(cache, related.file.fileName)
 						: undefined;
@@ -379,14 +362,12 @@ function createProxy(
 		return result;
 	};
 
-	proxy.getSuggestionDiagnostics = (fileName) =>
-	{
+	proxy.getSuggestionDiagnostics = (fileName) => {
 		const result = ls.getSuggestionDiagnostics(fileName);
 		const sourceMap = getSourceMapForFile(cache, fileName);
 		if (!sourceMap) return result;
 
-		for (const diag of result)
-		{
+		for (const diag of result) {
 			remapDiagnosticSpan(diag, sourceMap);
 		}
 		return result;
@@ -394,23 +375,21 @@ function createProxy(
 
 	// --- Hover: remap input position + output span, custom operator hover ---
 
-	proxy.getQuickInfoAtPosition = (fileName, position) =>
-	{
+	proxy.getQuickInfoAtPosition = (fileName, position) => {
 		// Check if hovering over an overloaded operator
 		const entry = cache.get(fileName);
-		if (entry)
-		{
+		if (entry) {
 			const operatorEdit = entry.overloadEdits.find(
-				(e) => position >= e.operatorStart && position < e.operatorEnd
+				(e) => position >= e.operatorStart && position < e.operatorEnd,
 			);
-			if (operatorEdit)
-			{
+			if (operatorEdit) {
 				const hoverInfo = getOverloadHoverInfo(ts, project, operatorEdit);
 				if (hoverInfo) return hoverInfo;
 			}
 		}
 
-		const sourceMap = entry?.sourceMap.isEmpty === false ? entry.sourceMap : undefined;
+		const sourceMap =
+			entry?.sourceMap.isEmpty === false ? entry.sourceMap : undefined;
 		const transformedPos = sourceMap
 			? sourceMap.originalToTransformed(position)
 			: position;
@@ -424,8 +403,7 @@ function createProxy(
 
 	// --- Go-to-definition: remap input position + output spans ---
 
-	proxy.getDefinitionAndBoundSpan = (fileName, position) =>
-	{
+	proxy.getDefinitionAndBoundSpan = (fileName, position) => {
 		const sourceMap = getSourceMapForFile(cache, fileName);
 		const transformedPos = sourceMap
 			? sourceMap.originalToTransformed(position)
@@ -435,22 +413,17 @@ function createProxy(
 		if (!result) return result;
 
 		// Remap the bound span (in the current file)
-		if (sourceMap)
-		{
+		if (sourceMap) {
 			result.textSpan = sourceMap.remapSpan(result.textSpan);
 		}
 
 		// Remap definition spans (may be in other files)
-		if (result.definitions)
-		{
-			for (const def of result.definitions)
-			{
+		if (result.definitions) {
+			for (const def of result.definitions) {
 				const defMap = getSourceMapForFile(cache, def.fileName);
-				if (defMap)
-				{
+				if (defMap) {
 					def.textSpan = defMap.remapSpan(def.textSpan);
-					if (def.contextSpan)
-					{
+					if (def.contextSpan) {
 						def.contextSpan = defMap.remapSpan(def.contextSpan);
 					}
 				}
@@ -460,8 +433,7 @@ function createProxy(
 		return result;
 	};
 
-	proxy.getDefinitionAtPosition = (fileName, position) =>
-	{
+	proxy.getDefinitionAtPosition = (fileName, position) => {
 		const sourceMap = getSourceMapForFile(cache, fileName);
 		const transformedPos = sourceMap
 			? sourceMap.originalToTransformed(position)
@@ -470,20 +442,20 @@ function createProxy(
 		const result = ls.getDefinitionAtPosition(fileName, transformedPos);
 		if (!result) return result;
 
-		return result.map((def) =>
-		{
+		return result.map((def) => {
 			const defMap = getSourceMapForFile(cache, def.fileName);
 			if (!defMap) return def;
 			return {
 				...def,
 				textSpan: defMap.remapSpan(def.textSpan),
-				contextSpan: def.contextSpan ? defMap.remapSpan(def.contextSpan) : undefined,
+				contextSpan: def.contextSpan
+					? defMap.remapSpan(def.contextSpan)
+					: undefined,
 			};
 		});
 	};
 
-	proxy.getTypeDefinitionAtPosition = (fileName, position) =>
-	{
+	proxy.getTypeDefinitionAtPosition = (fileName, position) => {
 		const sourceMap = getSourceMapForFile(cache, fileName);
 		const transformedPos = sourceMap
 			? sourceMap.originalToTransformed(position)
@@ -492,39 +464,48 @@ function createProxy(
 		const result = ls.getTypeDefinitionAtPosition(fileName, transformedPos);
 		if (!result) return result;
 
-		return result.map((def) =>
-		{
+		return result.map((def) => {
 			const defMap = getSourceMapForFile(cache, def.fileName);
 			if (!defMap) return def;
 			return {
 				...def,
 				textSpan: defMap.remapSpan(def.textSpan),
-				contextSpan: def.contextSpan ? defMap.remapSpan(def.contextSpan) : undefined,
+				contextSpan: def.contextSpan
+					? defMap.remapSpan(def.contextSpan)
+					: undefined,
 			};
 		});
 	};
 
 	// --- Completions: remap input position ---
 
-	proxy.getCompletionsAtPosition = (fileName, position, options, formattingSettings) =>
-	{
+	proxy.getCompletionsAtPosition = (
+		fileName,
+		position,
+		options,
+		formattingSettings,
+	) => {
 		const sourceMap = getSourceMapForFile(cache, fileName);
 		const transformedPos = sourceMap
 			? sourceMap.originalToTransformed(position)
 			: position;
 
-		const result = ls.getCompletionsAtPosition(fileName, transformedPos, options, formattingSettings);
+		const result = ls.getCompletionsAtPosition(
+			fileName,
+			transformedPos,
+			options,
+			formattingSettings,
+		);
 		if (!result || !sourceMap) return result;
 
 		// Remap replacement spans in completion entries
-		if (result.optionalReplacementSpan)
-		{
-			result.optionalReplacementSpan = sourceMap.remapSpan(result.optionalReplacementSpan);
+		if (result.optionalReplacementSpan) {
+			result.optionalReplacementSpan = sourceMap.remapSpan(
+				result.optionalReplacementSpan,
+			);
 		}
-		for (const entry of result.entries)
-		{
-			if (entry.replacementSpan)
-			{
+		for (const entry of result.entries) {
+			if (entry.replacementSpan) {
 				entry.replacementSpan = sourceMap.remapSpan(entry.replacementSpan);
 			}
 		}
@@ -534,8 +515,7 @@ function createProxy(
 
 	// --- References: remap input + output ---
 
-	proxy.getReferencesAtPosition = (fileName, position) =>
-	{
+	proxy.getReferencesAtPosition = (fileName, position) => {
 		const sourceMap = getSourceMapForFile(cache, fileName);
 		const transformedPos = sourceMap
 			? sourceMap.originalToTransformed(position)
@@ -544,20 +524,20 @@ function createProxy(
 		const result = ls.getReferencesAtPosition(fileName, transformedPos);
 		if (!result) return result;
 
-		return result.map((ref) =>
-		{
+		return result.map((ref) => {
 			const refMap = getSourceMapForFile(cache, ref.fileName);
 			if (!refMap) return ref;
 			return {
 				...ref,
 				textSpan: refMap.remapSpan(ref.textSpan),
-				contextSpan: ref.contextSpan ? refMap.remapSpan(ref.contextSpan) : undefined,
+				contextSpan: ref.contextSpan
+					? refMap.remapSpan(ref.contextSpan)
+					: undefined,
 			};
 		});
 	};
 
-	proxy.findReferences = (fileName, position) =>
-	{
+	proxy.findReferences = (fileName, position) => {
 		const sourceMap = getSourceMapForFile(cache, fileName);
 		const transformedPos = sourceMap
 			? sourceMap.originalToTransformed(position)
@@ -568,14 +548,15 @@ function createProxy(
 
 		return result.map((group) => ({
 			...group,
-			references: group.references.map((ref) =>
-			{
+			references: group.references.map((ref) => {
 				const refMap = getSourceMapForFile(cache, ref.fileName);
 				if (!refMap) return ref;
 				return {
 					...ref,
 					textSpan: refMap.remapSpan(ref.textSpan),
-					contextSpan: ref.contextSpan ? refMap.remapSpan(ref.contextSpan) : undefined,
+					contextSpan: ref.contextSpan
+						? refMap.remapSpan(ref.contextSpan)
+						: undefined,
 				};
 			}),
 		}));
@@ -583,8 +564,7 @@ function createProxy(
 
 	// --- Signature help: remap input position + applicableSpan ---
 
-	proxy.getSignatureHelpItems = (fileName, position, options) =>
-	{
+	proxy.getSignatureHelpItems = (fileName, position, options) => {
 		const sourceMap = getSourceMapForFile(cache, fileName);
 		const transformedPos = sourceMap
 			? sourceMap.originalToTransformed(position)
@@ -599,30 +579,41 @@ function createProxy(
 
 	// --- Rename: remap input + output ---
 
-	proxy.findRenameLocations = (fileName, position, findInStrings, findInComments, preferences) =>
-	{
+	proxy.findRenameLocations = (
+		fileName,
+		position,
+		findInStrings,
+		findInComments,
+		preferences,
+	) => {
 		const sourceMap = getSourceMapForFile(cache, fileName);
 		const transformedPos = sourceMap
 			? sourceMap.originalToTransformed(position)
 			: position;
 
-		const result = (ls.findRenameLocations as Function)(fileName, transformedPos, findInStrings, findInComments, preferences) as readonly tsRuntime.RenameLocation[] | undefined;
+		const result = (ls.findRenameLocations as Function)(
+			fileName,
+			transformedPos,
+			findInStrings,
+			findInComments,
+			preferences,
+		) as readonly tsRuntime.RenameLocation[] | undefined;
 		if (!result) return result;
 
-		return result.map((loc) =>
-		{
+		return result.map((loc) => {
 			const locMap = getSourceMapForFile(cache, loc.fileName);
 			if (!locMap) return loc;
 			return {
 				...loc,
 				textSpan: locMap.remapSpan(loc.textSpan),
-				contextSpan: loc.contextSpan ? locMap.remapSpan(loc.contextSpan) : undefined,
+				contextSpan: loc.contextSpan
+					? locMap.remapSpan(loc.contextSpan)
+					: undefined,
 			};
 		});
 	};
 
-	proxy.getRenameInfo = (fileName, position, preferences) =>
-	{
+	proxy.getRenameInfo = (fileName, position, preferences) => {
 		const sourceMap = getSourceMapForFile(cache, fileName);
 		const transformedPos = sourceMap
 			? sourceMap.originalToTransformed(position)
@@ -631,8 +622,7 @@ function createProxy(
 		const result = ls.getRenameInfo(fileName, transformedPos, preferences);
 		if (!sourceMap) return result;
 
-		if ("triggerSpan" in result && result.triggerSpan)
-		{
+		if ("triggerSpan" in result && result.triggerSpan) {
 			result.triggerSpan = sourceMap.remapSpan(result.triggerSpan);
 		}
 		return result;
@@ -640,8 +630,7 @@ function createProxy(
 
 	// --- Implementation location: remap input + output ---
 
-	proxy.getImplementationAtPosition = (fileName, position) =>
-	{
+	proxy.getImplementationAtPosition = (fileName, position) => {
 		const sourceMap = getSourceMapForFile(cache, fileName);
 		const transformedPos = sourceMap
 			? sourceMap.originalToTransformed(position)
@@ -650,14 +639,15 @@ function createProxy(
 		const result = ls.getImplementationAtPosition(fileName, transformedPos);
 		if (!result) return result;
 
-		return result.map((impl) =>
-		{
+		return result.map((impl) => {
 			const implMap = getSourceMapForFile(cache, impl.fileName);
 			if (!implMap) return impl;
 			return {
 				...impl,
 				textSpan: implMap.remapSpan(impl.textSpan),
-				contextSpan: impl.contextSpan ? implMap.remapSpan(impl.contextSpan) : undefined,
+				contextSpan: impl.contextSpan
+					? implMap.remapSpan(impl.contextSpan)
+					: undefined,
 			};
 		});
 	};

@@ -1,10 +1,9 @@
-import path from "path";
+import path from "node:path";
 
 /**
  * Stores information about an error or warning for later use.
  */
-export class ErrorDescription
-{
+export class ErrorDescription {
 	/**
 	 * The base filename where the error occurred,
 	 * so we don't need the entire filepath.
@@ -24,13 +23,11 @@ export class ErrorDescription
 		public readonly filePath: string,
 		public readonly lineNumber: number,
 		public readonly codeText: string,
-	)
-	{
+	) {
 		this.fileName = path.basename(filePath);
 	}
 
-	public toString()
-	{
+	public toString() {
 		return `${this.fileName}:${this.lineNumber}: ${this.errorMessage}\n${this.codeText}\n`;
 	}
 }
@@ -39,8 +36,7 @@ export class ErrorDescription
  * Stores errors and warnings in a way that means
  * they can be logged or thrown at a later point.
  */
-export class ErrorManager
-{
+export class ErrorManager {
 	/**
 	 * Array of warnings.
 	 */
@@ -56,8 +52,7 @@ export class ErrorManager
 	 */
 	private readonly _errorOnWarning: boolean;
 
-	constructor(errorOnWarning: boolean)
-	{
+	constructor(errorOnWarning: boolean) {
 		this._errorOnWarning = errorOnWarning;
 	}
 
@@ -66,8 +61,7 @@ export class ErrorManager
 	 * meaning it will not throw unless `errorOnWarning` is true.
 	 * @param description Either a string describing the error or a {@link ErrorDescription} instance.
 	 */
-	public addWarning(description: ErrorDescription | string): void
-	{
+	public addWarning(description: ErrorDescription | string): void {
 		this._warnings.push(description);
 	}
 
@@ -76,8 +70,7 @@ export class ErrorManager
 	 * meaning it will throw when checked.
 	 * @param description Either a string describing the error or a {@link ErrorDescription} instance.
 	 */
-	public addError(description: ErrorDescription | string): void
-	{
+	public addError(description: ErrorDescription | string): void {
 		this._errors.push(description);
 	}
 
@@ -85,8 +78,7 @@ export class ErrorManager
 	 * Gets all warnings as a single string, separated by newlines.
 	 * @returns String of all warnings.
 	 */
-	public getWarningString(): string
-	{
+	public getWarningString(): string {
 		return this._warnings.map((warning) => warning.toString()).join("\n");
 	}
 
@@ -94,8 +86,7 @@ export class ErrorManager
 	 * Gets all errors as a single string, separated by newlines.
 	 * @returns String of all errors.
 	 */
-	public getErrorsString(): string
-	{
+	public getErrorsString(): string {
 		return this._errors.map((error) => error.toString()).join("\n");
 	}
 
@@ -103,12 +94,15 @@ export class ErrorManager
 	 * Throws if there are any errors currently registered in the ErrorManager.
 	 * If `errorOnWarning` is true then it will also throw if there are warnings.
 	 */
-	public throwIfErrors(): void
-	{
-		const shouldThrow = this._errors.length > 0 || (this._errorOnWarning && this._warnings.length > 0);
+	public throwIfErrors(): void {
+		const shouldThrow =
+			this._errors.length > 0 ||
+			(this._errorOnWarning && this._warnings.length > 0);
 		if (!shouldThrow) return;
 
-		const errorString = this.getErrorsString() + (this._errorOnWarning ? this.getWarningString() : "");
+		const errorString =
+			this.getErrorsString() +
+			(this._errorOnWarning ? this.getWarningString() : "");
 		throw new Error(errorString);
 	}
 
@@ -117,16 +111,13 @@ export class ErrorManager
 	 * If it does not throw then it will log all wanrnings to the console.
 	 * @param clearSelf If true, all warnings will be cleared after logging.
 	 */
-	public throwIfErrorsElseLogWarnings(clearSelf: boolean = true): void
-	{
+	public throwIfErrorsElseLogWarnings(clearSelf: boolean = true): void {
 		this.throwIfErrors();
-		if (this._warnings.length > 0)
-		{
+		if (this._warnings.length > 0) {
 			console.warn(this.getWarningString());
 		}
 
-		if (clearSelf)
-		{
+		if (clearSelf) {
 			this.clearWarnings();
 		}
 	}
@@ -134,8 +125,7 @@ export class ErrorManager
 	/**
 	 * Clear out registered warnings to prevent duplicate logging.
 	 */
-	public clearWarnings(): void
-	{
+	public clearWarnings(): void {
 		this._warnings = [];
 	}
 }

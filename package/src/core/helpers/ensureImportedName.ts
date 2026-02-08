@@ -1,4 +1,8 @@
-import { type SourceFile, type Symbol as AstSymbol, SyntaxKind } from "ts-morph";
+import {
+	type Symbol as AstSymbol,
+	type SourceFile,
+	SyntaxKind,
+} from "ts-morph";
 import { getImportedNameForSymbol } from "./getImportedNameForSymbol";
 
 /**
@@ -10,8 +14,11 @@ import { getImportedNameForSymbol } from "./getImportedNameForSymbol";
  * @param moduleSpecifier The module from which the class should be imported.
  * @returns The imported identifier name to use in the source file.
  */
-export const ensureImportedName = (sourceFile: SourceFile, symbol: AstSymbol, moduleSpecifier: string): string =>
-{
+export const ensureImportedName = (
+	sourceFile: SourceFile,
+	symbol: AstSymbol,
+	moduleSpecifier: string,
+): string => {
 	// Attempt to get the imported name if it already exists
 	const existingName = getImportedNameForSymbol(sourceFile, symbol);
 	if (existingName) return existingName; // Return the already-imported name
@@ -21,29 +28,36 @@ export const ensureImportedName = (sourceFile: SourceFile, symbol: AstSymbol, mo
 	let newImportName = symbolName;
 
 	// Ensure the name doesn't clash with existing identifiers in the source file
-	const existingIdentifiers = sourceFile.getDescendantsOfKind(SyntaxKind.Identifier);
+	const existingIdentifiers = sourceFile.getDescendantsOfKind(
+		SyntaxKind.Identifier,
+	);
 	const existingNames = new Set(existingIdentifiers.map((id) => id.getText()));
-	while (existingNames.has(newImportName))
-	{
+	while (existingNames.has(newImportName)) {
 		newImportName = `${symbolName}_${Math.random().toString(36).substr(2, 5)}`;
 	}
 
 	// Check if the module is already imported
-	const existingImport = sourceFile.getImportDeclarations().find(
-		(importDecl) => importDecl.getModuleSpecifierValue() === moduleSpecifier
-	);
+	const existingImport = sourceFile
+		.getImportDeclarations()
+		.find(
+			(importDecl) => importDecl.getModuleSpecifierValue() === moduleSpecifier,
+		);
 
-	if (existingImport)
-	{
+	if (existingImport) {
 		// Add the new import to the named imports
-		existingImport.addNamedImport(newImportName === symbolName ? symbolName : { name: symbolName, alias: newImportName });
-	}
-	else
-	{
+		existingImport.addNamedImport(
+			newImportName === symbolName
+				? symbolName
+				: { name: symbolName, alias: newImportName },
+		);
+	} else {
 		// Add a new import declaration
 		sourceFile.addImportDeclaration({
 			moduleSpecifier,
-			namedImports: newImportName === symbolName ? [symbolName] : [{ name: symbolName, alias: newImportName }],
+			namedImports:
+				newImportName === symbolName
+					? [symbolName]
+					: [{ name: symbolName, alias: newImportName }],
 		});
 	}
 

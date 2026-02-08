@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { Command } from "@commander-js/extra-typings";
+import { ErrorManager, OverloadInjector, OverloadStore } from "boperators";
 import { Project as TsMorphProject } from "ts-morph";
-import { OverloadStore, ErrorManager, OverloadInjector } from "boperators";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageJsonPath = path.join(__dirname, "..", "package.json");
@@ -19,30 +19,27 @@ const program = new Command()
 
 	.option(
 		"-t, --ts-out <dir>",
-		"Output directory for TypeScript files once overloads have been injected."
+		"Output directory for TypeScript files once overloads have been injected.",
 	)
 	.option(
 		"-p, --project <path>",
 		"Path to tsconfig.json to use.",
-		"tsconfig.json"
+		"tsconfig.json",
 	)
-	.option(
-		"-d, --dry-run",
-		"Preview only without writing files.",
-		false
-	)
+	.option("-d, --dry-run", "Preview only without writing files.", false)
 	.option(
 		"--error-on-warning",
 		"Instead of showing a warning, error on conflicting overloads.",
-		false
+		false,
 	);
 
 program.parse(process.argv);
 const options = program.opts();
 
-const tsConfigFilePath = path.isAbsolute(options.project) ? options.project : path.join(process.cwd(), options.project);
-if (!fs.existsSync(tsConfigFilePath))
-{
+const tsConfigFilePath = path.isAbsolute(options.project)
+	? options.project
+	: path.join(process.cwd(), options.project);
+if (!fs.existsSync(tsConfigFilePath)) {
 	throw new Error(`Unable to find tsconfig file at "${tsConfigFilePath}".`);
 }
 
@@ -55,29 +52,32 @@ const allFiles = project.getSourceFiles();
 
 // Only transform and write files within the user's project directory
 // ts-morph normalizes paths to forward slashes, so we must match that
-const projectDir = path.dirname(tsConfigFilePath).replaceAll("\\", "/") + "/";
+const projectDir = `${path.dirname(tsConfigFilePath).replaceAll("\\", "/")}/`;
 const projectFiles = allFiles.filter((file) =>
-	file.getFilePath().startsWith(projectDir)
+	file.getFilePath().startsWith(projectDir),
 );
 
 // Parse ALL files for overload definitions (including library dependencies)
-allFiles.forEach((file) => overloadStore.addOverloadsFromFile(file));
+allFiles.forEach((file) => {
+	overloadStore.addOverloadsFromFile(file);
+});
 errorManager.throwIfErrorsElseLogWarnings();
 
 // Only transform files belonging to the user's project
-projectFiles.forEach((file) => overloadInjector.overloadFile(file));
+projectFiles.forEach((file) => {
+	overloadInjector.overloadFile(file);
+});
 errorManager.throwIfErrorsElseLogWarnings();
 
-if (options.dryRun)
-{
+if (options.dryRun) {
 	process.exit(0);
 }
 
-if (options.tsOut)
-{
-	const tsOutDir = path.isAbsolute(options.tsOut) ? options.tsOut : path.join(process.cwd(), options.tsOut);
-	if (!fs.existsSync(tsOutDir))
-	{
+if (options.tsOut) {
+	const tsOutDir = path.isAbsolute(options.tsOut)
+		? options.tsOut
+		: path.join(process.cwd(), options.tsOut);
+	if (!fs.existsSync(tsOutDir)) {
 		fs.mkdirSync(tsOutDir, { recursive: true });
 	}
 
@@ -87,16 +87,11 @@ if (options.tsOut)
 		? path.resolve(path.dirname(tsConfigFilePath), compilerOptions.rootDir)
 		: path.dirname(tsConfigFilePath);
 
-	projectFiles.forEach((file) =>
-	{
-		const relativePath = path.relative(
-			rootDir,
-			file.getFilePath()
-		);
+	projectFiles.forEach((file) => {
+		const relativePath = path.relative(rootDir, file.getFilePath());
 		const outPath = path.join(tsOutDir, relativePath);
 		const outDir = path.dirname(outPath);
-		if (!fs.existsSync(outDir))
-		{
+		if (!fs.existsSync(outDir)) {
 			fs.mkdirSync(outDir, { recursive: true });
 		}
 		fs.writeFileSync(outPath, file.getFullText());

@@ -15,8 +15,7 @@
  * }
  * ```
  */
-export enum Operator
-{
+export enum Operator {
 	PLUS = "+",
 	PLUS_EQUALS = "+=",
 	MINUS = "-",
