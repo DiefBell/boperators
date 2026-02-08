@@ -8,9 +8,8 @@
 		"@boperators/plugin-ts-language-server": "0.1.0"
 	},
 	"scripts": {
-		"start": "bun run ./src/index.ts",
 		"bop": "rm -rf ./transformed && bun run ../cli/dist/index.js --ts-out ./transformed",
-		"start:transformed": "bun run ./transformed/index.ts"
+		"start": "bun run ./transformed/index.ts"
 	},
 	"type": "module",
 	"devDependencies": {
