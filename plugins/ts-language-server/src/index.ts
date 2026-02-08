@@ -2,7 +2,7 @@ import tsRuntime from "typescript/lib/tsserverlibrary";
 import { Project as TsMorphProject } from "ts-morph";
 import { ErrorManager, OverloadStore, OverloadInjector } from "boperators";
 
-export function init(modules: { typescript: typeof tsRuntime }): tsRuntime.server.PluginModule
+export = function init(modules: { typescript: typeof tsRuntime }): tsRuntime.server.PluginModule
 {
 	const ts = modules.typescript;
 
