@@ -2,6 +2,7 @@
 	"name": "@boperators/plugin-ts-language-server",
 	"version": "0.1.0",
 	"license": "MIT",
+	"type": "commonjs",
 	"main": "./dist/index.js",
 	"scripts": {
 		"build": "tsc"
