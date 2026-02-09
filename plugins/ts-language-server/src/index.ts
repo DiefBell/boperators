@@ -1,4 +1,12 @@
-import { ErrorManager, OverloadInjector, OverloadStore } from "boperators";
+import {
+	ErrorManager,
+	getOperatorStringFromProperty,
+	isOperatorSyntaxKind,
+	OverloadInjector,
+	OverloadStore,
+	resolveExpressionType,
+	unwrapInitializer,
+} from "boperators";
 import {
 	Node,
 	SyntaxKind,
@@ -133,8 +141,7 @@ export = function init(modules: {
 /**
  * Before transformation, find all binary expressions that match
  * registered overloads and record their operator token positions.
- * This duplicates the lookup logic from OverloadInjector but
- * captures position data needed for hover info.
+ * This is used to provide hover info for overloaded operators.
  */
 function findOverloadEdits(
 	sourceFile: TsMorphSourceFile,
@@ -149,37 +156,16 @@ function findOverloadEdits(
 		const operatorToken = expression.getOperatorToken();
 		const operatorKind = operatorToken.getKind();
 
-		// Check if this operator has any overloads registered
-		const overloadsForOperator = overloadStore.get(operatorKind as any);
-		if (!overloadsForOperator) continue;
+		if (!isOperatorSyntaxKind(operatorKind)) continue;
 
-		const lhs = expression.getLeft();
-		let leftType = lhs.getType().getText();
-		if (lhs.getKind() === SyntaxKind.NumericLiteral) {
-			leftType = "number";
-		} else if (leftType === "any") {
-			const decl = lhs.getSymbol()?.getValueDeclaration();
-			if (decl) leftType = decl.getType().getText();
-		}
+		const leftType = resolveExpressionType(expression.getLeft());
+		const rightType = resolveExpressionType(expression.getRight());
 
-		const rhs = expression.getRight();
-		let rightType = rhs.getType().getText();
-		if (rhs.getKind() === SyntaxKind.NumericLiteral) {
-			rightType = "number";
-		} else if (
-			rhs.getKind() !== SyntaxKind.StringLiteral &&
-			(rightType === "true" || rightType === "false")
-		) {
-			rightType = "boolean";
-		} else if (rightType === "any") {
-			const decl = rhs.getSymbol()?.getValueDeclaration();
-			if (decl) rightType = decl.getType().getText();
-		}
-
-		const overloadsForLhs = overloadsForOperator.get(leftType);
-		if (!overloadsForLhs) continue;
-
-		const overloadDesc = overloadsForLhs.get(rightType);
+		const overloadDesc = overloadStore.findOverload(
+			operatorKind,
+			leftType,
+			rightType,
+		);
 		if (!overloadDesc) continue;
 
 		edits.push({
@@ -219,30 +205,21 @@ function getOverloadHoverInfo(
 
 		// Find the property with the matching operator string
 		const prop = classDecl.getProperties().find((p) => {
-			const nameNode = p.getNameNode();
-			if (!nameNode.isKind(SyntaxKind.ComputedPropertyName)) return false;
-			const expr = nameNode.getExpression();
-			if (expr.isKind(SyntaxKind.StringLiteral)) {
-				return expr.getLiteralValue() === edit.operatorString;
-			}
-			const literalValue = expr.getType().getLiteralValue();
-			return (
-				typeof literalValue === "string" && literalValue === edit.operatorString
-			);
+			if (!Node.isPropertyDeclaration(p)) return false;
+			return getOperatorStringFromProperty(p) === edit.operatorString;
 		});
-		if (!prop) return undefined;
+		if (!prop || !Node.isPropertyDeclaration(prop)) return undefined;
 
-		// Unwrap `as const` / `satisfies` if present
-		let initializer = prop.getInitializer();
-		if (initializer && Node.isAsExpression(initializer))
-			initializer = initializer.getExpression();
-		if (initializer && Node.isSatisfiesExpression(initializer))
-			initializer = initializer.getExpression();
+		const initializer = unwrapInitializer(prop.getInitializer());
 		if (!initializer || !Node.isArrayLiteralExpression(initializer))
 			return undefined;
 
 		const element = initializer.getElements()[edit.index];
-		if (!element || !Node.isFunctionExpression(element)) return undefined;
+		if (
+			!element ||
+			(!Node.isFunctionExpression(element) && !Node.isArrowFunction(element))
+		)
+			return undefined;
 
 		// Build signature string
 		const params = element

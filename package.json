@@ -16,7 +16,7 @@
 		"build:cli": "bun run --filter @boperators/cli build",
 		"build:ts-server-plugin": "bun run --filter @boperators/plugin-ts-language-server build",
 		"build:bun-plugin": "bun run --filter @boperators/plugin-bun build",
-		"build": "bun run --filter '*' build",
+		"build": "bun run build:boperators && bun run --filter '*' build",
 		"prepare": "husky",
 		"check": "biome check .",
 		"check:unsafe": "biome check --write --unsafe .",

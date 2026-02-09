@@ -5,6 +5,7 @@ import {
 } from "ts-morph";
 import { ensureImportedName } from "./helpers/ensureImportedName";
 import { getModuleSpecifier } from "./helpers/getModuleSpecifier";
+import { resolveExpressionType } from "./helpers/resolveExpressionType";
 import type { OverloadStore } from "./OverloadStore";
 import { isOperatorSyntaxKind } from "./operatorMap";
 
@@ -37,39 +38,16 @@ export class OverloadInjector {
 			}
 
 			const lhs = expression.getLeft();
-			let leftType = lhs.getType().getText();
-			if (lhs.getKind() === SyntaxKind.NumericLiteral) {
-				leftType = "number";
-			} else if (leftType === "any") {
-				// Type resolution can fail for compound assignments (+=, *=, etc.)
-				// because TS tries to compute the result type of the underlying
-				// binary operation, which it can't do for overloaded types.
-				// Fall back to the declared type of the symbol.
-				const decl = lhs.getSymbol()?.getValueDeclaration();
-				if (decl) leftType = decl.getType().getText();
-			}
+			const leftType = resolveExpressionType(lhs);
 
 			const rhs = expression.getRight();
-			let rightType = rhs.getType().getText();
-			if (rhs.getKind() === SyntaxKind.NumericLiteral) {
-				rightType = "number";
-			} else if (
-				rhs.getKind() !== SyntaxKind.StringLiteral &&
-				(rightType === "true" || rightType === "false")
-			) {
-				rightType = "boolean";
-			} else if (rightType === "any") {
-				const decl = rhs.getSymbol()?.getValueDeclaration();
-				if (decl) rightType = decl.getType().getText();
-			}
+			const rightType = resolveExpressionType(rhs);
 
-			const overloadsForOperator = this._overloadStore.get(operatorKind);
-			if (!overloadsForOperator) return;
-
-			const overloadsForLhs = overloadsForOperator.get(leftType);
-			if (!overloadsForLhs) return;
-
-			const overloadDesc = overloadsForLhs.get(rightType);
+			const overloadDesc = this._overloadStore.findOverload(
+				operatorKind,
+				leftType,
+				rightType,
+			);
 			if (!overloadDesc) return;
 
 			const {

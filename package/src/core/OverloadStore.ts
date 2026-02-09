@@ -6,6 +6,8 @@ import {
 } from "ts-morph";
 import { operatorSymbols } from "../lib/operatorSymbols";
 import { ErrorDescription, type ErrorManager } from "./ErrorManager";
+import { getOperatorStringFromProperty } from "./helpers/getOperatorStringFromProperty";
+import { unwrapInitializer } from "./helpers/unwrapInitializer";
 import {
 	comparisonOperators,
 	instanceOperators,
@@ -30,7 +32,7 @@ type RhsTypeName = string;
  * Information about an overload so that we can
  * substitute it over binary expressions.
  */
-type OverloadDescription = {
+export type OverloadDescription = {
 	isStatic: boolean;
 	className: string;
 	classFilePath: string;
@@ -57,6 +59,18 @@ export class OverloadStore extends Map<
 
 		this._project = project;
 		this._errorManager = errorManager;
+	}
+
+	/**
+	 * Looks up an overload description for the given operator kind and
+	 * LHS/RHS type pair.
+	 */
+	public findOverload(
+		operatorKind: OperatorSyntaxKind,
+		lhsType: string,
+		rhsType: string,
+	): OverloadDescription | undefined {
+		return this.get(operatorKind)?.get(lhsType)?.get(rhsType);
 	}
 
 	/**
@@ -101,27 +115,7 @@ export class OverloadStore extends Map<
 
 				const isStatic = property.isStatic();
 
-				const nameNode = property.getNameNode();
-
-				// Try to get the operator string value from the property name
-				let operatorString: string | undefined;
-				if (nameNode.isKind(SyntaxKind.ComputedPropertyName)) {
-					// Handle ["+"] or [Operator.PLUS] style
-					const expression = nameNode.getExpression();
-					if (expression.isKind(SyntaxKind.StringLiteral)) {
-						operatorString = expression.getLiteralValue();
-					} else {
-						// Handle Operator.PLUS style (enum member access)
-						const literalValue = expression.getType().getLiteralValue();
-						if (typeof literalValue === "string") {
-							operatorString = literalValue;
-						}
-					}
-				} else if (nameNode.isKind(SyntaxKind.StringLiteral)) {
-					// Handle "+" style (string literal property name)
-					operatorString = nameNode.getLiteralValue();
-				}
-
+				const operatorString = getOperatorStringFromProperty(property);
 				if (!operatorString || !operatorSymbols.includes(operatorString))
 					return;
 
@@ -144,21 +138,16 @@ export class OverloadStore extends Map<
 					return;
 				}
 
-				// Unwrap `as const` / `satisfies` if present
-				let initializer = property.getInitializer();
-				if (initializer && Node.isAsExpression(initializer))
-					initializer = initializer.getExpression();
-				if (initializer && Node.isSatisfiesExpression(initializer))
-					initializer = initializer.getExpression();
+				const initializer = unwrapInitializer(property.getInitializer());
 
 				if (!initializer || !Node.isArrayLiteralExpression(initializer)) {
 					this._errorManager.addWarning(
 						new ErrorDescription(
 							`Overload field for operator ${operatorString} ` +
 								"must be an array of overload functions.",
-							nameNode.getSourceFile().getFilePath(),
-							nameNode.getStartLineNumber(),
-							this._minifyString(nameNode.getText()),
+							property.getSourceFile().getFilePath(),
+							property.getStartLineNumber(),
+							this._minifyString(property.getName()),
 						),
 					);
 					return;
