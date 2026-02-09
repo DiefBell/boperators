@@ -107,6 +107,15 @@ boperators/
   example/          Example project
 ```
 
-## License
+### Planned Features and TODO
+
+- [ ] Log function names when loading overloads. Mention in docs that named functions are preferred.
+- [ ] Ensure classes correctly inherit the overloads of their parent class(es).
+- [ ] Ensure that when trying to match a binary operation to its overload that we also look at the parents of each operand if they're child classes that may be compatible.
+- [ ] Write tests, set up CI.
+= [ ] MCP server for docs and tools
+- [ ] ???
+
+### License
 
 MIT
