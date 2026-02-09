@@ -330,44 +330,71 @@ function createProxy(
 		(proxy as any)[key] = (ls as any)[key];
 	}
 
-	// --- Diagnostics: remap output spans ---
+	// --- Diagnostics: remap output spans + suppress overload errors ---
+
+	const isOverloadSuppressed = (
+		code: number,
+		start: number | undefined,
+		entry: CacheEntry | undefined,
+	): boolean => {
+		if (!entry?.overloadEdits.length || start === undefined) return false;
+		// TS2588: "Cannot assign to 'x' because it is a constant."
+		if (code === 2588) {
+			return entry.overloadEdits.some(
+				(e) => !e.isStatic && start >= e.exprStart && start < e.exprEnd,
+			);
+		}
+		return false;
+	};
 
 	proxy.getSemanticDiagnostics = (fileName) => {
 		const result = ls.getSemanticDiagnostics(fileName);
-		const sourceMap = getSourceMapForFile(cache, fileName);
-		if (!sourceMap) return result;
+		const entry = cache.get(fileName);
+		const sourceMap =
+			entry?.sourceMap.isEmpty === false ? entry.sourceMap : undefined;
 
-		for (const diag of result) {
-			remapDiagnosticSpan(diag, sourceMap);
-			if (diag.relatedInformation) {
-				for (const related of diag.relatedInformation) {
-					const relatedMap = related.file
-						? getSourceMapForFile(cache, related.file.fileName)
-						: undefined;
-					if (relatedMap) remapDiagnosticSpan(related, relatedMap);
+		if (sourceMap) {
+			for (const diag of result) {
+				remapDiagnosticSpan(diag, sourceMap);
+				if (diag.relatedInformation) {
+					for (const related of diag.relatedInformation) {
+						const relatedMap = related.file
+							? getSourceMapForFile(cache, related.file.fileName)
+							: undefined;
+						if (relatedMap) remapDiagnosticSpan(related, relatedMap);
+					}
 				}
 			}
 		}
-		return result;
+
+		return result.filter(
+			(diag) => !isOverloadSuppressed(diag.code, diag.start, entry),
+		);
 	};
 
 	proxy.getSyntacticDiagnostics = (fileName) => {
 		const result = ls.getSyntacticDiagnostics(fileName);
-		const sourceMap = getSourceMapForFile(cache, fileName);
-		if (!sourceMap) return result;
+		const entry = cache.get(fileName);
+		const sourceMap =
+			entry?.sourceMap.isEmpty === false ? entry.sourceMap : undefined;
 
-		for (const diag of result) {
-			remapDiagnosticSpan(diag, sourceMap);
-			if (diag.relatedInformation) {
-				for (const related of diag.relatedInformation) {
-					const relatedMap = related.file
-						? getSourceMapForFile(cache, related.file.fileName)
-						: undefined;
-					if (relatedMap) remapDiagnosticSpan(related, relatedMap);
+		if (sourceMap) {
+			for (const diag of result) {
+				remapDiagnosticSpan(diag, sourceMap);
+				if (diag.relatedInformation) {
+					for (const related of diag.relatedInformation) {
+						const relatedMap = related.file
+							? getSourceMapForFile(cache, related.file.fileName)
+							: undefined;
+						if (relatedMap) remapDiagnosticSpan(related, relatedMap);
+					}
 				}
 			}
 		}
-		return result;
+
+		return result.filter(
+			(diag) => !isOverloadSuppressed(diag.code, diag.start, entry),
+		);
 	};
 
 	proxy.getSuggestionDiagnostics = (fileName) => {
