@@ -2,6 +2,13 @@
 	"name": "@boperators/plugin-ts-language-server",
 	"version": "0.1.0",
 	"license": "MIT",
+	"description": "TypeScript Language Server plugin for boperators - IDE support with source mapping.",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/DiefBell/boperators",
+		"directory": "plugins/ts-language-server"
+	},
+	"homepage": "https://github.com/DiefBell/boperators/tree/main/plugins/ts-language-server",
 	"type": "commonjs",
 	"main": "./dist/index.js",
 	"scripts": {

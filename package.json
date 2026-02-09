@@ -1,4 +1,10 @@
 {
+	"name": "boperators-monorepo",
+	"private": true,
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/DiefBell/boperators"
+	},
 	"workspaces": [
 		"package",
 		"plugins/*",

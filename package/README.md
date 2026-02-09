@@ -1,131 +1,158 @@
-<center>
-
 # boperators
-### Operator Overloading for TypeScript
 
-</center>
+Operator overloading for TypeScript.
 
-`boperators` is a package to allow you to "overload" operators, e.g. -, *, +=, etc, in your TypeScript classes, similar to what a lot of other languages allow.
-To define an operator overload, use the operator string as a computed property name in your class and define your overrides!
+`boperators` lets you define operator overloads on your TypeScript classes and transforms binary expressions into the corresponding overload calls at the source level.
 
-## Basic example
+## Installation
 
-This uses an anonymous function to overload adding two vectors together using `v1 + v2`, and a named function for adding a vector to the current one using `v3 += v4` and multiplying by a number `v5 *= 10`. Note how the overload fields are arrays: you can define multiple overloads for different types, and `boperators` will then insert the correct one!
+```sh
+bun add boperators
+# or
+npm install boperators
+```
 
-Arrow functions are not allowed in overloads, as they cannot bind `this` correctly for instance operators.
+## Defining Overloads
+
+Define overloads as property arrays on your classes, using the operator string as the property name. Overload fields are arrays so you can define multiple overloads for different types.
+
+### Static Operators
+
+Static operators (`+`, `-`, `*`, `/`, `%`, comparisons, logical) are `static readonly` fields with two-parameter functions (LHS and RHS). At least one parameter must match the class type.
+
+Arrow functions or function expressions both work for static operators.
 
 ```typescript
 class Vector3 {
-    public x: number;
-    public y: number;
-    public z: number;
-
-    // Use the operator string as a computed property name
-    static readonly ["+"] = [
-        function(lhs: Vector3, rhs: Vector3): Vector3 {
-            return new Vector3(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
-        },
+    // String literal property name
+    static readonly "+" = [
+        (a: Vector3, b: Vector3) =>
+            new Vector3(a.x + b.x, a.y + b.y, a.z + b.z),
     ];
 
-    // Assignment operators use instance fields
-    readonly ["+="] = [
-        function(this: Vector3, rhs: Vector3): void {
-            this.x += rhs.x;
-            this.y += rhs.y;
-            this.z += rhs.z;
-        }
-    ];
+    // Multiple overloads for different RHS types
+    static readonly "*" = [
+        (a: Vector3, b: Vector3): Vector3 =>
+            new Vector3(
+                a.y * b.z - a.z * b.y,
+                a.z * b.x - a.x * b.z,
+                a.x * b.y - a.y * b.x,
+            ),
+        (a: Vector3, b: number): Vector3 =>
+            new Vector3(a.x * b, a.y * b, a.z * b),
+    ] as const;
 
-    readonly ["*="] = [
-        function multiplyByAScalar(this: Vector3, scalar: number): void {
-            this.x *= scalar;
-            this.y *= scalar;
-            this.z *= scalar;
-        }
+    // Comparison operators must return boolean
+    static readonly "==" = [
+        (a: Vector3, b: Vector3): boolean =>
+            a.length() === b.length(),
     ];
-
-    // Rest of the class...
 }
 ```
 
-## Bun Plugin
-The easiest way to use `boperators` is as a plugin for Bun. To ensure that it is called each time you, add the plugin to your Bun config. First, create a `preload.ts` somewhere in your project, such as at the root:
-```ts
-import "@boperators/plugin-bun"
-```
-Then create a `bunfig.toml` file:
-```toml
-preload = ["./preload.ts"]
-```
+### Instance Operators
 
-## CLI
+Instance operators (`+=`, `-=`, `*=`, `/=`, `%=`, `&&=`, `||=`) are `readonly` instance fields with a single parameter (the RHS). They use `this` to mutate the LHS object and must return `void`.
 
-The CLI can be used to generate TypeScript files for debugging, further processing, or just running directly with a tool such as Bun or TS-Node.
-```sh
-$> boperate --ts-out ./debug
-$> boperate -t ./debug -p ./tsconfig.custom.json
-```
+Instance operators **must** use function expressions (not arrow functions), because arrow functions cannot bind `this`.
 
-`boperators` will respect your `tsconfig.json` file for input and output directories, or you can specify a specific `tsconfig.json`:
-```sh
-$> boperate --ts-out --project ./tsconfig.custom.json
+```typescript
+class Vector3 {
+    readonly "+=" = [
+        function (this: Vector3, rhs: Vector3): void {
+            this.x += rhs.x;
+            this.y += rhs.y;
+            this.z += rhs.z;
+        },
+    ];
+}
 ```
 
-| Argument 	          | Aliases	| Description                                                   |
-|-------------------- |--------	|---------------------------------------------------------------|
-| --ts-out 	          | -t      | Output directory for TypeScript files.                        |
-| --project	          | -p		| Path to `tsconfig` file to use.					            |
-| --dry-run           | -d      | Preview only without writing JavaScript files.                |
-| --error-on-warning  |         | Instead of showing a warning, error on conflicting overloads. |
+### Using the Operator Enum
 
+Instead of string literals, you can use the `Operator` enum for computed property names:
+
+```typescript
+import { Operator } from "boperators";
+
+class Angle {
+    static readonly [Operator.MODULO] = [
+        (angle: Angle, rads: number): Angle =>
+            new Angle(angle.radians % rads),
+    ];
+}
+```
+
+## How It Works
+
+`boperators` has a two-phase pipeline:
+
+1. **Parse**: `OverloadStore` scans all source files for classes with operator-named properties and indexes them by `(operatorKind, lhsType, rhsType)`.
+2. **Transform**: `OverloadInjector` finds binary expressions, looks up matching overloads, and replaces them:
+   - **Static**: `a + b` becomes `ClassName["+"][0](a, b)`
+   - **Instance**: `a += b` becomes `a["+="][0].call(a, b)`
+
+Imports for referenced classes are automatically added where needed.
 
 ## Supported Operators
 
-| Operator  | Static    |
-|-----------|-----------|
-| `+`       | yes       |
-| `+=`      | no        |
-| `-`       | yes       |
-| `-=`      | no        |
-| `*`       | yes       |
-| `*=`      | no        |
-| `/`       | yes       |
-| `/=`      | no        |
-| `%`       | yes       |
-| `%=`      | no        |
-| `>`       | yes       |
-| `>=`      | yes       |
-| `<`       | yes       |
-| `<=`      | yes       |
-| `==`      | yes       |
-| `===`     | yes       |
-| `!=`      | yes       |
-| `!==`     | yes       |
-| `&&`      | yes       |
-| `&&=`     | no        |
-| `\|\|`    | yes       |
-| `\|\|=`   | no        |
-| `??`      | yes       |
+| Operator | Type | Notes |
+|----------|------|-------|
+| `+` | static | |
+| `-` | static | |
+| `*` | static | |
+| `/` | static | |
+| `%` | static | |
+| `+=` | instance | Must return `void` |
+| `-=` | instance | Must return `void` |
+| `*=` | instance | Must return `void` |
+| `/=` | instance | Must return `void` |
+| `%=` | instance | Must return `void` |
+| `>` | static | Must return `boolean` |
+| `>=` | static | Must return `boolean` |
+| `<` | static | Must return `boolean` |
+| `<=` | static | Must return `boolean` |
+| `==` | static | Must return `boolean` |
+| `===` | static | Must return `boolean` |
+| `!=` | static | Must return `boolean` |
+| `!==` | static | Must return `boolean` |
+| `&&` | static | |
+| `\|\|` | static | |
+| `??` | static | |
+| `&&=` | instance | Must return `void` |
+| `\|\|=` | instance | Must return `void` |
 
 ## API
-ToDo
 
-## Planned Features; To-Do; Known Issues
-- [ ] TypeScript Language Server plugin to sort intellisense!
-- [ ] API
-- [ ] Inheritance over overload properties.
-- Ensure libraries work as expected
-- Log function names, if named functions.
-- Write tests, sort CI
-- Check how type unions work in the overloading
-- Address inheritence when checking overload typings
-- Inline functions. Could allow `@inline` in the comments of a function? If `ts-morph` can read it.
-- Use `.apply` to ensure instance functions are correctly bound?
-- Option to use object instead of array of functions for even more verbose code output?
-- Can we make class overload fields just `+=` etc WITHOUT being strings? And hide the error in the language server?
-- [x] We should separate out the server and the main package into separate folders. That way we can transpile the package to CommonJS AND ESM, but transpile the language server plugin to CJS only. Also means we don't need the janky `Object.assign`.
-- Check up inheritence tree when searching for matching overloads.
+The core library exports the transformation pipeline for use in plugins and tooling:
 
-### Conflicts
-When first parsing your operator overloads, if there are any overloads with matching types for the left- and right-hand side respectively then a warning will be shows.
-If the operator overload is then needed anywhere, then no JavaScript can be generated. TypeScript will still be generated, which is helpful for debugging, but this also cannot be run.
+```typescript
+import { OverloadStore, OverloadInjector, ErrorManager } from "boperators";
+import { Project } from "ts-morph";
+
+const project = new Project({ tsConfigFilePath: "tsconfig.json" });
+const errorManager = new ErrorManager(false);
+const store = new OverloadStore(project, errorManager);
+const injector = new OverloadInjector(project, store);
+
+// Phase 1: Parse overload definitions from all files
+for (const file of project.getSourceFiles()) {
+    store.addOverloadsFromFile(file);
+}
+errorManager.throwIfErrorsElseLogWarnings();
+
+// Phase 2: Transform binary expressions
+for (const file of project.getSourceFiles()) {
+    injector.overloadFile(file);
+}
+```
+
+The `Operator` enum and `operatorSymbols` array are also exported for defining overloads with computed property names.
+
+## Conflict Detection
+
+When parsing overload definitions, if there are duplicate overloads with matching `(operator, lhsType, rhsType)`, a warning is shown (or an error if `--error-on-warning` is set via the CLI).
+
+## License
+
+MIT

@@ -5,7 +5,14 @@
 			"WebFetch(domain:www.npmjs.com)",
 			"WebFetch(domain:dev.to)",
 			"Bash(bun run:*)",
-			"Bash(bun install:*)"
+			"Bash(bun install:*)",
+			"Bash(sed:*)",
+			"Bash(cd example:*)",
+			"mcp__mcp-openmemory__recall_memory_abstract",
+			"mcp__mcp-openmemory__get_recent_memories",
+			"mcp__mcp-openmemory__save_memory",
+			"mcp__mcp-openmemory__update_memory_abstract"
 		]
-	}
+	},
+	"enabledMcpjsonServers": ["mcp-openmemory"]
 }

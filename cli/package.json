@@ -2,6 +2,13 @@
 	"name": "@boperators/cli",
 	"version": "0.1.0",
 	"license": "MIT",
+	"description": "CLI tool for boperators - transforms TypeScript files with operator overloads.",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/DiefBell/boperators",
+		"directory": "cli"
+	},
+	"homepage": "https://github.com/DiefBell/boperators/tree/main/cli",
 	"type": "module",
 	"bin": {
 		"bop": "dist/index.js",

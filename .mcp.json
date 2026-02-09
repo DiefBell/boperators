@@ -2,9 +2,9 @@
 	"mcpServers": {
 		"mcp-openmemory": {
 			"command": "npx",
-			"args": ["-y", "@peakmojo/mcp-openmemory@latest"],
+			"args": ["@peakmojo/mcp-openmemory@latest"],
 			"env": {
-				"MEMORY_DB_PATH": ".mcp/mcp-memory.sqlite"
+				"MEMORY_DB_PATH": "./.mcp/mcp-memory.sqlite"
 			}
 		}
 	}

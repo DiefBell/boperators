@@ -102,20 +102,24 @@ export class OverloadStore extends Map<
 				const isStatic = property.isStatic();
 
 				const nameNode = property.getNameNode();
-				if (!nameNode.isKind(SyntaxKind.ComputedPropertyName)) return;
 
-				const expression = nameNode.getExpression();
-
-				// Try to get the operator string value from the computed property name
+				// Try to get the operator string value from the property name
 				let operatorString: string | undefined;
-				if (expression.isKind(SyntaxKind.StringLiteral)) {
-					operatorString = expression.getLiteralValue();
-				} else {
-					// Handle Operator.PLUS style (enum member access)
-					const literalValue = expression.getType().getLiteralValue();
-					if (typeof literalValue === "string") {
-						operatorString = literalValue;
+				if (nameNode.isKind(SyntaxKind.ComputedPropertyName)) {
+					// Handle ["+"] or [Operator.PLUS] style
+					const expression = nameNode.getExpression();
+					if (expression.isKind(SyntaxKind.StringLiteral)) {
+						operatorString = expression.getLiteralValue();
+					} else {
+						// Handle Operator.PLUS style (enum member access)
+						const literalValue = expression.getType().getLiteralValue();
+						if (typeof literalValue === "string") {
+							operatorString = literalValue;
+						}
 					}
+				} else if (nameNode.isKind(SyntaxKind.StringLiteral)) {
+					// Handle "+" style (string literal property name)
+					operatorString = nameNode.getLiteralValue();
 				}
 
 				if (!operatorString || !operatorSymbols.includes(operatorString))
@@ -152,9 +156,9 @@ export class OverloadStore extends Map<
 						new ErrorDescription(
 							`Overload field for operator ${operatorString} ` +
 								"must be an array of overload functions.",
-							expression.getSourceFile().getFilePath(),
-							expression.getStartLineNumber(),
-							this._minifyString(expression.getText()),
+							nameNode.getSourceFile().getFilePath(),
+							nameNode.getStartLineNumber(),
+							this._minifyString(nameNode.getText()),
 						),
 					);
 					return;
@@ -163,7 +167,7 @@ export class OverloadStore extends Map<
 				initializer.getElements().forEach((element, index) => {
 					let hasWarning = false;
 
-					if (element.isKind(SyntaxKind.ArrowFunction)) {
+					if (element.isKind(SyntaxKind.ArrowFunction) && !isStatic) {
 						this._errorManager.addError(
 							new ErrorDescription(
 								`Overload ${index} for operator ${operatorString} must not be an arrow function. ` +
@@ -178,7 +182,8 @@ export class OverloadStore extends Map<
 
 					if (
 						!element.isKind(SyntaxKind.FunctionExpression) &&
-						!element.isKind(SyntaxKind.FunctionDeclaration)
+						!element.isKind(SyntaxKind.FunctionDeclaration) &&
+						!element.isKind(SyntaxKind.ArrowFunction)
 					) {
 						this._errorManager.addWarning(
 							new ErrorDescription(

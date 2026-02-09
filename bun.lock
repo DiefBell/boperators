@@ -24,12 +24,14 @@
     "example": {
       "name": "@boperators/example",
       "devDependencies": {
+        "@boperators/cli": "file:../cli",
         "@boperators/plugin-bun": "file:../plugins/bun",
         "@boperators/plugin-ts-language-server": "file:../plugins/ts-language-server",
         "@types/bun": "^1.1.16",
         "boperators": "file:../package",
       },
       "peerDependencies": {
+        "@boperators/cli": "0.1.0",
         "@boperators/plugin-bun": "0.1.0",
         "@boperators/plugin-ts-language-server": "0.1.0",
         "boperators": "0.1.0",
