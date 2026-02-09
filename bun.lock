@@ -17,15 +17,18 @@
       },
       "dependencies": {
         "@commander-js/extra-typings": "^13.0.0",
+        "ts-morph": "24.0.0",
+      },
+      "peerDependencies": {
         "boperators": "0.1.0",
-        "ts-morph": "^24.0.0",
+        "typescript": "^5.5.4",
       },
     },
     "package": {
       "name": "boperators",
       "version": "0.1.0",
       "dependencies": {
-        "ts-morph": "^24.0.0",
+        "ts-morph": "24.0.0",
       },
       "devDependencies": {
         "@types/node": "^22.0.0",
@@ -39,17 +42,18 @@
       "name": "@boperators/plugin-bun",
       "version": "0.1.0",
       "dependencies": {
-        "ts-morph": "^24.0.0",
+        "ts-morph": "24.0.0",
       },
       "peerDependencies": {
         "boperators": "0.1.0",
+        "typescript": "^5.5.4",
       },
     },
     "plugins/ts-language-server": {
       "name": "@boperators/plugin-ts-language-server",
       "version": "0.1.0",
       "dependencies": {
-        "ts-morph": "^24.0.0",
+        "ts-morph": "24.0.0",
       },
       "peerDependencies": {
         "boperators": "0.1.0",

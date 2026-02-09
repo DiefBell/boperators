@@ -12,7 +12,7 @@ export class Angle {
 		 * Return a new angle where the radians are the remainder of the division.
 		 */
 		(angle: Angle, rads: number): Angle => new Angle(angle.radians % rads),
-	];
+	] as const;
 
 	public readonly [MODULO_EQUALS] = [
 		/**
@@ -21,7 +21,7 @@ export class Angle {
 		function (this: Angle, rads: number): void {
 			this.radians %= rads;
 		},
-	];
+	] as const;
 
 	public get degrees(): number {
 		return (this.radians * 180) / Math.PI;

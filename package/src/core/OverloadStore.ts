@@ -54,6 +54,9 @@ export class OverloadStore extends Map<
 		Array<{ syntaxKind: OperatorSyntaxKind; lhsType: string; rhsType: string }>
 	>();
 
+	/** Cache for type hierarchy chains: type name → [self, parent, grandparent, ...] */
+	private readonly _typeChainCache = new Map<string, string[]>();
+
 	constructor(project: TsMorphProject, errorManager: ErrorManager) {
 		super();
 
@@ -63,14 +66,31 @@ export class OverloadStore extends Map<
 
 	/**
 	 * Looks up an overload description for the given operator kind and
-	 * LHS/RHS type pair.
+	 * LHS/RHS type pair. Walks up the class hierarchy for both sides
+	 * when an exact match isn't found.
 	 */
 	public findOverload(
 		operatorKind: OperatorSyntaxKind,
 		lhsType: string,
 		rhsType: string,
 	): OverloadDescription | undefined {
-		return this.get(operatorKind)?.get(lhsType)?.get(rhsType);
+		const operatorOverloads = this.get(operatorKind);
+		if (!operatorOverloads) return undefined;
+
+		const lhsChain = this._getTypeChain(lhsType);
+		const rhsChain = this._getTypeChain(rhsType);
+
+		// Try each combination, most specific types first
+		for (const lhs of lhsChain) {
+			const lhsMap = operatorOverloads.get(lhs);
+			if (!lhsMap) continue;
+			for (const rhs of rhsChain) {
+				const match = lhsMap.get(rhs);
+				if (match) return match;
+			}
+		}
+
+		return undefined;
 	}
 
 	/**
@@ -83,6 +103,7 @@ export class OverloadStore extends Map<
 	 */
 	public invalidateFile(filePath: string): boolean {
 		this._parsedFiles.delete(filePath);
+		this._typeChainCache.clear();
 
 		const entries = this._fileEntries.get(filePath);
 		if (!entries) return false;
@@ -138,7 +159,13 @@ export class OverloadStore extends Map<
 					return;
 				}
 
-				const initializer = unwrapInitializer(property.getInitializer());
+				const rawInitializer = property.getInitializer();
+				const hasAsConst =
+					rawInitializer &&
+					Node.isAsExpression(rawInitializer) &&
+					rawInitializer.getTypeNode()?.getText() === "const";
+
+				const initializer = unwrapInitializer(rawInitializer);
 
 				if (!initializer || !Node.isArrayLiteralExpression(initializer)) {
 					this._errorManager.addWarning(
@@ -148,6 +175,20 @@ export class OverloadStore extends Map<
 							property.getSourceFile().getFilePath(),
 							property.getStartLineNumber(),
 							this._minifyString(property.getName()),
+						),
+					);
+					return;
+				}
+
+				if (!hasAsConst) {
+					this._errorManager.addError(
+						new ErrorDescription(
+							`Overload array for operator ${operatorString} must use "as const". ` +
+								"Without it, TypeScript widens the array type and loses individual " +
+								"function signatures, causing type errors in generated code.",
+							property.getSourceFile().getFilePath(),
+							property.getStartLineNumber(),
+							this._minifyString(property.getText().split("\n")[0] ?? ""),
 						),
 					);
 					return;
@@ -306,6 +347,37 @@ export class OverloadStore extends Map<
 				});
 			});
 		});
+	}
+
+	/**
+	 * Returns the type hierarchy chain for a given type name:
+	 * [self, parent, grandparent, ...]. Primitives like "number"
+	 * return a single-element array.
+	 */
+	private _getTypeChain(typeName: string): string[] {
+		const cached = this._typeChainCache.get(typeName);
+		if (cached) return cached;
+
+		const chain = [typeName];
+
+		// Extract simple class name from fully-qualified type strings
+		// e.g. 'import("C:/path/to/Foo").Foo' → 'Foo'
+		const simpleName = typeName.match(/\.(\w+)$/)?.[1] ?? typeName;
+
+		for (const sourceFile of this._project.getSourceFiles()) {
+			const classDecl = sourceFile.getClass(simpleName);
+			if (classDecl) {
+				let current = classDecl.getBaseClass();
+				while (current) {
+					chain.push(current.getType().getText());
+					current = current.getBaseClass();
+				}
+				break;
+			}
+		}
+
+		this._typeChainCache.set(typeName, chain);
+		return chain;
 	}
 
 	private _minifyString(str: string): string {

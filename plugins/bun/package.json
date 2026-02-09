@@ -11,9 +11,10 @@
 	"homepage": "https://github.com/DiefBell/boperators/tree/main/plugins/bun",
 	"main": "./index.ts",
 	"peerDependencies": {
-		"boperators": "0.1.0"
+		"boperators": "0.1.0",
+		"typescript": "^5.5.4"
 	},
 	"dependencies": {
-		"ts-morph": "^24.0.0"
+		"ts-morph": "24.0.0"
 	}
 }

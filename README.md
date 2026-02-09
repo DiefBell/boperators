@@ -2,7 +2,7 @@
 
 Operator overloading for TypeScript.
 
-`boperators` lets you define operator overloads (`+`, `-`, `*=`, `==`, etc.) on your TypeScript classes. It works by transforming your source code at the AST level using [ts-morph](https://ts-morph.com), replacing expressions like `v1 + v2` with the corresponding overload call `Vector3["+"][0](v1, v2)`.
+`boperators` lets you define operator overloads (`+`, `-`, `*=`, `==`, etc.) on your TypeScript classes. It works by transforming your source code at the AST level using [ts-morph](https://ts-morph.com), replacing expressions like `v1 + v2` with the corresponding overload call `Vector3["+"][0]!(v1, v2)`.
 
 ## Quick Start
 
@@ -16,7 +16,7 @@ class Vector3 {
     static readonly "+" = [
         (a: Vector3, b: Vector3) =>
             new Vector3(a.x + b.x, a.y + b.y, a.z + b.z),
-    ];
+    ] as const;
 
     // Instance operator: takes one parameter, uses `this`
     readonly "+=" = [
@@ -25,15 +25,19 @@ class Vector3 {
             this.y += rhs.y;
             this.z += rhs.z;
         },
-    ];
+    ] as const;
 
     // ...
 }
 
 // Usage - these get transformed automatically:
-const v3 = v1 + v2;    // => Vector3["+"][0](v1, v2)
-v1 += v2;              // => v1["+="][0].call(v1, v2)
+const v3 = v1 + v2;    // => Vector3["+"][0]!(v1, v2)
+v1 += v2;              // => v1["+="][0]!.call(v1, v2)
 ```
+
+> **Important:** Overload arrays **must** use `as const`. Without it, TypeScript widens the array type and loses individual function signatures, causing type errors in the generated code. boperators will error if `as const` is missing.
+
+Overloads defined on a parent class are automatically inherited by subclasses. For example, if `Expr` defines `+` and `*`, a `Sym extends Expr` class can use those operators without redeclaring them.
 
 ## Packages
 
@@ -110,10 +114,13 @@ boperators/
 ### Planned Features and TODO
 
 - [ ] Log function names when loading overloads. Mention in docs that named functions are preferred.
-- [ ] Ensure classes correctly inherit the overloads of their parent class(es).
-- [ ] Ensure that when trying to match a binary operation to its overload that we also look at the parents of each operand if they're child classes that may be compatible.
+- [x] Ensure classes correctly inherit the overloads of their parent class(es).
+- [x] Ensure that when trying to match a binary operation to its overload that we also look at the parents of each operand if they're child classes that may be compatible.
 - [ ] Write tests, set up CI.
 = [ ] MCP server for docs and tools
+- [ ] Double check this `ts-morph` dependency - can we keep it to only the core package?
+- [ ] `--project` to specify a TS config file for the CLI.
+- [ ] Expose a lot of config options in the core API, the implement a `.bopconfig.json/c` for plugins and the CLI.
 - [ ] ???
 
 ### License

@@ -14,7 +14,7 @@ export class Vector3 {
 		 * Add two Vec3s.
 		 */
 		(a: Vector3, b: Vector3) => new Vector3(a.x + b.x, a.y + b.y, a.z + b.z),
-	];
+	] as const;
 
 	public readonly "+=" = [
 		/**
@@ -25,7 +25,7 @@ export class Vector3 {
 			this.y += b.y;
 			this.z += b.z;
 		},
-	];
+	] as const;
 
 	public static readonly "*" = [
 		/**
@@ -52,14 +52,14 @@ export class Vector3 {
 			this.y *= a;
 			this.z *= a;
 		},
-	];
+	] as const;
 
 	public static readonly "/" = [
 		/**
 		 * Divide by a scalar.
 		 */
 		(a: Vector3, b: number): Vector3 => new Vector3(a.x / b, a.y / b, a.z / b),
-	];
+	] as const;
 
 	public readonly "/=" = [
 		/**
@@ -70,42 +70,42 @@ export class Vector3 {
 			this.y /= a;
 			this.z /= a;
 		},
-	];
+	] as const;
 
 	public static readonly ">" = [
 		/**
 		 * lhs magnitude is greater than rhs magnitude
 		 */
 		(a: Vector3, b: Vector3): boolean => a.length() > b.length(),
-	];
+	] as const;
 
 	public static readonly ">=" = [
 		/**
 		 * lhs magnitude is greater than or equal to rhs magnitude
 		 */
 		(a: Vector3, b: Vector3): boolean => a.length() >= b.length(),
-	];
+	] as const;
 
 	public static readonly "<" = [
 		/**
 		 * lhs magnitude is less than rhs magnitude
 		 */
 		(a: Vector3, b: Vector3): boolean => a.length() < b.length(),
-	];
+	] as const;
 
 	public static readonly "<=" = [
 		/**
 		 * lhs magnitude is less than or equal to rhs magnitude
 		 */
 		(a: Vector3, b: Vector3): boolean => a.length() <= b.length(),
-	];
+	] as const;
 
 	public static readonly "==" = [
 		/**
 		 * vectors' lengths are equal
 		 */
 		(a: Vector3, b: Vector3): boolean => a.length() === b.length(),
-	];
+	] as const;
 
 	public static readonly "===" = [
 		/**
@@ -113,14 +113,14 @@ export class Vector3 {
 		 */
 		(a: Vector3, b: Vector3): boolean =>
 			a.x === b.x && a.y === b.y && a.z === b.z,
-	];
+	] as const;
 
 	public static readonly "!=" = [
 		/**
 		 * vectors' lengths are not equal
 		 */
 		(a: Vector3, b: Vector3): boolean => a.length() !== b.length(),
-	];
+	] as const;
 
 	public static readonly "!==" = [
 		/**
@@ -128,14 +128,14 @@ export class Vector3 {
 		 */
 		(a: Vector3, b: Vector3): boolean =>
 			a.x !== b.x || a.y !== b.y || a.z !== b.z,
-	];
+	] as const;
 
 	public static readonly "&&" = [
 		/**
 		 * both vectors' magnitudes are greater than 0
 		 */
 		(a: Vector3, b: Vector3): boolean => a.length() > 0 && b.length() > 0,
-	];
+	] as const;
 
 	public readonly "&&=" = [
 		/**
@@ -148,14 +148,14 @@ export class Vector3 {
 				this.z = b.z;
 			}
 		},
-	];
+	] as const;
 
 	public static readonly "||" = [
 		/**
 		 * either vector's magnitude is greater than 0
 		 */
 		(a: Vector3, b: Vector3): boolean => a.length() > 0 || b.length() > 0,
-	];
+	] as const;
 
 	public readonly "||=" = [
 		/**
@@ -168,7 +168,7 @@ export class Vector3 {
 				this.z = b.z;
 			}
 		},
-	];
+	] as const;
 
 	public static dot(a: Vector3, b: Vector3): number {
 		return a.x * b.x + a.y * b.y + a.z * b.z;
