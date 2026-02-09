@@ -30,6 +30,10 @@ type OverloadEditInfo = {
 	operatorStart: number;
 	/** End of the operator token in the original source */
 	operatorEnd: number;
+	/** Start of the hover hit-test area (includes surrounding whitespace) */
+	hoverStart: number;
+	/** End of the hover hit-test area (includes surrounding whitespace) */
+	hoverEnd: number;
 	/** Start of the full binary expression in the original source */
 	exprStart: number;
 	/** End of the full binary expression in the original source */
@@ -167,6 +171,8 @@ function findOverloadEdits(
 		edits.push({
 			operatorStart: operatorToken.getStart(),
 			operatorEnd: operatorToken.getEnd(),
+			hoverStart: expression.getLeft().getEnd(),
+			hoverEnd: expression.getRight().getStart(),
 			exprStart: expression.getStart(),
 			exprEnd: expression.getEnd(),
 			className: overloadDesc.className,
@@ -217,17 +223,46 @@ function getOverloadHoverInfo(
 		)
 			return undefined;
 
-		// Build signature string
-		const params = element
+		// Resolve short type names (relative to the function scope)
+		const nonThisParams = element
 			.getParameters()
-			.filter((p) => p.getName() !== "this")
-			.map((p) => `${p.getName()}: ${p.getType().getText()}`);
-		const returnType = element.getReturnType().getText();
+			.filter((p) => p.getName() !== "this");
+		const returnType = element.getReturnType();
+		const returnTypeName = returnType.getText(element);
 
-		const prefix = edit.isStatic
-			? "(static operator overload) "
-			: "(operator overload) ";
-		const signature = `${edit.className}["${edit.operatorString}"](${params.join(", ")}): ${returnType}`;
+		// Build "LhsType op RhsType = ReturnType" signature parts
+		const displayParts: tsRuntime.SymbolDisplayPart[] = [];
+
+		if (edit.isStatic && nonThisParams.length >= 2) {
+			const lhsType = nonThisParams[0].getType().getText(element);
+			const rhsType = nonThisParams[1].getType().getText(element);
+			displayParts.push({ text: lhsType, kind: "className" });
+			displayParts.push({ text: " ", kind: "space" });
+			displayParts.push({
+				text: edit.operatorString,
+				kind: "operator",
+			});
+			displayParts.push({ text: " ", kind: "space" });
+			displayParts.push({ text: rhsType, kind: "className" });
+		} else {
+			const rhsType =
+				nonThisParams.length >= 1
+					? nonThisParams[0].getType().getText(element)
+					: "unknown";
+			displayParts.push({ text: edit.className, kind: "className" });
+			displayParts.push({ text: " ", kind: "space" });
+			displayParts.push({
+				text: edit.operatorString,
+				kind: "operator",
+			});
+			displayParts.push({ text: " ", kind: "space" });
+			displayParts.push({ text: rhsType, kind: "className" });
+		}
+
+		if (returnTypeName !== "void") {
+			displayParts.push({ text: " = ", kind: "punctuation" });
+			displayParts.push({ text: returnTypeName, kind: "className" });
+		}
 
 		// Extract JSDoc comment
 		const jsDocs = element.getJsDocs();
@@ -248,7 +283,7 @@ function getOverloadHoverInfo(
 				start: edit.operatorStart,
 				length: edit.operatorEnd - edit.operatorStart,
 			},
-			displayParts: [{ text: prefix + signature, kind: "text" }],
+			displayParts,
 			documentation: docText ? [{ text: docText, kind: "text" }] : undefined,
 			tags: [],
 		};
@@ -353,7 +388,7 @@ function createProxy(
 		const entry = cache.get(fileName);
 		if (entry) {
 			const operatorEdit = entry.overloadEdits.find(
-				(e) => position >= e.operatorStart && position < e.operatorEnd,
+				(e) => position >= e.hoverStart && position < e.hoverEnd,
 			);
 			if (operatorEdit) {
 				const hoverInfo = getOverloadHoverInfo(ts, project, operatorEdit);
