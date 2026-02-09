@@ -26,6 +26,10 @@ const program = new Command()
 		"Path to tsconfig.json to use.",
 		"tsconfig.json",
 	)
+	.option(
+		"-m, --maps-out <dir>",
+		"Output directory for source map files (.map.ts).",
+	)
 	.option("-d, --dry-run", "Preview only without writing files.", false)
 	.option(
 		"--error-on-warning",
@@ -98,5 +102,33 @@ if (options.tsOut) {
 			fs.mkdirSync(outDir, { recursive: true });
 		}
 		fs.writeFileSync(outPath, result.text);
+	});
+}
+
+if (options.mapsOut) {
+	const mapsOutDir = path.isAbsolute(options.mapsOut)
+		? options.mapsOut
+		: path.join(process.cwd(), options.mapsOut);
+	if (!fs.existsSync(mapsOutDir)) {
+		fs.mkdirSync(mapsOutDir, { recursive: true });
+	}
+
+	const compilerOptions = project.getCompilerOptions();
+	const rootDir = compilerOptions.rootDir
+		? path.resolve(path.dirname(tsConfigFilePath), compilerOptions.rootDir)
+		: path.dirname(tsConfigFilePath);
+
+	transformResults.forEach((result) => {
+		const relativePath = path.relative(
+			rootDir,
+			result.sourceFile.getFilePath(),
+		);
+		const mapFileName = relativePath.replace(/\.ts$/, ".map.ts");
+		const outPath = path.join(mapsOutDir, mapFileName);
+		const outDir = path.dirname(outPath);
+		if (!fs.existsSync(outDir)) {
+			fs.mkdirSync(outDir, { recursive: true });
+		}
+		fs.writeFileSync(outPath, JSON.stringify(result.sourceMap.edits, null, 2));
 	});
 }

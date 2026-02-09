@@ -6,7 +6,7 @@
 		"typescript": "^5.0.0"
 	},
 	"scripts": {
-		"transform": "rm -rf ./transformed && boperate --ts-out ./transformed",
+		"transform": "rm -rf ./transformed && boperate --ts-out ./transformed --maps-out ./transformed",
 		"start": "bun run ./transformed/index.ts"
 	},
 	"devDependencies": {
