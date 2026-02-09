@@ -8,8 +8,7 @@
 	"workspaces": [
 		"package",
 		"plugins/*",
-		"cli",
-		"example"
+		"cli"
 	],
 	"scripts": {
 		"build:boperators": "bun run --filter boperators build",

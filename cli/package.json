@@ -19,7 +19,9 @@
 	},
 	"dependencies": {
 		"@commander-js/extra-typings": "^13.0.0",
-		"boperators": "0.1.0",
 		"ts-morph": "^24.0.0"
+	},
+	"peerDependencies": {
+		"boperators": "0.1.0"
 	}
 }

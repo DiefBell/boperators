@@ -1,23 +1,19 @@
 {
 	"name": "@boperators/example",
-	"module": "src/index.ts",
+	"type": "module",
+	"module": "transformed/index.ts",
 	"peerDependencies": {
-		"typescript": "^5.0.0",
-		"boperators": "0.1.0",
-		"@boperators/cli": "0.1.0",
-		"@boperators/plugin-bun": "0.1.0",
-		"@boperators/plugin-ts-language-server": "0.1.0"
+		"typescript": "^5.0.0"
 	},
 	"scripts": {
 		"transform": "rm -rf ./transformed && boperate --ts-out ./transformed",
 		"start": "bun run ./transformed/index.ts"
 	},
-	"type": "module",
 	"devDependencies": {
+		"@boperators/plugin-bun": "link:@boperators/plugin-bun",
+		"@boperators/cli": "link:@boperators/cli",
+		"@boperators/plugin-ts-language-server": "link:@boperators/plugin-ts-language-server",
 		"@types/bun": "^1.1.16",
-		"boperators": "file:../package",
-		"@boperators/cli": "file:../cli",
-		"@boperators/plugin-bun": "file:../plugins/bun",
-		"@boperators/plugin-ts-language-server": "file:../plugins/ts-language-server"
+		"boperators": "link:boperators"
 	}
 }
