@@ -64,9 +64,9 @@ allFiles.forEach((file) => {
 errorManager.throwIfErrorsElseLogWarnings();
 
 // Only transform files belonging to the user's project
-projectFiles.forEach((file) => {
-	overloadInjector.overloadFile(file);
-});
+const transformResults = projectFiles.map((file) =>
+	overloadInjector.overloadFile(file),
+);
 errorManager.throwIfErrorsElseLogWarnings();
 
 if (options.dryRun) {
@@ -87,13 +87,16 @@ if (options.tsOut) {
 		? path.resolve(path.dirname(tsConfigFilePath), compilerOptions.rootDir)
 		: path.dirname(tsConfigFilePath);
 
-	projectFiles.forEach((file) => {
-		const relativePath = path.relative(rootDir, file.getFilePath());
+	transformResults.forEach((result) => {
+		const relativePath = path.relative(
+			rootDir,
+			result.sourceFile.getFilePath(),
+		);
 		const outPath = path.join(tsOutDir, relativePath);
 		const outDir = path.dirname(outPath);
 		if (!fs.existsSync(outDir)) {
 			fs.mkdirSync(outDir, { recursive: true });
 		}
-		fs.writeFileSync(outPath, file.getFullText());
+		fs.writeFileSync(outPath, result.text);
 	});
 }

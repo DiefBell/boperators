@@ -8,6 +8,16 @@ import { getModuleSpecifier } from "./helpers/getModuleSpecifier";
 import { resolveExpressionType } from "./helpers/resolveExpressionType";
 import type { OverloadStore } from "./OverloadStore";
 import { isOperatorSyntaxKind } from "./operatorMap";
+import { SourceMap } from "./SourceMap";
+
+export type TransformResult = {
+	/** The mutated ts-morph SourceFile (same reference as input). */
+	sourceFile: SourceFile;
+	/** The full text after transformation. */
+	text: string;
+	/** Bidirectional source map between original and transformed text. */
+	sourceMap: SourceMap;
+};
 
 export class OverloadInjector {
 	constructor(
@@ -21,11 +31,13 @@ export class OverloadInjector {
 		private readonly _overloadStore: OverloadStore,
 	) {}
 
-	public overloadFile(file: string | SourceFile): SourceFile {
+	public overloadFile(file: string | SourceFile): TransformResult {
 		const sourceFile =
 			file instanceof SourceFile
 				? file
 				: this._project.getSourceFileOrThrow(file);
+
+		const originalText = sourceFile.getFullText();
 
 		const binaryExpressions = sourceFile.getDescendantsOfKind(
 			SyntaxKind.BinaryExpression,
@@ -81,6 +93,9 @@ export class OverloadInjector {
 			expression.replaceWithText(overloadCall);
 		});
 
-		return sourceFile;
+		const text = sourceFile.getFullText();
+		const sourceMap = new SourceMap(originalText, text);
+
+		return { sourceFile, text, sourceMap };
 	}
 }

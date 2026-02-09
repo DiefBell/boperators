@@ -5,6 +5,7 @@ import {
 	OverloadInjector,
 	OverloadStore,
 	resolveExpressionType,
+	SourceMap,
 	unwrapInitializer,
 } from "boperators";
 import {
@@ -14,7 +15,6 @@ import {
 	type SourceFile as TsMorphSourceFile,
 } from "ts-morph";
 import type tsRuntime from "typescript/lib/tsserverlibrary";
-import { SourceMap } from "./SourceMap";
 
 // ----- Types -----
 
@@ -100,20 +100,16 @@ export = function init(modules: {
 				const sourceFile = project.getSourceFileOrThrow(fileName);
 				const overloadEdits = findOverloadEdits(sourceFile, overloadStore);
 
-				// Transform binary expressions
-				const transformed = overloadInjector.overloadFile(fileName);
-				const rewritten = transformed.getFullText();
-
-				// Build source map from original vs transformed text
-				const sourceMap = new SourceMap(source, rewritten);
+				// Transform binary expressions (returns text + source map)
+				const result = overloadInjector.overloadFile(fileName);
 
 				cache.set(fileName, {
 					version,
-					text: rewritten,
-					sourceMap,
+					text: result.text,
+					sourceMap: result.sourceMap,
 					overloadEdits,
 				});
-				return ts.ScriptSnapshot.fromString(rewritten);
+				return ts.ScriptSnapshot.fromString(result.text);
 			} catch (e) {
 				log(`Error transforming ${fileName}: ${e}`);
 				cache.set(fileName, {

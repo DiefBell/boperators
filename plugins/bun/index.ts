@@ -26,10 +26,9 @@ const boperatorsPlugin: BunPlugin = {
 
 			errorManager.throwIfErrorsElseLogWarnings();
 
-			const updatedSourceFile = overloadInjector.overloadFile(args.path);
-			const contents = updatedSourceFile.getFullText();
+			const result = overloadInjector.overloadFile(args.path);
 
-			return { contents, loader: "ts" };
+			return { contents: result.text, loader: "ts" };
 		});
 	},
 };

@@ -12,7 +12,8 @@
 	"type": "commonjs",
 	"main": "./dist/index.js",
 	"scripts": {
-		"build": "tsc"
+		"build": "tsc",
+		"watch": "tsc --watch"
 	},
 	"peerDependencies": {
 		"boperators": "0.1.0",

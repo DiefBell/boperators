@@ -20,7 +20,8 @@
 		"check": "biome check .",
 		"check:unsafe": "biome check --write --unsafe .",
 		"check:write": "biome check --write .",
-		"format": "biome format --write ."
+		"format": "biome format --write .",
+		"watch": "concurrently \"bun run --filter boperators\" \"bun run --filter @boperators/plugin-ts-language-server\""
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.14",
