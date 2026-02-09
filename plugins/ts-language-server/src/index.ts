@@ -535,6 +535,66 @@ function createProxy(
 		}));
 	};
 
+	// --- Classifications: remap output spans for syntax coloring ---
+
+	proxy.getEncodedSemanticClassifications = (fileName, span, format) => {
+		const sourceMap = getSourceMapForFile(cache, fileName);
+		const transformedSpan = sourceMap
+			? {
+					start: sourceMap.originalToTransformed(span.start),
+					length:
+						sourceMap.originalToTransformed(span.start + span.length) -
+						sourceMap.originalToTransformed(span.start),
+				}
+			: span;
+
+		const result = ls.getEncodedSemanticClassifications(
+			fileName,
+			transformedSpan,
+			format,
+		);
+		if (!sourceMap) return result;
+
+		// spans are triples: [start, length, classification, ...]
+		for (let i = 0; i < result.spans.length; i += 3) {
+			const remapped = sourceMap.remapSpan({
+				start: result.spans[i],
+				length: result.spans[i + 1],
+			});
+			result.spans[i] = remapped.start;
+			result.spans[i + 1] = remapped.length;
+		}
+		return result;
+	};
+
+	proxy.getEncodedSyntacticClassifications = (fileName, span) => {
+		const sourceMap = getSourceMapForFile(cache, fileName);
+		const transformedSpan = sourceMap
+			? {
+					start: sourceMap.originalToTransformed(span.start),
+					length:
+						sourceMap.originalToTransformed(span.start + span.length) -
+						sourceMap.originalToTransformed(span.start),
+				}
+			: span;
+
+		const result = ls.getEncodedSyntacticClassifications(
+			fileName,
+			transformedSpan,
+		);
+		if (!sourceMap) return result;
+
+		for (let i = 0; i < result.spans.length; i += 3) {
+			const remapped = sourceMap.remapSpan({
+				start: result.spans[i],
+				length: result.spans[i + 1],
+			});
+			result.spans[i] = remapped.start;
+			result.spans[i + 1] = remapped.length;
+		}
+		return result;
+	};
+
 	// --- Signature help: remap input position + applicableSpan ---
 
 	proxy.getSignatureHelpItems = (fileName, position, options) => {
