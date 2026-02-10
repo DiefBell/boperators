@@ -8,7 +8,15 @@ export type { TransformResult } from "./core/OverloadInjector";
 export { OverloadInjector } from "./core/OverloadInjector";
 export type { OverloadDescription } from "./core/OverloadStore";
 export { OverloadStore } from "./core/OverloadStore";
-export { isOperatorSyntaxKind } from "./core/operatorMap";
+export type {
+	PostfixUnaryOperatorSyntaxKind,
+	PrefixUnaryOperatorSyntaxKind,
+} from "./core/operatorMap";
+export {
+	isOperatorSyntaxKind,
+	isPostfixUnaryOperatorSyntaxKind,
+	isPrefixUnaryOperatorSyntaxKind,
+} from "./core/operatorMap";
 export type { EditRecord } from "./core/SourceMap";
 export { SourceMap } from "./core/SourceMap";
 

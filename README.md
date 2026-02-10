@@ -121,6 +121,8 @@ boperators/
 - [ ] Double check this `ts-morph` dependency - can we keep it to only the core package? And put required `typescript` version in a range?
 - [ ] `--project` to specify a TS config file for the CLI.
 - [ ] Expose a lot of config options in the core API, the implement a `.bopconfig.json/c` for plugins and the CLI.
+- [ ] Fix Bun plugin
+- [x] Support unary operators
 - [ ] ???
 
 ### License

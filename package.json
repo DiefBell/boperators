@@ -21,7 +21,8 @@
 		"check:unsafe": "biome check --write --unsafe .",
 		"check:write": "biome check --write .",
 		"format": "biome format --write .",
-		"watch": "concurrently \"bun run --filter boperators watch\" \"bun run --filter @boperators/plugin-ts-language-server watch\""
+		"watch": "concurrently \"bun run --filter boperators watch\" \"bun run --filter @boperators/plugin-ts-language-server watch\"",
+		"example": "cd example && bun run transform && bun run start"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.14",

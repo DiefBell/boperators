@@ -67,3 +67,65 @@ export const comparisonOperators = new Set<OperatorSyntaxKind>([
 	operatorMap[Operator.NOT_EQUALS],
 	operatorMap[Operator.STRICT_NOT_EQUALS],
 ]);
+
+/**
+ * Maps prefix unary operator strings to their corresponding TypeScript syntax kind.
+ * Operators like `-` and `+` share SyntaxKind tokens with their binary counterparts;
+ * disambiguation happens at the AST node level (PrefixUnaryExpression vs BinaryExpression).
+ */
+export const prefixUnaryOperatorMap = {
+	[Operator.MINUS]: SyntaxKind.MinusToken,
+	[Operator.PLUS]: SyntaxKind.PlusToken,
+	[Operator.NOT]: SyntaxKind.ExclamationToken,
+	[Operator.BITWISE_NOT]: SyntaxKind.TildeToken,
+} as const;
+
+export type PrefixUnaryOperatorString = keyof typeof prefixUnaryOperatorMap;
+export const prefixUnaryOperatorSyntaxKinds = Object.values(
+	prefixUnaryOperatorMap,
+);
+export type PrefixUnaryOperatorSyntaxKind =
+	(typeof prefixUnaryOperatorMap)[PrefixUnaryOperatorString];
+
+export const isPrefixUnaryOperatorSyntaxKind = (
+	syntaxKind: SyntaxKind,
+): syntaxKind is PrefixUnaryOperatorSyntaxKind =>
+	prefixUnaryOperatorSyntaxKinds.includes(
+		syntaxKind as PrefixUnaryOperatorSyntaxKind,
+	);
+
+/**
+ * Maps postfix unary operator strings to their corresponding TypeScript syntax kind.
+ */
+export const postfixUnaryOperatorMap = {
+	[Operator.INCREMENT]: SyntaxKind.PlusPlusToken,
+	[Operator.DECREMENT]: SyntaxKind.MinusMinusToken,
+} as const;
+
+export type PostfixUnaryOperatorString = keyof typeof postfixUnaryOperatorMap;
+export const postfixUnaryOperatorSyntaxKinds = Object.values(
+	postfixUnaryOperatorMap,
+);
+export type PostfixUnaryOperatorSyntaxKind =
+	(typeof postfixUnaryOperatorMap)[PostfixUnaryOperatorString];
+
+export const isPostfixUnaryOperatorSyntaxKind = (
+	syntaxKind: SyntaxKind,
+): syntaxKind is PostfixUnaryOperatorSyntaxKind =>
+	postfixUnaryOperatorSyntaxKinds.includes(
+		syntaxKind as PostfixUnaryOperatorSyntaxKind,
+	);
+
+/**
+ * Set of operator strings that can appear as prefix unary overloads.
+ */
+export const prefixUnaryOperatorStrings = new Set<string>(
+	Object.keys(prefixUnaryOperatorMap),
+);
+
+/**
+ * Set of operator strings that can appear as postfix unary overloads.
+ */
+export const postfixUnaryOperatorStrings = new Set<string>(
+	Object.keys(postfixUnaryOperatorMap),
+);

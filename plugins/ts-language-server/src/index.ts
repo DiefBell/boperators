@@ -2,6 +2,8 @@ import {
 	ErrorManager,
 	getOperatorStringFromProperty,
 	isOperatorSyntaxKind,
+	isPostfixUnaryOperatorSyntaxKind,
+	isPrefixUnaryOperatorSyntaxKind,
 	OverloadInjector,
 	OverloadStore,
 	resolveExpressionType,
@@ -34,15 +36,16 @@ type OverloadEditInfo = {
 	hoverStart: number;
 	/** End of the hover hit-test area (includes surrounding whitespace) */
 	hoverEnd: number;
-	/** Start of the full binary expression in the original source */
+	/** Start of the full expression in the original source */
 	exprStart: number;
-	/** End of the full binary expression in the original source */
+	/** End of the full expression in the original source */
 	exprEnd: number;
 	className: string;
 	classFilePath: string;
 	operatorString: string;
 	index: number;
 	isStatic: boolean;
+	kind: "binary" | "prefixUnary" | "postfixUnary";
 };
 
 // ----- Plugin entry -----
@@ -99,12 +102,12 @@ export = function init(modules: {
 				overloadStore.addOverloadsFromFile(fileName);
 				errorManager.throwIfErrorsElseLogWarnings();
 
-				// Before transforming, scan for overload binary expressions
+				// Before transforming, scan for overloaded expressions
 				// so we can record their operator positions for hover info.
 				const sourceFile = project.getSourceFileOrThrow(fileName);
 				const overloadEdits = findOverloadEdits(sourceFile, overloadStore);
 
-				// Transform binary expressions (returns text + source map)
+				// Transform expressions (returns text + source map)
 				const result = overloadInjector.overloadFile(fileName);
 
 				cache.set(fileName, {
@@ -139,8 +142,8 @@ export = function init(modules: {
 // ----- Overload edit scanner -----
 
 /**
- * Before transformation, find all binary expressions that match
- * registered overloads and record their operator token positions.
+ * Before transformation, find all expressions (binary, prefix unary, postfix unary)
+ * that match registered overloads and record their operator token positions.
  * This is used to provide hover info for overloaded operators.
  */
 function findOverloadEdits(
@@ -180,6 +183,75 @@ function findOverloadEdits(
 			operatorString: overloadDesc.operatorString,
 			index: overloadDesc.index,
 			isStatic: overloadDesc.isStatic,
+			kind: "binary",
+		});
+	}
+
+	// Scan prefix unary expressions
+	const prefixExpressions = sourceFile.getDescendantsOfKind(
+		SyntaxKind.PrefixUnaryExpression,
+	);
+	for (const expression of prefixExpressions) {
+		const operatorKind = expression.getOperatorToken();
+		if (!isPrefixUnaryOperatorSyntaxKind(operatorKind)) continue;
+
+		const operandType = resolveExpressionType(expression.getOperand());
+		const overloadDesc = overloadStore.findPrefixUnaryOverload(
+			operatorKind,
+			operandType,
+		);
+		if (!overloadDesc) continue;
+
+		const exprStart = expression.getStart();
+		const operand = expression.getOperand();
+
+		edits.push({
+			operatorStart: exprStart,
+			operatorEnd: operand.getStart(),
+			hoverStart: exprStart,
+			hoverEnd: operand.getStart(),
+			exprStart,
+			exprEnd: expression.getEnd(),
+			className: overloadDesc.className,
+			classFilePath: overloadDesc.classFilePath,
+			operatorString: overloadDesc.operatorString,
+			index: overloadDesc.index,
+			isStatic: overloadDesc.isStatic,
+			kind: "prefixUnary",
+		});
+	}
+
+	// Scan postfix unary expressions
+	const postfixExpressions = sourceFile.getDescendantsOfKind(
+		SyntaxKind.PostfixUnaryExpression,
+	);
+	for (const expression of postfixExpressions) {
+		const operatorKind = expression.getOperatorToken();
+		if (!isPostfixUnaryOperatorSyntaxKind(operatorKind)) continue;
+
+		const operandType = resolveExpressionType(expression.getOperand());
+		const overloadDesc = overloadStore.findPostfixUnaryOverload(
+			operatorKind,
+			operandType,
+		);
+		if (!overloadDesc) continue;
+
+		const operand = expression.getOperand();
+		const operatorStart = operand.getEnd();
+
+		edits.push({
+			operatorStart,
+			operatorEnd: expression.getEnd(),
+			hoverStart: operatorStart,
+			hoverEnd: expression.getEnd(),
+			exprStart: expression.getStart(),
+			exprEnd: expression.getEnd(),
+			className: overloadDesc.className,
+			classFilePath: overloadDesc.classFilePath,
+			operatorString: overloadDesc.operatorString,
+			index: overloadDesc.index,
+			isStatic: overloadDesc.isStatic,
+			kind: "postfixUnary",
 		});
 	}
 
@@ -230,10 +302,36 @@ function getOverloadHoverInfo(
 		const returnType = element.getReturnType();
 		const returnTypeName = returnType.getText(element);
 
-		// Build "LhsType op RhsType = ReturnType" signature parts
+		// Build display signature parts based on overload kind
 		const displayParts: tsRuntime.SymbolDisplayPart[] = [];
 
-		if (edit.isStatic && nonThisParams.length >= 2) {
+		if (edit.kind === "prefixUnary") {
+			// Prefix unary: "-Vector3 = Vector3"
+			displayParts.push({
+				text: edit.operatorString,
+				kind: "operator",
+			});
+			const operandType =
+				nonThisParams.length >= 1
+					? nonThisParams[0].getType().getText(element)
+					: edit.className;
+			displayParts.push({ text: operandType, kind: "className" });
+			if (returnTypeName !== "void") {
+				displayParts.push({ text: " = ", kind: "punctuation" });
+				displayParts.push({
+					text: returnTypeName,
+					kind: "className",
+				});
+			}
+		} else if (edit.kind === "postfixUnary") {
+			// Postfix unary: "Vector3++"
+			displayParts.push({ text: edit.className, kind: "className" });
+			displayParts.push({
+				text: edit.operatorString,
+				kind: "operator",
+			});
+		} else if (edit.isStatic && nonThisParams.length >= 2) {
+			// Binary static: "LhsType + RhsType = ReturnType"
 			const lhsType = nonThisParams[0].getType().getText(element);
 			const rhsType = nonThisParams[1].getType().getText(element);
 			displayParts.push({ text: lhsType, kind: "className" });
@@ -244,7 +342,15 @@ function getOverloadHoverInfo(
 			});
 			displayParts.push({ text: " ", kind: "space" });
 			displayParts.push({ text: rhsType, kind: "className" });
+			if (returnTypeName !== "void") {
+				displayParts.push({ text: " = ", kind: "punctuation" });
+				displayParts.push({
+					text: returnTypeName,
+					kind: "className",
+				});
+			}
 		} else {
+			// Binary instance: "ClassName += RhsType"
 			const rhsType =
 				nonThisParams.length >= 1
 					? nonThisParams[0].getType().getText(element)
@@ -257,11 +363,13 @@ function getOverloadHoverInfo(
 			});
 			displayParts.push({ text: " ", kind: "space" });
 			displayParts.push({ text: rhsType, kind: "className" });
-		}
-
-		if (returnTypeName !== "void") {
-			displayParts.push({ text: " = ", kind: "punctuation" });
-			displayParts.push({ text: returnTypeName, kind: "className" });
+			if (returnTypeName !== "void") {
+				displayParts.push({ text: " = ", kind: "punctuation" });
+				displayParts.push({
+					text: returnTypeName,
+					kind: "className",
+				});
+			}
 		}
 
 		// Extract JSDoc comment

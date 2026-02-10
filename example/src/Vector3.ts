@@ -16,6 +16,35 @@ export class Vector3 {
 		(a: Vector3, b: Vector3) => new Vector3(a.x + b.x, a.y + b.y, a.z + b.z),
 	] as const;
 
+	public static readonly "-" = [
+		/**
+		 * Subtract two Vec3s.
+		 */
+		(a: Vector3, b: Vector3) => new Vector3(a.x - b.x, a.y - b.y, a.z - b.z),
+		/**
+		 * Negate a Vec3.
+		 */
+		(a: Vector3) => new Vector3(-a.x, -a.y, -a.z),
+	] as const;
+
+	public readonly "-=" = [
+		/**
+		 * Subtract another Vec3 from this.
+		 */
+		function (this: Vector3, b: Vector3): void {
+			this.x -= b.x;
+			this.y -= b.y;
+			this.z -= b.z;
+		},
+	] as const;
+
+	public static readonly "!" = [
+		/**
+		 * Returns true if this is the zero vector.
+		 */
+		(a: Vector3): boolean => a.x === 0 && a.y === 0 && a.z === 0,
+	] as const;
+
 	public readonly "+=" = [
 		/**
 		 * Add another Vec3 to this.

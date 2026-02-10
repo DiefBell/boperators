@@ -68,6 +68,42 @@ class Vector3 {
 }
 ```
 
+### Prefix Unary Operators
+
+Prefix unary operators (`-`, `+`, `!`, `~`) are `static readonly` fields with one-parameter functions. The parameter must match the class type. For operators that also have binary forms (`-`, `+`), both binary and unary overloads can coexist in the same array, distinguished by parameter count.
+
+```typescript
+class Vector3 {
+    static readonly "-" = [
+        (a: Vector3, b: Vector3) =>
+            new Vector3(a.x - b.x, a.y - b.y, a.z - b.z), // binary: a - b
+        (a: Vector3) =>
+            new Vector3(-a.x, -a.y, -a.z), // unary: -a
+    ] as const;
+
+    static readonly "!" = [
+        (a: Vector3): boolean =>
+            a.x === 0 && a.y === 0 && a.z === 0,
+    ] as const;
+}
+```
+
+### Postfix Unary Operators
+
+Postfix unary operators (`++`, `--`) are `readonly` instance fields with zero-parameter functions (only `this`). They mutate the object and must return `void`. Must use function expressions, not arrow functions.
+
+```typescript
+class Counter {
+    value = 0;
+
+    readonly "++" = [
+        function (this: Counter): void {
+            this.value++;
+        },
+    ] as const;
+}
+```
+
 ### Using the Operator Enum
 
 Instead of string literals, you can use the `Operator` enum for computed property names:
@@ -88,9 +124,11 @@ class Angle {
 `boperators` has a two-phase pipeline:
 
 1. **Parse**: `OverloadStore` scans all source files for classes with operator-named properties and indexes them by `(operatorKind, lhsType, rhsType)`.
-2. **Transform**: `OverloadInjector` finds binary expressions, looks up matching overloads, and replaces them:
-   - **Static**: `a + b` becomes `ClassName["+"][0](a, b)`
-   - **Instance**: `a += b` becomes `a["+="][0].call(a, b)`
+2. **Transform**: `OverloadInjector` finds binary and unary expressions, looks up matching overloads, and replaces them:
+   - **Binary static**: `a + b` becomes `ClassName["+"][0](a, b)`
+   - **Binary instance**: `a += b` becomes `a["+="][0].call(a, b)`
+   - **Prefix unary**: `-a` becomes `ClassName["-"][1](a)`
+   - **Postfix unary**: `x++` becomes `x["++"][0].call(x)`
 
 Imports for referenced classes are automatically added where needed.
 
@@ -121,6 +159,12 @@ Imports for referenced classes are automatically added where needed.
 | `??` | static | |
 | `&&=` | instance | Must return `void` |
 | `\|\|=` | instance | Must return `void` |
+| `-` (unary) | static | Prefix negation (1 param) |
+| `+` (unary) | static | Prefix plus (1 param) |
+| `!` | static | Prefix logical NOT (1 param) |
+| `~` | static | Prefix bitwise NOT (1 param) |
+| `++` | instance | Postfix increment, must return `void` |
+| `--` | instance | Postfix decrement, must return `void` |
 
 ## API
 

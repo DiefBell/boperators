@@ -39,6 +39,10 @@ export enum Operator {
 	OR = "||",
 	OR_EQUALS = "||=",
 	NULLISH = "??",
+	NOT = "!",
+	BITWISE_NOT = "~",
+	INCREMENT = "++",
+	DECREMENT = "--",
 }
 
 export const operatorSymbols: string[] = Object.values(Operator);

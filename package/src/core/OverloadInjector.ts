@@ -7,7 +7,11 @@ import { ensureImportedName } from "./helpers/ensureImportedName";
 import { getModuleSpecifier } from "./helpers/getModuleSpecifier";
 import { resolveExpressionType } from "./helpers/resolveExpressionType";
 import type { OverloadStore } from "./OverloadStore";
-import { isOperatorSyntaxKind } from "./operatorMap";
+import {
+	isOperatorSyntaxKind,
+	isPostfixUnaryOperatorSyntaxKind,
+	isPrefixUnaryOperatorSyntaxKind,
+} from "./operatorMap";
 import { SourceMap } from "./SourceMap";
 
 export type TransformResult = {
@@ -99,6 +103,87 @@ export class OverloadInjector {
 				expression.replaceWithText(overloadCall);
 				changed = true;
 				break; // re-fetch descendants after each mutation
+			}
+		}
+
+		// Process prefix unary expressions (-x, +x, !x, ~x)
+		changed = true;
+		while (changed) {
+			changed = false;
+			const prefixExpressions = sourceFile
+				.getDescendantsOfKind(SyntaxKind.PrefixUnaryExpression)
+				.reverse();
+
+			for (const expression of prefixExpressions) {
+				const operatorKind = expression.getOperatorToken();
+				if (!isPrefixUnaryOperatorSyntaxKind(operatorKind)) continue;
+
+				const operand = expression.getOperand();
+				const operandType = resolveExpressionType(operand);
+
+				const overloadDesc = this._overloadStore.findPrefixUnaryOverload(
+					operatorKind,
+					operandType,
+				);
+				if (!overloadDesc) continue;
+
+				const {
+					className: classNameRaw,
+					classFilePath,
+					operatorString,
+					index,
+				} = overloadDesc;
+
+				const classSourceFile =
+					this._project.getSourceFileOrThrow(classFilePath);
+				const classDecl = classSourceFile.getClassOrThrow(classNameRaw);
+
+				const classModuleSpecifier = getModuleSpecifier(
+					sourceFile,
+					classSourceFile,
+				);
+				const className = ensureImportedName(
+					sourceFile,
+					classDecl.getSymbol()!,
+					classModuleSpecifier,
+				);
+
+				const overloadCall = `${className}["${operatorString}"][${index}](${operand.getText()})`;
+
+				expression.replaceWithText(overloadCall);
+				changed = true;
+				break;
+			}
+		}
+
+		// Process postfix unary expressions (x++, x--)
+		changed = true;
+		while (changed) {
+			changed = false;
+			const postfixExpressions = sourceFile
+				.getDescendantsOfKind(SyntaxKind.PostfixUnaryExpression)
+				.reverse();
+
+			for (const expression of postfixExpressions) {
+				const operatorKind = expression.getOperatorToken();
+				if (!isPostfixUnaryOperatorSyntaxKind(operatorKind)) continue;
+
+				const operand = expression.getOperand();
+				const operandType = resolveExpressionType(operand);
+
+				const overloadDesc = this._overloadStore.findPostfixUnaryOverload(
+					operatorKind,
+					operandType,
+				);
+				if (!overloadDesc) continue;
+
+				const { operatorString, index } = overloadDesc;
+
+				const overloadCall = `${operand.getText()}["${operatorString}"][${index}].call(${operand.getText()})`;
+
+				expression.replaceWithText(overloadCall);
+				changed = true;
+				break;
 			}
 		}
 

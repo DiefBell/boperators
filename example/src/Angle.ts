@@ -1,5 +1,3 @@
-import { MODULO, MODULO_EQUALS } from "boperators";
-
 export class Angle {
 	public radians: number;
 
@@ -7,14 +5,14 @@ export class Angle {
 		this.radians = (radians % 2) * Math.PI;
 	}
 
-	public static readonly [MODULO] = [
+	public static readonly "%" = [
 		/**
 		 * Return a new angle where the radians are the remainder of the division.
 		 */
 		(angle: Angle, rads: number): Angle => new Angle(angle.radians % rads),
 	] as const;
 
-	public readonly [MODULO_EQUALS] = [
+	public readonly "%=" = [
 		/**
 		 * Set the radians to the remainder of the division.
 		 */
