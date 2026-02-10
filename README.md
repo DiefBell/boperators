@@ -113,7 +113,9 @@ boperators/
 
 ### Planned Features and TODO
 
+- [ ] Way better logging. Option to set a logger in the API i.e. for CLI, TS server, Bun plugin. Have log levels. 
 - [ ] Log function names when loading overloads. Mention in docs that named functions are preferred.
+- [ ] TypeScript compiler plugin with ts-patch.
 - [x] Ensure classes correctly inherit the overloads of their parent class(es).
 - [x] Ensure that when trying to match a binary operation to its overload that we also look at the parents of each operand if they're child classes that may be compatible.
 - [ ] Write tests, set up CI.

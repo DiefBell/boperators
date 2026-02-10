@@ -4,8 +4,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "@commander-js/extra-typings";
-import { ErrorManager, OverloadInjector, OverloadStore } from "boperators";
-import { Project as TsMorphProject } from "ts-morph";
+import {
+	ErrorManager,
+	OverloadInjector,
+	OverloadStore,
+	Project as TsMorphProject,
+} from "boperators";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageJsonPath = path.join(__dirname, "..", "package.json");

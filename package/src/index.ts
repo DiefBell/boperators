@@ -23,3 +23,8 @@ export { SourceMap } from "./core/SourceMap";
 // Operator definitions
 
 export { Operator, operatorSymbols } from "./lib/operatorSymbols";
+
+// Re-export ts-morph types used by plugins and CLI
+
+export type { SourceFile } from "ts-morph";
+export { Node, Project, SyntaxKind } from "ts-morph";

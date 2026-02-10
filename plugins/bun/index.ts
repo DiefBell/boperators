@@ -1,7 +1,11 @@
 import { readFileSync } from "node:fs";
-import { ErrorManager, OverloadInjector, OverloadStore } from "boperators";
+import {
+	ErrorManager,
+	OverloadInjector,
+	OverloadStore,
+	Project as TsMorphProject,
+} from "boperators";
 import { type BunPlugin, type PluginBuilder, plugin } from "bun";
-import { Project as TsMorphProject } from "ts-morph";
 
 const boperatorsPlugin: BunPlugin = {
 	name: "boperators",

@@ -4,18 +4,16 @@ import {
 	isOperatorSyntaxKind,
 	isPostfixUnaryOperatorSyntaxKind,
 	isPrefixUnaryOperatorSyntaxKind,
+	Node,
 	OverloadInjector,
 	OverloadStore,
 	resolveExpressionType,
 	SourceMap,
-	unwrapInitializer,
-} from "boperators";
-import {
-	Node,
 	SyntaxKind,
 	Project as TsMorphProject,
 	type SourceFile as TsMorphSourceFile,
-} from "ts-morph";
+	unwrapInitializer,
+} from "boperators";
 import type tsRuntime from "typescript/lib/tsserverlibrary";
 
 // ----- Types -----

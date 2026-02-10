@@ -15,9 +15,6 @@
 		"boperators": "0.1.0",
 		"typescript": "^5.5.4"
 	},
-	"dependencies": {
-		"ts-morph": "24.0.0"
-	},
 	"devDependencies": {
 		"@types/bun": "^1.3.8"
 	}

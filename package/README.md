@@ -104,6 +104,31 @@ class Counter {
 }
 ```
 
+### Using Overloaded Operators Within Definitions
+
+The transform only applies to **consuming code**, not to the overload definitions themselves. If you need to call an overloaded operator inside an overload body (including on the same class), reference the overload array directly:
+
+```typescript
+class Expr {
+    static readonly "-" = [
+        // unary negation
+        (inner: Expr): Expr => new Expr.Neg(inner),
+
+        // binary minus — calls the unary overload and the + overload directly
+        (lhs: Expr, rhs: Expr): Expr =>
+            lhs + Expr["-"][0](rhs),
+
+        (lhs: Expr, rhs: number): Expr =>
+            lhs + Expr["-"][0](new Expr.Num(rhs)),
+
+        (lhs: number, rhs: Expr): Expr =>
+            new Expr.Num(lhs) + Expr["-"][0](rhs),
+    ] as const;
+}
+```
+
+Writing `lhs + -rhs` inside the overload body would **not** be transformed, since the source transform has not yet run on this code. Use `ClassName["op"][index](args)` for static overloads and `obj["op"][index].call(obj, args)` for instance overloads.
+
 ### Using the Operator Enum
 
 Instead of string literals, you can use the `Operator` enum for computed property names:
