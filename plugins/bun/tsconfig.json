@@ -1,0 +1,6 @@
+{
+	"include": ["index.ts"],
+	"compilerOptions": {
+		"types": ["@types/bun"]
+	}
+}

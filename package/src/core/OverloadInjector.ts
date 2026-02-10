@@ -93,8 +93,8 @@ export class OverloadInjector {
 
 				// Build the text code to replace the binary operator with the overload call
 				const overloadCall = isStatic
-					? `${className}["${operatorString}"][${index}]!(${lhs.getText()}, ${rhs.getText()})`
-					: `${lhs.getText()}["${operatorString}"][${index}]!.call(${lhs.getText()}, ${rhs.getText()})`;
+					? `${className}["${operatorString}"][${index}](${lhs.getText()}, ${rhs.getText()})`
+					: `${lhs.getText()}["${operatorString}"][${index}].call(${lhs.getText()}, ${rhs.getText()})`;
 
 				expression.replaceWithText(overloadCall);
 				changed = true;

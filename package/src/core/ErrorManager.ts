@@ -128,4 +128,19 @@ export class ErrorManager {
 	public clearWarnings(): void {
 		this._warnings = [];
 	}
+
+	/**
+	 * Clear out registered errors.
+	 */
+	public clearErrors(): void {
+		this._errors = [];
+	}
+
+	/**
+	 * Clear all registered errors and warnings.
+	 */
+	public clear(): void {
+		this._errors = [];
+		this._warnings = [];
+	}
 }
