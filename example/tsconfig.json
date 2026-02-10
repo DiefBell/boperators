@@ -107,6 +107,14 @@
 		/* Completeness */
 		// "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
 		"skipLibCheck": true /* Skip type checking all .d.ts files. */,
-		"plugins": [{ "name": "@boperators/plugin-ts-language-server" }]
+		"plugins": [
+			{
+				"name": "@boperators/plugin-ts-language-server"
+			},
+			{
+				"transform": "@boperators/plugin-tsc",
+				"transformProgram": true
+			}
+		]
 	}
 }

@@ -1,0 +1,22 @@
+{
+	"name": "@boperators/plugin-tsc",
+	"version": "0.1.0",
+	"license": "MIT",
+	"description": "ts-patch plugin for boperators - transforms operator overloads during tsc compilation.",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/DiefBell/boperators",
+		"directory": "plugins/tsc"
+	},
+	"homepage": "https://github.com/DiefBell/boperators/tree/main/plugins/tsc",
+	"type": "commonjs",
+	"main": "./dist/index.js",
+	"scripts": {
+		"build": "tsc",
+		"watch": "tsc -w"
+	},
+	"peerDependencies": {
+		"boperators": "0.1.0",
+		"typescript": ">=5.0.0 <5.10.0"
+	}
+}

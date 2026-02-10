@@ -7,13 +7,16 @@
 	},
 	"scripts": {
 		"transform": "rm -rf ./transformed && boperate --ts-out ./transformed --maps-out ./transformed",
-		"start": "bun run ./transformed/index.ts"
+		"start": "bun run ./transformed/index.ts",
+		"build": "tspc"
 	},
 	"devDependencies": {
-		"@boperators/plugin-bun": "link:@boperators/plugin-bun",
 		"@boperators/cli": "link:@boperators/cli",
+		"@boperators/plugin-bun": "link:@boperators/plugin-bun",
 		"@boperators/plugin-ts-language-server": "link:@boperators/plugin-ts-language-server",
+		"@boperators/plugin-tsc": "link:@boperators/plugin-tsc",
 		"@types/bun": "^1.1.16",
-		"boperators": "link:boperators"
+		"boperators": "link:boperators",
+		"ts-patch": "^3.3.0"
 	}
 }

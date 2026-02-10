@@ -47,6 +47,7 @@ Overloads defined on a parent class are automatically inherited by subclasses. F
 | [`@boperators/cli`](./cli/) | CLI tool (`bop` / `boperate`) for batch transformation |
 | [`@boperators/plugin-bun`](./plugins/bun/) | Bun plugin - transforms files at runtime |
 | [`@boperators/plugin-ts-language-server`](./plugins/ts-language-server/) | TypeScript Language Server plugin - IDE support with source mapping |
+| [`@boperators/plugin-tsc`](./plugins/tsc/) | ts-patch plugin - transforms during `tsc` compilation |
 
 See the [`example/`](./example/) project for a working demo.
 
@@ -107,6 +108,7 @@ boperators/
   cli/              CLI tool (@boperators/cli)
   plugins/
     bun/            Bun plugin (@boperators/plugin-bun)
+    tsc/            ts-patch plugin (@boperators/plugin-tsc)
     ts-language-server/  TS Language Server plugin
   example/          Example project
 ```
@@ -115,12 +117,12 @@ boperators/
 
 - [ ] Way better logging. Option to set a logger in the API i.e. for CLI, TS server, Bun plugin. Have log levels. 
 - [ ] Log function names when loading overloads. Mention in docs that named functions are preferred.
-- [ ] TypeScript compiler plugin with ts-patch.
+- [x] TypeScript compiler plugin with ts-patch.
 - [x] Ensure classes correctly inherit the overloads of their parent class(es).
 - [x] Ensure that when trying to match a binary operation to its overload that we also look at the parents of each operand if they're child classes that may be compatible.
 - [ ] Write tests, set up CI.
 = [ ] MCP server for docs and tools
-- [ ] Double check this `ts-morph` dependency - can we keep it to only the core package? And put required `typescript` version in a range?
+- [x] Double check this `ts-morph` dependency - can we keep it to only the core package? And put required `typescript` version in a range?
 - [ ] `--project` to specify a TS config file for the CLI.
 - [ ] Expose a lot of config options in the core API, the implement a `.bopconfig.json/c` for plugins and the CLI.
 - [ ] Fix Bun plugin

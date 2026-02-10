@@ -22,7 +22,8 @@
 			"mcp__mcp-openmemory__recall_memory_abstract",
 			"mcp__mcp-openmemory__get_recent_memories",
 			"mcp__mcp-openmemory__save_memory",
-			"mcp__mcp-openmemory__update_memory_abstract"
+			"mcp__mcp-openmemory__update_memory_abstract",
+			"WebFetch(domain:app.unpkg.com)"
 		]
 	},
 	"enabledMcpjsonServers": ["mcp-openmemory"]
