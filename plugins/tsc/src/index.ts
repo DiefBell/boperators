@@ -1,6 +1,7 @@
 import path from "node:path";
 import {
 	ErrorManager,
+	loadConfig,
 	OverloadInjector,
 	OverloadStore,
 	Project as TsMorphProject,
@@ -35,10 +36,13 @@ const transformer = (
 	const configFilePath = (compilerOptions as Record<string, unknown>)
 		.configFilePath as string | undefined;
 
+	const bopConfig = loadConfig({
+		searchDir: configFilePath ? path.dirname(configFilePath) : undefined,
+		overrides: { errorOnWarning: config.errorOnWarning },
+	});
+
 	if (!configFilePath) {
-		console.warn(
-			"[boperators] No tsconfig path found; skipping transformation.",
-		);
+		bopConfig.logger.warn("No tsconfig path found; skipping transformation.");
 		return program;
 	}
 
@@ -47,7 +51,7 @@ const transformer = (
 		const tsMorphProject = new TsMorphProject({
 			tsConfigFilePath: configFilePath,
 		});
-		const errorManager = new ErrorManager(config.errorOnWarning ?? false);
+		const errorManager = new ErrorManager(bopConfig);
 		const overloadStore = new OverloadStore(tsMorphProject, errorManager);
 		const overloadInjector = new OverloadInjector(
 			tsMorphProject,
@@ -125,7 +129,7 @@ const transformer = (
 			proxyHost,
 		);
 	} catch (error) {
-		console.error("[boperators] Transformation failed:", error);
+		bopConfig.logger.error(`Transformation failed: ${error}`);
 		return program;
 	}
 };

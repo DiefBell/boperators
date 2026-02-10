@@ -1,9 +1,11 @@
 import {
+	type BopLogger,
 	ErrorManager,
 	getOperatorStringFromProperty,
 	isOperatorSyntaxKind,
 	isPostfixUnaryOperatorSyntaxKind,
 	isPrefixUnaryOperatorSyntaxKind,
+	loadConfig,
 	Node,
 	OverloadInjector,
 	OverloadStore,
@@ -56,16 +58,25 @@ export = function init(modules: {
 	function create(
 		info: tsRuntime.server.PluginCreateInfo,
 	): tsRuntime.LanguageService {
-		const log = (msg: string) =>
-			info.project.projectService.logger.info(`[boperators] ${msg}`);
-		log(
+		const tsServerLogger: BopLogger = {
+			debug: (msg) =>
+				info.project.projectService.logger.info(`[boperators] [debug] ${msg}`),
+			info: (msg) =>
+				info.project.projectService.logger.info(`[boperators] ${msg}`),
+			warn: (msg) =>
+				info.project.projectService.logger.info(`[boperators] [warn] ${msg}`),
+			error: (msg) =>
+				info.project.projectService.logger.info(`[boperators] [error] ${msg}`),
+		};
+		const config = loadConfig({ logger: tsServerLogger });
+		config.logger.info(
 			`Creating language service plugin for project: ${info.project.getProjectName()}`,
 		);
 		const host = info.languageServiceHost;
 
 		// Set up ts-morph transformation pipeline
 		const project = new TsMorphProject({ skipFileDependencyResolution: true });
-		const errorManager = new ErrorManager(false);
+		const errorManager = new ErrorManager(config);
 		const overloadStore = new OverloadStore(project, errorManager);
 		const overloadInjector = new OverloadInjector(project, overloadStore);
 
@@ -116,7 +127,7 @@ export = function init(modules: {
 				});
 				return ts.ScriptSnapshot.fromString(result.text);
 			} catch (e) {
-				log(`Error transforming ${fileName}: ${e}`);
+				config.logger.error(`Error transforming ${fileName}: ${e}`);
 				cache.set(fileName, {
 					version,
 					text: source,
@@ -128,9 +139,9 @@ export = function init(modules: {
 		};
 
 		// Create the language service proxy with position remapping
-		const proxy = createProxy(ts, info.languageService, cache, project, log);
+		const proxy = createProxy(ts, info.languageService, cache, project);
 
-		log("Plugin loaded");
+		config.logger.info("Plugin loaded");
 		return proxy;
 	}
 
@@ -428,7 +439,6 @@ function createProxy(
 	ls: tsRuntime.LanguageService,
 	cache: Map<string, CacheEntry>,
 	project: TsMorphProject,
-	_log: (msg: string) => void,
 ): tsRuntime.LanguageService {
 	// Copy all methods from the underlying language service
 	const proxy = Object.create(null) as tsRuntime.LanguageService;

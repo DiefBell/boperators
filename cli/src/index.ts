@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { Command } from "@commander-js/extra-typings";
 import {
 	ErrorManager,
+	loadConfig,
 	OverloadInjector,
 	OverloadStore,
 	Project as TsMorphProject,
@@ -51,8 +52,13 @@ if (!fs.existsSync(tsConfigFilePath)) {
 	throw new Error(`Unable to find tsconfig file at "${tsConfigFilePath}".`);
 }
 
+const config = loadConfig({
+	searchDir: path.dirname(tsConfigFilePath),
+	overrides: { errorOnWarning: options.errorOnWarning },
+});
+
 const project = new TsMorphProject({ tsConfigFilePath });
-const errorManager = new ErrorManager(options.errorOnWarning);
+const errorManager = new ErrorManager(config);
 const overloadStore = new OverloadStore(project, errorManager);
 const overloadInjector = new OverloadInjector(project, overloadStore);
 

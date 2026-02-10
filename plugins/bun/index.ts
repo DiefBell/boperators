@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import {
 	ErrorManager,
+	loadConfig,
 	OverloadInjector,
 	OverloadStore,
 	Project as TsMorphProject,
@@ -12,10 +13,9 @@ const boperatorsPlugin: BunPlugin = {
 	target: "bun",
 	setup(build: PluginBuilder) {
 		// We'll manually get dependencies because then ts-morph returns a nice list of them!
+		const config = loadConfig();
 		const project = new TsMorphProject({ skipFileDependencyResolution: true });
-		const errorManager = new ErrorManager(
-			false /* Eventually use plugin factory for this??? */,
-		);
+		const errorManager = new ErrorManager(config);
 		const overloadStore = new OverloadStore(project, errorManager);
 		const overloadInjector = new OverloadInjector(project, overloadStore);
 

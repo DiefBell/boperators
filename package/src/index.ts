@@ -1,5 +1,13 @@
 // Core transformation pipeline
 
+export type {
+	BopConfFile,
+	BopConfig,
+	BopLogger,
+	LoadConfigOptions,
+	LogLevel,
+} from "./core/BopConfig";
+export { ConsoleLogger, loadConfig } from "./core/BopConfig";
 export { ErrorDescription, ErrorManager } from "./core/ErrorManager";
 export { getOperatorStringFromProperty } from "./core/helpers/getOperatorStringFromProperty";
 export { resolveExpressionType } from "./core/helpers/resolveExpressionType";

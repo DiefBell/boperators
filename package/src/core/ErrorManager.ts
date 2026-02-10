@@ -1,4 +1,5 @@
 import path from "node:path";
+import type { BopConfig } from "./BopConfig.js";
 
 /**
  * Stores information about an error or warning for later use.
@@ -52,8 +53,11 @@ export class ErrorManager {
 	 */
 	private readonly _errorOnWarning: boolean;
 
-	constructor(errorOnWarning: boolean) {
-		this._errorOnWarning = errorOnWarning;
+	private readonly _config: BopConfig;
+
+	constructor(config: BopConfig) {
+		this._config = config;
+		this._errorOnWarning = config.errorOnWarning;
 	}
 
 	/**
@@ -114,7 +118,7 @@ export class ErrorManager {
 	public throwIfErrorsElseLogWarnings(clearSelf: boolean = true): void {
 		this.throwIfErrors();
 		if (this._warnings.length > 0) {
-			console.warn(this.getWarningString());
+			this._config.logger.warn(this.getWarningString());
 		}
 
 		if (clearSelf) {
