@@ -16,8 +16,16 @@ const boperatorsPlugin: BunPlugin = {
 		const config = loadConfig();
 		const project = new TsMorphProject({ skipFileDependencyResolution: true });
 		const errorManager = new ErrorManager(config);
-		const overloadStore = new OverloadStore(project, errorManager);
-		const overloadInjector = new OverloadInjector(project, overloadStore);
+		const overloadStore = new OverloadStore(
+			project,
+			errorManager,
+			config.logger,
+		);
+		const overloadInjector = new OverloadInjector(
+			project,
+			overloadStore,
+			config.logger,
+		);
 
 		build.onLoad({ filter: /\.ts$/ }, async (args) => {
 			try {
@@ -35,7 +43,7 @@ const boperatorsPlugin: BunPlugin = {
 
 				return { contents: result.text, loader: "ts" };
 			} catch (error) {
-				console.error(`[boperators] Error transforming ${args.path}:`, error);
+				config.logger.error(`Error transforming ${args.path}: ${error}`);
 				// Return the original file as TypeScript so Bun doesn't
 				// fall back to parsing it as JavaScript.
 				const originalText = readFileSync(args.path, "utf-8");

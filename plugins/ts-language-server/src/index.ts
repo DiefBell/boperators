@@ -77,8 +77,16 @@ export = function init(modules: {
 		// Set up ts-morph transformation pipeline
 		const project = new TsMorphProject({ skipFileDependencyResolution: true });
 		const errorManager = new ErrorManager(config);
-		const overloadStore = new OverloadStore(project, errorManager);
-		const overloadInjector = new OverloadInjector(project, overloadStore);
+		const overloadStore = new OverloadStore(
+			project,
+			errorManager,
+			config.logger,
+		);
+		const overloadInjector = new OverloadInjector(
+			project,
+			overloadStore,
+			config.logger,
+		);
 
 		const originalGetSnapshot = host.getScriptSnapshot?.bind(host);
 		const originalGetVersion = host.getScriptVersion?.bind(host);

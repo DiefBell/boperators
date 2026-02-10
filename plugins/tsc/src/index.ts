@@ -52,10 +52,15 @@ const transformer = (
 			tsConfigFilePath: configFilePath,
 		});
 		const errorManager = new ErrorManager(bopConfig);
-		const overloadStore = new OverloadStore(tsMorphProject, errorManager);
+		const overloadStore = new OverloadStore(
+			tsMorphProject,
+			errorManager,
+			bopConfig.logger,
+		);
 		const overloadInjector = new OverloadInjector(
 			tsMorphProject,
 			overloadStore,
+			bopConfig.logger,
 		);
 
 		// 2. Parse ALL files for overload definitions (including dependencies)

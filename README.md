@@ -115,16 +115,16 @@ boperators/
 
 ### Planned Features and TODO
 
-- [ ] Way better logging. Option to set a logger in the API i.e. for CLI, TS server, Bun plugin. Have log levels. 
-- [ ] Log function names when loading overloads. Mention in docs that named functions are preferred.
+- [x] Way better logging. Option to set a logger in the API i.e. for CLI, TS server, Bun plugin. Have log levels.
+- [x] Log function names when loading overloads. Mention in docs that named functions are preferred.
 - [x] TypeScript compiler plugin with ts-patch.
 - [x] Ensure classes correctly inherit the overloads of their parent class(es).
 - [x] Ensure that when trying to match a binary operation to its overload that we also look at the parents of each operand if they're child classes that may be compatible.
 - [ ] Write tests, set up CI.
 = [ ] MCP server for docs and tools
 - [x] Double check this `ts-morph` dependency - can we keep it to only the core package? And put required `typescript` version in a range?
-- [ ] `--project` to specify a TS config file for the CLI.
-- [ ] Expose a lot of config options in the core API, the implement a `.bopconfig.json/c` for plugins and the CLI.
+- [x] `--project` to specify a TS config file for the CLI.
+- [x] Expose a lot of config options in the core API, then implement a `.bopconf.json` for plugins and the CLI.
 - [ ] Fix Bun plugin
 - [x] Support unary operators
 - [ ] ???

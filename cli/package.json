@@ -15,7 +15,8 @@
 		"boperate": "dist/index.js"
 	},
 	"scripts": {
-		"build": "tsc"
+		"build": "tsc",
+		"watch": "tsc -w"
 	},
 	"dependencies": {
 		"@commander-js/extra-typings": "^13.0.0"

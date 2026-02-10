@@ -11,6 +11,7 @@ import {
 	type Project as TsMorphProject,
 } from "ts-morph";
 import { operatorSymbols } from "../lib/operatorSymbols";
+import type { BopLogger } from "./BopConfig";
 import { ErrorDescription, type ErrorManager } from "./ErrorManager";
 import { getOperatorStringFromProperty } from "./helpers/getOperatorStringFromProperty";
 import { unwrapInitializer } from "./helpers/unwrapInitializer";
@@ -107,11 +108,18 @@ export class OverloadStore extends Map<
 		}>
 	>();
 
-	constructor(project: TsMorphProject, errorManager: ErrorManager) {
+	private readonly _logger: BopLogger;
+
+	constructor(
+		project: TsMorphProject,
+		errorManager: ErrorManager,
+		logger: BopLogger,
+	) {
 		super();
 
 		this._project = project;
 		this._errorManager = errorManager;
+		this._logger = logger;
 	}
 
 	/**
@@ -530,6 +538,17 @@ export class OverloadStore extends Map<
 		operatorOverloads.set(lhsType, lhsMap);
 		this.set(syntaxKind, operatorOverloads);
 
+		const funcName = Node.isFunctionExpression(element)
+			? element.getName()
+			: undefined;
+		const sl = this._shortTypeName.bind(this);
+		const label = funcName
+			? `${funcName}(${sl(lhsType)}, ${sl(rhsType)})`
+			: `(${sl(lhsType)}, ${sl(rhsType)})`;
+		this._logger.debug(
+			`Loaded ${classDecl.getName()}["${operatorString}"][${index}]: ${label} => ${sl(element.getReturnType().getText())}${isStatic ? " (static)" : " (instance)"}`,
+		);
+
 		let fileEntries = this._fileEntries.get(filePath);
 		if (!fileEntries) {
 			fileEntries = [];
@@ -592,6 +611,18 @@ export class OverloadStore extends Map<
 			index,
 		});
 		this._prefixUnaryOverloads.set(syntaxKind, operatorOverloads);
+
+		const funcName = Node.isFunctionExpression(element)
+			? element.getName()
+			: undefined;
+		const sl = this._shortTypeName.bind(this);
+		const returnType = sl(element.getReturnType().getText());
+		const label = funcName
+			? `${funcName}(${sl(operandType)})`
+			: `(${sl(operandType)})`;
+		this._logger.debug(
+			`Loaded ${classDecl.getName()}["${operatorString}"][${index}]: ${operatorString}${label} => ${returnType} (prefix unary)`,
+		);
 
 		let fileEntries = this._prefixUnaryFileEntries.get(filePath);
 		if (!fileEntries) {
@@ -656,6 +687,14 @@ export class OverloadStore extends Map<
 		});
 		this._postfixUnaryOverloads.set(syntaxKind, operatorOverloads);
 
+		const funcName = Node.isFunctionExpression(element)
+			? element.getName()
+			: undefined;
+		const label = funcName ? `${funcName}()` : "()";
+		this._logger.debug(
+			`Loaded ${classDecl.getName()}["${operatorString}"][${index}]: ${this._shortTypeName(operandType)}${operatorString} ${label} (postfix unary)`,
+		);
+
 		let fileEntries = this._postfixUnaryFileEntries.get(filePath);
 		if (!fileEntries) {
 			fileEntries = [];
@@ -697,6 +736,11 @@ export class OverloadStore extends Map<
 
 	private _minifyString(str: string): string {
 		return str.replace(/\s+/g, " ").replace("\n", "").trim();
+	}
+
+	/** Strips `import("...").` prefixes from fully-qualified type names for readable logs. */
+	private _shortTypeName(typeName: string): string {
+		return typeName.replace(/import\("[^"]*"\)\./g, "");
 	}
 
 	public override toString() {

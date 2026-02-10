@@ -1,8 +1,10 @@
+import path from "node:path";
 import {
 	SourceFile,
 	SyntaxKind,
 	type Project as TsMorphProject,
 } from "ts-morph";
+import type { BopLogger } from "./BopConfig";
 import { ensureImportedName } from "./helpers/ensureImportedName";
 import { getModuleSpecifier } from "./helpers/getModuleSpecifier";
 import { resolveExpressionType } from "./helpers/resolveExpressionType";
@@ -24,6 +26,8 @@ export type TransformResult = {
 };
 
 export class OverloadInjector {
+	private readonly _logger: BopLogger;
+
 	constructor(
 		/**
 		 * TS Morph project.
@@ -33,7 +37,10 @@ export class OverloadInjector {
 		 * Overload store.
 		 */
 		private readonly _overloadStore: OverloadStore,
-	) {}
+		logger: BopLogger,
+	) {
+		this._logger = logger;
+	}
 
 	public overloadFile(file: string | SourceFile): TransformResult {
 		const sourceFile =
@@ -41,7 +48,9 @@ export class OverloadInjector {
 				? file
 				: this._project.getSourceFileOrThrow(file);
 
+		const fileName = path.basename(sourceFile.getFilePath());
 		const originalText = sourceFile.getFullText();
+		let transformCount = 0;
 
 		// Process one innermost binary expression per iteration,
 		// re-fetching descendants each time so types resolve correctly
@@ -100,7 +109,11 @@ export class OverloadInjector {
 					? `${className}["${operatorString}"][${index}](${lhs.getText()}, ${rhs.getText()})`
 					: `${lhs.getText()}["${operatorString}"][${index}].call(${lhs.getText()}, ${rhs.getText()})`;
 
+				this._logger.debug(
+					`${fileName}: ${expression.getText()} => ${overloadCall}`,
+				);
 				expression.replaceWithText(overloadCall);
+				transformCount++;
 				changed = true;
 				break; // re-fetch descendants after each mutation
 			}
@@ -150,7 +163,11 @@ export class OverloadInjector {
 
 				const overloadCall = `${className}["${operatorString}"][${index}](${operand.getText()})`;
 
+				this._logger.debug(
+					`${fileName}: ${expression.getText()} => ${overloadCall}`,
+				);
 				expression.replaceWithText(overloadCall);
+				transformCount++;
 				changed = true;
 				break;
 			}
@@ -181,10 +198,20 @@ export class OverloadInjector {
 
 				const overloadCall = `${operand.getText()}["${operatorString}"][${index}].call(${operand.getText()})`;
 
+				this._logger.debug(
+					`${fileName}: ${expression.getText()} => ${overloadCall}`,
+				);
 				expression.replaceWithText(overloadCall);
+				transformCount++;
 				changed = true;
 				break;
 			}
+		}
+
+		if (transformCount > 0) {
+			this._logger.debug(
+				`${fileName}: ${transformCount} expression${transformCount === 1 ? "" : "s"} transformed`,
+			);
 		}
 
 		const text = sourceFile.getFullText();

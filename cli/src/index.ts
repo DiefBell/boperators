@@ -59,8 +59,12 @@ const config = loadConfig({
 
 const project = new TsMorphProject({ tsConfigFilePath });
 const errorManager = new ErrorManager(config);
-const overloadStore = new OverloadStore(project, errorManager);
-const overloadInjector = new OverloadInjector(project, overloadStore);
+const overloadStore = new OverloadStore(project, errorManager, config.logger);
+const overloadInjector = new OverloadInjector(
+	project,
+	overloadStore,
+	config.logger,
+);
 
 const allFiles = project.getSourceFiles();
 
