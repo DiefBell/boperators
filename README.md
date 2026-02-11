@@ -121,7 +121,7 @@ boperators/
 - [x] Ensure classes correctly inherit the overloads of their parent class(es).
 - [x] Ensure that when trying to match a binary operation to its overload that we also look at the parents of each operand if they're child classes that may be compatible.
 - [ ] Write tests, set up CI.
-= [ ] MCP server for docs and tools
+- [ ] MCP server for docs and tools
 - [x] Double check this `ts-morph` dependency - can we keep it to only the core package? And put required `typescript` version in a range?
 - [x] `--project` to specify a TS config file for the CLI.
 - [x] Expose a lot of config options in the core API, then implement a `.bopconf.json` for plugins and the CLI.
