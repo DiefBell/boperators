@@ -90,8 +90,9 @@ server.registerTool(
 	"transform_preview",
 	{
 		description:
-			"Preview the result of boperators transformation on a file. " +
-			"Shows the original and transformed text side by side.",
+			"Preview the result of boperators transformation on a file or a line range within it. " +
+			"When startLine/endLine are given, only the relevant slice of original and transformed " +
+			"text is returned, keeping token usage low.",
 		inputSchema: {
 			tsconfig: z
 				.string()
@@ -99,9 +100,25 @@ server.registerTool(
 			filePath: z
 				.string()
 				.describe("Absolute path to the TypeScript file to transform."),
+			startLine: z
+				.number()
+				.int()
+				.min(1)
+				.optional()
+				.describe(
+					"First line to include (1-based, inclusive). Omit for full file.",
+				),
+			endLine: z
+				.number()
+				.int()
+				.min(1)
+				.optional()
+				.describe(
+					"Last line to include (1-based, inclusive). Omit for full file.",
+				),
 		},
 	},
-	async ({ tsconfig, filePath }) => {
+	async ({ tsconfig, filePath, startLine, endLine }) => {
 		try {
 			projectManager.initialize(tsconfig);
 
@@ -113,20 +130,94 @@ server.registerTool(
 			const result = projectManager.overloadInjector.overloadFile(sourceFile);
 
 			const changed = result.text !== originalText;
-			const transformCount = result.sourceMap.edits.length;
+			const totalTransformCount = result.sourceMap.edits.length;
 
-			const output = {
-				originalText,
-				transformedText: result.text,
-				transformCount,
-				changed,
-			};
+			// Full-file mode when no range is specified
+			if (startLine === undefined && endLine === undefined) {
+				return {
+					content: [
+						{
+							type: "text" as const,
+							text: JSON.stringify(
+								{
+									originalText,
+									transformedText: result.text,
+									transformCount: totalTransformCount,
+									changed,
+								},
+								null,
+								2,
+							),
+						},
+					],
+				};
+			}
+
+			// --- Line-range mode ---
+			const origLines = originalText.split("\n");
+			const rangeStart = Math.max(1, startLine ?? 1);
+			const rangeEnd = Math.min(origLines.length, endLine ?? origLines.length);
+
+			// Character offsets for the line range in original text
+			let origStartOffset = 0;
+			for (let i = 0; i < rangeStart - 1; i++) {
+				origStartOffset += origLines[i].length + 1;
+			}
+			let origEndOffset = origStartOffset;
+			for (let i = rangeStart - 1; i < rangeEnd; i++) {
+				origEndOffset += origLines[i].length + 1;
+			}
+			origEndOffset = Math.min(origEndOffset, originalText.length);
+
+			// Map boundaries through the SourceMap to transformed positions
+			const transStartOffset =
+				result.sourceMap.originalToTransformed(origStartOffset);
+			const transEndOffset =
+				result.sourceMap.originalToTransformed(origEndOffset);
+
+			// Expand to line boundaries in transformed text
+			let transLineStart = transStartOffset;
+			while (transLineStart > 0 && result.text[transLineStart - 1] !== "\n") {
+				transLineStart--;
+			}
+			let transLineEnd = transEndOffset;
+			while (
+				transLineEnd < result.text.length &&
+				result.text[transLineEnd] !== "\n"
+			) {
+				transLineEnd++;
+			}
+
+			const originalSlice = origLines
+				.slice(rangeStart - 1, rangeEnd)
+				.join("\n");
+			const transformedSlice = result.text.substring(
+				transLineStart,
+				transLineEnd,
+			);
+
+			// Count edits that overlap with the requested range
+			const editsInRange = result.sourceMap.edits.filter(
+				(e) => e.origEnd > origStartOffset && e.origStart < origEndOffset,
+			).length;
 
 			return {
 				content: [
 					{
 						type: "text" as const,
-						text: JSON.stringify(output, null, 2),
+						text: JSON.stringify(
+							{
+								startLine: rangeStart,
+								endLine: rangeEnd,
+								originalText: originalSlice,
+								transformedText: transformedSlice,
+								transformCount: editsInRange,
+								totalTransformCount,
+								changed: originalSlice !== transformedSlice,
+							},
+							null,
+							2,
+						),
 					},
 				],
 			};
