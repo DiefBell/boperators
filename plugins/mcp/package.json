@@ -1,0 +1,29 @@
+{
+	"name": "@boperators/mcp-server",
+	"version": "0.1.0",
+	"license": "MIT",
+	"description": "MCP server for boperators - gives AI assistants access to operator overload information.",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/DiefBell/boperators",
+		"directory": "plugins/mcp"
+	},
+	"homepage": "https://github.com/DiefBell/boperators/tree/main/plugins/mcp",
+	"type": "module",
+	"main": "./dist/index.js",
+	"bin": {
+		"boperators-mcp": "./dist/index.js"
+	},
+	"scripts": {
+		"build": "bun build src/index.ts --target node --outdir dist --format esm",
+		"watch": "bun build src/index.ts --target node --outdir dist --format esm --watch"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.12.1",
+		"zod": "^3.25.0"
+	},
+	"peerDependencies": {
+		"boperators": "0.1.0",
+		"typescript": ">=5.0.0 <5.10.0"
+	}
+}

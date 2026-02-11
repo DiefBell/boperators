@@ -14,7 +14,7 @@ export { resolveExpressionType } from "./core/helpers/resolveExpressionType";
 export { unwrapInitializer } from "./core/helpers/unwrapInitializer";
 export type { TransformResult } from "./core/OverloadInjector";
 export { OverloadInjector } from "./core/OverloadInjector";
-export type { OverloadDescription } from "./core/OverloadStore";
+export type { OverloadDescription, OverloadInfo } from "./core/OverloadStore";
 export { OverloadStore } from "./core/OverloadStore";
 export type {
 	PostfixUnaryOperatorSyntaxKind,

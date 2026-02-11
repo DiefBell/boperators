@@ -61,6 +61,25 @@ export type OverloadDescription = {
 	index: number;
 };
 
+/**
+ * A flat representation of a registered overload, suitable for
+ * external consumption (e.g. MCP server, tooling).
+ */
+export type OverloadInfo = {
+	kind: "binary" | "prefixUnary" | "postfixUnary";
+	className: string;
+	classFilePath: string;
+	operatorString: string;
+	index: number;
+	isStatic: boolean;
+	/** LHS type name (binary overloads only). */
+	lhsType?: string;
+	/** RHS type name (binary overloads only). */
+	rhsType?: string;
+	/** Operand type name (unary overloads only). */
+	operandType?: string;
+};
+
 export class OverloadStore extends Map<
 	OperatorSyntaxKind,
 	Map<LhsTypeName, Map<RhsTypeName, OverloadDescription>>
@@ -187,6 +206,50 @@ export class OverloadStore extends Map<
 			if (match) return match;
 		}
 		return undefined;
+	}
+
+	/**
+	 * Returns a flat array of all registered overloads (binary, prefix unary,
+	 * and postfix unary) with clean type names.
+	 */
+	public getAllOverloads(): OverloadInfo[] {
+		const results: OverloadInfo[] = [];
+		const sl = this._shortTypeName.bind(this);
+
+		for (const [_syntaxKind, lhsMap] of this) {
+			for (const [lhsType, rhsMap] of lhsMap) {
+				for (const [rhsType, desc] of rhsMap) {
+					results.push({
+						kind: "binary",
+						...desc,
+						lhsType: sl(lhsType),
+						rhsType: sl(rhsType),
+					});
+				}
+			}
+		}
+
+		for (const [_syntaxKind, operandMap] of this._prefixUnaryOverloads) {
+			for (const [operandType, desc] of operandMap) {
+				results.push({
+					kind: "prefixUnary",
+					...desc,
+					operandType: sl(operandType),
+				});
+			}
+		}
+
+		for (const [_syntaxKind, operandMap] of this._postfixUnaryOverloads) {
+			for (const [operandType, desc] of operandMap) {
+				results.push({
+					kind: "postfixUnary",
+					...desc,
+					operandType: sl(operandType),
+				});
+			}
+		}
+
+		return results;
 	}
 
 	/**

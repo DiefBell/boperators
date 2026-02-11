@@ -121,12 +121,14 @@ boperators/
 - [x] Ensure classes correctly inherit the overloads of their parent class(es).
 - [x] Ensure that when trying to match a binary operation to its overload that we also look at the parents of each operand if they're child classes that may be compatible.
 - [ ] Write tests, set up CI.
-- [ ] MCP server for docs and tools
+- [ ] MCP server for docs and tools. Allow viewing transformed for specific lines as well as whole file.
 - [x] Double check this `ts-morph` dependency - can we keep it to only the core package? And put required `typescript` version in a range?
 - [x] `--project` to specify a TS config file for the CLI.
 - [x] Expose a lot of config options in the core API, then implement a `.bopconf.json` for plugins and the CLI.
-- [ ] Fix Bun plugin
+- [x] Fix Bun plugin
 - [x] Support unary operators
+- [ ] Don't seem to be loading operators from libraries!
+- [ ] Autocomplete hinting for TypeScript LS. E.g. if I type `vec +` it'll suggest other vectors. Idk if that's a thing
 - [ ] ???
 
 ### License
