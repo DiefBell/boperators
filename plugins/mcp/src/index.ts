@@ -3,7 +3,13 @@
 import path from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { operatorSymbols } from "boperators";
+import {
+	type BopLogger,
+	ErrorManager,
+	loadConfig,
+	OverloadStore,
+	operatorSymbols,
+} from "boperators";
 import { z } from "zod";
 import { ProjectManager } from "./ProjectManager.js";
 
@@ -367,6 +373,308 @@ server.registerTool(
 		};
 	},
 );
+
+// ---------- Tool 4: validate_overloads ----------
+
+/** Silent logger that captures warnings into an array. */
+function createCapturingLogger(warnings: string[]): BopLogger {
+	return {
+		debug: () => {},
+		info: () => {},
+		warn: (msg) => warnings.push(msg),
+		error: (msg) => warnings.push(`ERROR: ${msg}`),
+	};
+}
+
+server.registerTool(
+	"validate_overloads",
+	{
+		description:
+			"Validate operator overload definitions in a single file. " +
+			"Returns structured diagnostics: errors (wrong arity, bad types, missing as const) " +
+			"and warnings (e.g. conflicting overloads). Does not transform the file.",
+		inputSchema: {
+			tsconfig: z
+				.string()
+				.describe("Absolute path to tsconfig.json for the project."),
+			filePath: z
+				.string()
+				.describe("Absolute path to the TypeScript file to validate."),
+		},
+	},
+	async ({ tsconfig, filePath }) => {
+		try {
+			projectManager.initialize(tsconfig);
+
+			const resolvedFile = path.resolve(filePath);
+			const sourceFile =
+				projectManager.project.getSourceFile(resolvedFile) ??
+				projectManager.project.addSourceFileAtPath(resolvedFile);
+
+			// Isolated validation pipeline — captures errors/warnings without
+			// affecting the shared ProjectManager state.
+			const capturedWarnings: string[] = [];
+			const capturingLogger = createCapturingLogger(capturedWarnings);
+
+			const validationConfig = loadConfig({
+				searchDir: projectManager.projectDir,
+				logger: capturingLogger,
+			});
+
+			const errorManager = new ErrorManager(validationConfig);
+			const store = new OverloadStore(
+				projectManager.project,
+				errorManager,
+				capturingLogger,
+			);
+
+			store.addOverloadsFromFile(sourceFile);
+
+			const errors: string[] = [];
+			try {
+				errorManager.throwIfErrorsElseLogWarnings();
+			} catch (e) {
+				errors.push(String(e instanceof Error ? e.message : e));
+			}
+
+			const overloads = store.getAllOverloads();
+
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify(
+							{
+								valid: errors.length === 0 && capturedWarnings.length === 0,
+								errors,
+								warnings: capturedWarnings,
+								overloadCount: overloads.length,
+								filePath: path.relative(
+									projectManager.projectDir,
+									resolvedFile,
+								),
+							},
+							null,
+							2,
+						),
+					},
+				],
+			};
+		} catch (error) {
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: `Error validating file: ${error}`,
+					},
+				],
+				isError: true,
+			};
+		}
+	},
+);
+
+// ---------- Tool 5: explain_expression ----------
+
+/**
+ * Regex for instance-style calls:
+ *   expr["op"][idx].call(expr, ...)
+ * Captures: [1] operator, [2] index
+ */
+const instanceCallPattern = /\["([^"]+)"\]\[(\d+)\]\.call\(/;
+
+/**
+ * Regex for static-style calls:
+ *   ClassName["op"][idx](...)
+ * Captures: [1] class name, [2] operator, [3] index
+ */
+const staticCallPattern = /^(\w+)\["([^"]+)"\]\[(\d+)\]\(/;
+
+server.registerTool(
+	"explain_expression",
+	{
+		description:
+			"Explain a transformed boperators expression. " +
+			'Given an expression like Vector3["+"][0](a, b) or v["++"][0].call(v), ' +
+			"identifies the operator kind, class, and overload entry. " +
+			"Optionally looks up full overload metadata when tsconfig is provided.",
+		inputSchema: {
+			expression: z
+				.string()
+				.describe(
+					"The transformed expression to explain, e.g. 'Vector3[\"+\"][0](a, b)'.",
+				),
+			tsconfig: z
+				.string()
+				.optional()
+				.describe(
+					"Absolute path to tsconfig.json. When provided, the overload is looked up " +
+						"in the project for richer metadata (file path, parameter types).",
+				),
+		},
+	},
+	async ({ expression, tsconfig }) => {
+		try {
+			const trimmed = expression.trim();
+
+			// Try instance pattern first (has .call)
+			const instanceMatch = trimmed.match(instanceCallPattern);
+			if (instanceMatch) {
+				const [, operator, indexStr] = instanceMatch;
+				const index = Number.parseInt(indexStr, 10);
+
+				// Determine if postfix unary (0 args after .call(expr)) or
+				// instance binary (.call(expr, rhs))
+				const callArgs = trimmed.slice(
+					trimmed.indexOf(".call(") + 6,
+					trimmed.lastIndexOf(")"),
+				);
+				const hasSecondArg = callArgs.includes(",");
+
+				const kind = hasSecondArg ? "instance binary" : "postfix unary";
+				const originalPattern = hasSecondArg
+					? `lhs ${operator} rhs`
+					: `operand${operator}`;
+
+				const result: Record<string, unknown> = {
+					kind,
+					operator,
+					index,
+					isStatic: false,
+					originalExpression: originalPattern,
+					explanation: hasSecondArg
+						? `Instance binary operator "${operator}": mutates the left-hand side in place (e.g. compound assignment).`
+						: `Postfix unary operator "${operator}": mutates the operand in place.`,
+				};
+
+				if (tsconfig) {
+					const overloadInfo = lookupOverload(tsconfig, operator, index, false);
+					if (overloadInfo) Object.assign(result, overloadInfo);
+				}
+
+				return {
+					content: [
+						{
+							type: "text" as const,
+							text: JSON.stringify(result, null, 2),
+						},
+					],
+				};
+			}
+
+			// Try static pattern
+			const staticMatch = trimmed.match(staticCallPattern);
+			if (staticMatch) {
+				const [, className, operator, indexStr] = staticMatch;
+				const index = Number.parseInt(indexStr, 10);
+
+				// Count args to distinguish binary (2 args) from prefix unary (1 arg)
+				const argsStr = trimmed.slice(
+					trimmed.indexOf("](") + 2,
+					trimmed.lastIndexOf(")"),
+				);
+				const argCount = argsStr.split(",").length;
+
+				const kind = argCount >= 2 ? "static binary" : "prefix unary";
+				const originalPattern =
+					argCount >= 2 ? `lhs ${operator} rhs` : `${operator}operand`;
+
+				const result: Record<string, unknown> = {
+					kind,
+					operator,
+					index,
+					className,
+					isStatic: true,
+					originalExpression: originalPattern,
+					explanation:
+						argCount >= 2
+							? `Static binary operator "${operator}": returns a new value from two operands.`
+							: `Prefix unary operator "${operator}": returns a new value from a single operand.`,
+				};
+
+				if (tsconfig) {
+					const overloadInfo = lookupOverload(
+						tsconfig,
+						operator,
+						index,
+						true,
+						className,
+					);
+					if (overloadInfo) Object.assign(result, overloadInfo);
+				}
+
+				return {
+					content: [
+						{
+							type: "text" as const,
+							text: JSON.stringify(result, null, 2),
+						},
+					],
+				};
+			}
+
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text:
+							`Could not parse expression as a boperators transformed call. ` +
+							`Expected patterns:\n` +
+							`  Static:   ClassName["op"][index](args)\n` +
+							`  Instance: expr["op"][index].call(expr, args)`,
+					},
+				],
+				isError: true,
+			};
+		} catch (error) {
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: `Error explaining expression: ${error}`,
+					},
+				],
+				isError: true,
+			};
+		}
+	},
+);
+
+/** Look up overload metadata from the project store. */
+function lookupOverload(
+	tsconfig: string,
+	operator: string,
+	index: number,
+	isStatic: boolean,
+	className?: string,
+): Record<string, unknown> | null {
+	try {
+		projectManager.initialize(tsconfig);
+		const allOverloads = projectManager.overloadStore.getAllOverloads();
+
+		const match = allOverloads.find((o) => {
+			if (o.operatorString !== operator) return false;
+			if (o.index !== index) return false;
+			if (className && o.className !== className) return false;
+			if (o.isStatic !== isStatic) return false;
+			return true;
+		});
+
+		if (!match) return null;
+
+		return {
+			className: match.className,
+			filePath: path.relative(projectManager.projectDir, match.classFilePath),
+			...(match.lhsType !== undefined && { lhsType: match.lhsType }),
+			...(match.rhsType !== undefined && { rhsType: match.rhsType }),
+			...(match.operandType !== undefined && {
+				operandType: match.operandType,
+			}),
+		};
+	} catch {
+		return null;
+	}
+}
 
 // ---------- Start server ----------
 
