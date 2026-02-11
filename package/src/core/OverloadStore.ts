@@ -358,8 +358,24 @@ export class OverloadStore extends Map<
 				}
 
 				const rawInitializer = property.getInitializer();
+
+				// No initializer — try type-annotation-based extraction (.d.ts files)
+				if (!rawInitializer) {
+					this._addOverloadsFromTypeAnnotation(
+						property,
+						classDecl,
+						classType,
+						filePath,
+						isStatic,
+						operatorString,
+						binarySyntaxKind,
+						prefixUnarySyntaxKind,
+						postfixUnarySyntaxKind,
+					);
+					return;
+				}
+
 				const hasAsConst =
-					rawInitializer &&
 					Node.isAsExpression(rawInitializer) &&
 					rawInitializer.getTypeNode()?.getText() === "const";
 
@@ -764,6 +780,269 @@ export class OverloadStore extends Map<
 			this._postfixUnaryFileEntries.set(filePath, fileEntries);
 		}
 		fileEntries.push({ syntaxKind, operandType });
+	}
+
+	/**
+	 * Extracts overload info from a property's type annotation instead of its
+	 * initializer. This handles `.d.ts` declaration files where the array
+	 * literal (`= [...] as const`) has been replaced by a readonly tuple type.
+	 */
+	private _addOverloadsFromTypeAnnotation(
+		property: PropertyDeclaration,
+		classDecl: ClassDeclaration,
+		classType: string,
+		filePath: string,
+		isStatic: boolean,
+		operatorString: string,
+		binarySyntaxKind: OperatorSyntaxKind | undefined,
+		prefixUnarySyntaxKind: PrefixUnaryOperatorSyntaxKind | undefined,
+		postfixUnarySyntaxKind: PostfixUnaryOperatorSyntaxKind | undefined,
+	): void {
+		const propertyType = property.getType();
+		if (!propertyType.isTuple()) return;
+
+		const tupleElements = propertyType.getTupleElements();
+		const className = classDecl.getName();
+		if (!className) return;
+
+		const sl = this._shortTypeName.bind(this);
+
+		for (let index = 0; index < tupleElements.length; index++) {
+			const elementType = tupleElements[index];
+			const callSigs = elementType.getCallSignatures();
+			if (callSigs.length === 0) continue;
+
+			const sig = callSigs[0];
+
+			// Extract parameter types, filtering out the `this` pseudo-parameter
+			const params: { name: string; type: string }[] = [];
+			for (const sym of sig.getParameters()) {
+				const name = sym.getName();
+				if (name === "this") continue;
+				const decl = sym.getValueDeclaration();
+				if (!decl) continue;
+				params.push({ name, type: decl.getType().getText() });
+			}
+			const paramCount = params.length;
+			const returnType = sig.getReturnType().getText();
+
+			// --- Binary static ---
+			if (
+				paramCount === 2 &&
+				isStatic &&
+				binarySyntaxKind &&
+				!instanceOperators.has(binarySyntaxKind)
+			) {
+				const lhsType = params[0].type;
+				const rhsType = params[1].type;
+
+				if (lhsType !== classType && rhsType !== classType) {
+					this._errorManager.addWarning(
+						new ErrorDescription(
+							`Overload for operator ${operatorString} ` +
+								"must have either LHS or RHS parameter matching its class type.",
+							filePath,
+							property.getStartLineNumber(),
+							this._minifyString(property.getText().split("\n")[0] ?? ""),
+						),
+					);
+					continue;
+				}
+
+				if (
+					comparisonOperators.has(binarySyntaxKind) &&
+					returnType !== "boolean"
+				) {
+					this._errorManager.addWarning(
+						new ErrorDescription(
+							`Overload function ${index} for comparison operator ${operatorString} ` +
+								`must have a return type of 'boolean', got '${returnType}'.`,
+							filePath,
+							property.getStartLineNumber(),
+							this._minifyString(property.getText().split("\n")[0] ?? ""),
+						),
+					);
+					continue;
+				}
+
+				const operatorOverloads =
+					this.get(binarySyntaxKind) ??
+					new Map<LhsTypeName, Map<RhsTypeName, OverloadDescription>>();
+				const lhsMap =
+					operatorOverloads.get(lhsType) ??
+					new Map<RhsTypeName, OverloadDescription>();
+
+				if (lhsMap.has(rhsType)) continue; // duplicate — skip silently for .d.ts
+
+				lhsMap.set(rhsType, {
+					isStatic: true,
+					className,
+					classFilePath: filePath,
+					operatorString,
+					index,
+				});
+				operatorOverloads.set(lhsType, lhsMap);
+				this.set(binarySyntaxKind, operatorOverloads);
+
+				this._logger.debug(
+					`Loaded ${className}["${operatorString}"][${index}]: (${sl(lhsType)}, ${sl(rhsType)}) => ${sl(returnType)} (static, from .d.ts)`,
+				);
+
+				let fileEntries = this._fileEntries.get(filePath);
+				if (!fileEntries) {
+					fileEntries = [];
+					this._fileEntries.set(filePath, fileEntries);
+				}
+				fileEntries.push({ syntaxKind: binarySyntaxKind, lhsType, rhsType });
+			}
+
+			// --- Binary instance (compound assignment) ---
+			else if (
+				paramCount === 1 &&
+				!isStatic &&
+				binarySyntaxKind &&
+				instanceOperators.has(binarySyntaxKind)
+			) {
+				const lhsType = classType;
+				const rhsType = params[0].type;
+
+				if (returnType !== "void") {
+					this._errorManager.addWarning(
+						new ErrorDescription(
+							`Overload function ${index} for instance operator ${operatorString} ` +
+								`must have a return type of 'void', got '${returnType}'.`,
+							filePath,
+							property.getStartLineNumber(),
+							this._minifyString(property.getText().split("\n")[0] ?? ""),
+						),
+					);
+					continue;
+				}
+
+				const operatorOverloads =
+					this.get(binarySyntaxKind) ??
+					new Map<LhsTypeName, Map<RhsTypeName, OverloadDescription>>();
+				const lhsMap =
+					operatorOverloads.get(lhsType) ??
+					new Map<RhsTypeName, OverloadDescription>();
+
+				if (lhsMap.has(rhsType)) continue;
+
+				lhsMap.set(rhsType, {
+					isStatic: false,
+					className,
+					classFilePath: filePath,
+					operatorString,
+					index,
+				});
+				operatorOverloads.set(lhsType, lhsMap);
+				this.set(binarySyntaxKind, operatorOverloads);
+
+				this._logger.debug(
+					`Loaded ${className}["${operatorString}"][${index}]: (${sl(lhsType)}, ${sl(rhsType)}) => void (instance, from .d.ts)`,
+				);
+
+				let fileEntries = this._fileEntries.get(filePath);
+				if (!fileEntries) {
+					fileEntries = [];
+					this._fileEntries.set(filePath, fileEntries);
+				}
+				fileEntries.push({ syntaxKind: binarySyntaxKind, lhsType, rhsType });
+			}
+
+			// --- Prefix unary ---
+			else if (paramCount === 1 && isStatic && prefixUnarySyntaxKind) {
+				const operandType = params[0].type;
+
+				if (operandType !== classType) {
+					this._errorManager.addWarning(
+						new ErrorDescription(
+							`Prefix unary overload for operator ${operatorString} ` +
+								"must have its parameter matching its class type.",
+							filePath,
+							property.getStartLineNumber(),
+							this._minifyString(property.getText().split("\n")[0] ?? ""),
+						),
+					);
+					continue;
+				}
+
+				const operatorOverloads =
+					this._prefixUnaryOverloads.get(prefixUnarySyntaxKind) ??
+					new Map<OperandTypeName, OverloadDescription>();
+
+				if (operatorOverloads.has(operandType)) continue;
+
+				operatorOverloads.set(operandType, {
+					isStatic: true,
+					className,
+					classFilePath: filePath,
+					operatorString,
+					index,
+				});
+				this._prefixUnaryOverloads.set(
+					prefixUnarySyntaxKind,
+					operatorOverloads,
+				);
+
+				this._logger.debug(
+					`Loaded ${className}["${operatorString}"][${index}]: ${operatorString}(${sl(operandType)}) => ${sl(returnType)} (prefix unary, from .d.ts)`,
+				);
+
+				let fileEntries = this._prefixUnaryFileEntries.get(filePath);
+				if (!fileEntries) {
+					fileEntries = [];
+					this._prefixUnaryFileEntries.set(filePath, fileEntries);
+				}
+				fileEntries.push({ syntaxKind: prefixUnarySyntaxKind, operandType });
+			}
+
+			// --- Postfix unary ---
+			else if (paramCount === 0 && !isStatic && postfixUnarySyntaxKind) {
+				if (returnType !== "void") {
+					this._errorManager.addWarning(
+						new ErrorDescription(
+							`Overload function ${index} for postfix operator ${operatorString} ` +
+								`must have a return type of 'void', got '${returnType}'.`,
+							filePath,
+							property.getStartLineNumber(),
+							this._minifyString(property.getText().split("\n")[0] ?? ""),
+						),
+					);
+					continue;
+				}
+
+				const operandType = classType;
+				const operatorOverloads =
+					this._postfixUnaryOverloads.get(postfixUnarySyntaxKind) ??
+					new Map<OperandTypeName, OverloadDescription>();
+
+				if (operatorOverloads.has(operandType)) continue;
+
+				operatorOverloads.set(operandType, {
+					isStatic: false,
+					className,
+					classFilePath: filePath,
+					operatorString,
+					index,
+				});
+				this._postfixUnaryOverloads.set(
+					postfixUnarySyntaxKind,
+					operatorOverloads,
+				);
+
+				this._logger.debug(
+					`Loaded ${className}["${operatorString}"][${index}]: ${sl(operandType)}${operatorString} () (postfix unary, from .d.ts)`,
+				);
+
+				let fileEntries = this._postfixUnaryFileEntries.get(filePath);
+				if (!fileEntries) {
+					fileEntries = [];
+					this._postfixUnaryFileEntries.set(filePath, fileEntries);
+				}
+				fileEntries.push({ syntaxKind: postfixUnarySyntaxKind, operandType });
+			}
+		}
 	}
 
 	/**

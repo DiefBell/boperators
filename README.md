@@ -131,6 +131,8 @@ boperators/
 - [x] Support unary operators
 - [ ] Don't seem to be loading operators from libraries!
 - [ ] Autocomplete hinting for TypeScript LS. E.g. if I type `vec +` it'll suggest other vectors. Idk if that's a thing
+- [ ] Cli/tsc tool to check if a library is valid i.e. exports all classes with overloads.
+- [ ] Fix CLI transformed output to match folder structure that tsc output would have
 - [ ] ???
 
 ### License
