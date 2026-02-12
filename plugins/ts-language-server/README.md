@@ -1,6 +1,6 @@
 # @boperators/plugin-ts-language-server
 
-![Sym.JS logo](./logo.png)
+![Sym.JS logo](https://github.com/DiefBell/boperators/blob/653ea138f4dcd1e6b4dd112133a4942f70e91fb3/logo.png)
 
 TypeScript Language Server plugin for [boperators](https://www.npmjs.com/package/boperators) - provides IDE support with source mapping.
 

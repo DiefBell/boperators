@@ -1,6 +1,6 @@
 # @boperators/plugin-tsc
 
-![Sym.JS logo](./logo.png)
+![Sym.JS logo](https://github.com/DiefBell/boperators/blob/653ea138f4dcd1e6b4dd112133a4942f70e91fb3/logo.png)
 
 A [ts-patch](https://github.com/package/ts-patch) plugin that runs [boperators](https://www.npmjs.com/package/boperators) transformations during `tsc` compilation.
 

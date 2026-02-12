@@ -1,6 +1,6 @@
 # @boperators/plugin-bun
 
-![Sym.JS logo](./logo.png)
+![Sym.JS logo](https://github.com/DiefBell/boperators/blob/653ea138f4dcd1e6b4dd112133a4942f70e91fb3/logo.png)
 
 Bun plugin for [boperators](https://www.npmjs.com/package/boperators) that ensures operator overloads work when running TypeScript files directly with Bun, instead of requiring an intermediate transform step.
 
