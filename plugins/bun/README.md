@@ -1,27 +1,32 @@
 # @boperators/plugin-bun
 
-Bun plugin for [boperators](../../package/) - transforms operator overloads at runtime.
-
-When loaded, this plugin intercepts `.ts` file loads and applies operator overload transformations on the fly, so you can run your code directly with Bun without a separate build step.
+Bun plugin for [boperators](https://www.npmjs.com/package/boperators) that ensures operator overloads work when running TypeScript files directly with Bun, instead of requiring an intermediate transform step.
 
 ## Installation
 
 ```sh
-bun add @boperators/plugin-bun
+bun add -D boperators @boperators/plugin-bun
 ```
 
 ## Setup
 
-Import the plugin at the top of your entry file, before any code that uses operator overloads:
+This plugin is enabled in your Bun config file, `bunfig.toml`:
+
+```toml
+preload = ["./node_modules/@boperators/plugin-bun/index.ts"]
+```
+
+Alternatively, instead of a long file path, create a `preload.ts` file in your project root:
 
 ```typescript
 import "@boperators/plugin-bun";
 ```
 
-This registers a Bun plugin that intercepts `.ts` file loads. For each file, it:
-1. Resolves dependencies and scans them for overload definitions
-2. Transforms binary expressions to overload calls
-3. Returns the transformed source to Bun
+and reference that in your `bunfig.toml`:
+
+```toml
+preload = ["./preload.ts"]
+```
 
 ## License
 

@@ -10,6 +10,25 @@
 	},
 	"homepage": "https://github.com/DiefBell/boperators/tree/main/plugins/bun",
 	"main": "./index.ts",
+	"keywords": [
+		"boperators",
+		"typescript",
+		"operator",
+		"overload",
+		"operator-overloading",
+		"bun",
+		"plugin",
+		"runtime"
+	],
+	"scripts": {
+		"prepublish": "true"
+	},
+	"files": [
+		"package.json",
+		"README.md",
+		"license.txt",
+		"index.ts"
+	],
 	"peerDependencies": {
 		"boperators": "0.1.0",
 		"typescript": ">=5.0.0 <5.10.0"
