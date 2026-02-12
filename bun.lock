@@ -10,7 +10,7 @@
     },
     "cli": {
       "name": "@boperators/cli",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "bin": {
         "bop": "dist/index.js",
         "boperate": "dist/index.js",
@@ -22,19 +22,19 @@
         "boperators": "file:../package",
       },
       "peerDependencies": {
-        "boperators": "0.1.0",
+        "boperators": "0.1.2",
         "typescript": ">=5.0.0 <5.10.0",
       },
     },
     "mcp-server": {
       "name": "@boperators/mcp-server",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "bin": {
         "boperators-mcp": "./dist/index.js",
       },
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.12.1",
-        "boperators": "0.1.0",
+        "boperators": "0.1.2",
         "zod": "^3.25.0",
       },
       "devDependencies": {
@@ -57,13 +57,13 @@
     },
     "plugins/bun": {
       "name": "@boperators/plugin-bun",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "devDependencies": {
         "@types/bun": "^1.3.8",
         "boperators": "file:../../package",
       },
       "peerDependencies": {
-        "boperators": "0.1.0",
+        "boperators": "0.1.2",
         "typescript": ">=5.0.0 <5.10.0",
       },
     },
@@ -80,12 +80,12 @@
     },
     "plugins/tsc": {
       "name": "@boperators/plugin-tsc",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "devDependencies": {
         "boperators": "file:../../package",
       },
       "peerDependencies": {
-        "boperators": "0.1.0",
+        "boperators": "0.1.2",
         "typescript": ">=5.0.0 <5.10.0",
       },
     },
@@ -436,8 +436,6 @@
     "zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 
     "zod-to-json-schema": ["zod-to-json-schema@3.25.1", "", { "peerDependencies": { "zod": "^3.25 || ^4" } }, "sha512-pM/SU9d3YAggzi6MtR4h7ruuQlqKtad8e9S0fmxcMi+ueAK5Korys/aWcV9LIIHTVbj01NdzxcnXSN+O74ZIVA=="],
-
-    "@boperators/mcp-server/boperators": ["boperators@0.1.0", "", { "dependencies": { "ts-morph": "^27.0.0" }, "peerDependencies": { "typescript": ">=5.0.0 <5.10.0" } }, "sha512-JXXWHg6WGiMX+IZuKetxB2/+6AigPM1SgWDrHZzELEuL/VRdHbuPL/ix6ZswsTgmPAIsItrGh5h/b99biX0EMA=="],
 
     "@commander-js/extra-typings/commander": ["commander@13.1.0", "", {}, "sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw=="],
 
