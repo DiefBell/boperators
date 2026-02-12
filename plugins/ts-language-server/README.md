@@ -1,13 +1,13 @@
 # @boperators/plugin-ts-language-server
 
-TypeScript Language Server plugin for [boperators](../../package/) - provides IDE support with source mapping.
+TypeScript Language Server plugin for [boperators](https://www.npmjs.com/package/boperators) - provides IDE support with source mapping.
 
 This plugin transforms operator overloads in the background and remaps positions between original and transformed source, so IDE features (hover, go-to-definition, diagnostics, completions, etc.) work correctly even though the language server sees the transformed code.
 
 ## Installation
 
 ```sh
-bun add @boperators/plugin-ts-language-server
+npm install -D boperators @boperators/plugin-ts-language-server
 ```
 
 ## Setup
