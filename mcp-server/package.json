@@ -6,18 +6,36 @@
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/DiefBell/boperators",
-		"directory": "plugins/mcp"
+		"directory": "mcp-server"
 	},
-	"homepage": "https://github.com/DiefBell/boperators/tree/main/plugins/mcp",
+	"homepage": "https://github.com/DiefBell/boperators/tree/main/mcp-server",
 	"type": "module",
 	"main": "./dist/index.js",
 	"bin": {
 		"boperators-mcp": "./dist/index.js"
 	},
+	"keywords": [
+		"boperators",
+		"typescript",
+		"operator",
+		"overload",
+		"operator-overloading",
+		"mcp",
+		"model-context-protocol",
+		"ai",
+		"claude"
+	],
 	"scripts": {
 		"build": "bun build src/index.ts --target node --outdir dist --format esm",
-		"watch": "bun build src/index.ts --target node --outdir dist --format esm --watch"
+		"watch": "bun build src/index.ts --target node --outdir dist --format esm --watch",
+		"prepublish": "bun run build"
 	},
+	"files": [
+		"package.json",
+		"README.md",
+		"license.txt",
+		"dist"
+	],
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.12.1",
 		"zod": "^3.25.0"

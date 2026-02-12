@@ -1,6 +1,6 @@
 # @boperators/mcp-server
 
-An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that gives AI assistants access to operator overload information in a [boperators](../package/) project. Useful when asking an AI to read, write, or debug operator overloads — the server lets it inspect what overloads are defined, preview transformations, generate boilerplate, and validate definitions without having to read every source file manually.
+An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that gives AI assistants access to operator overload information in a [boperators](https://www.npmjs.com/package/boperators) project. Useful when asking an AI to read, write, or debug operator overloads — the server lets it inspect what overloads are defined, preview transformations, generate boilerplate, and validate definitions without having to read every source file manually.
 
 The server communicates over stdio and is launched on demand by the AI client.
 
@@ -114,9 +114,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 
 For Claude Code:
 
-Add to `.mcp.json` at the root of your project (checked in, shared with the team) 
-or via `~/.claude/settings.json` for a user-level install:
-
+Add to `.mcp.json` at the root of your project (checked in, shared with the team) or via `~/.claude/settings.json` for a user-level install:
 
 ```json
 {
@@ -158,3 +156,7 @@ Or add it directly to your VS Code `settings.json`:
 ```
 
 Enable the server in the Copilot Chat panel by clicking **MCP Servers → boperators**.
+
+## License
+
+MIT
