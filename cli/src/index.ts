@@ -75,6 +75,26 @@ const projectFiles = allFiles.filter((file) =>
 	file.getFilePath().startsWith(projectDir),
 );
 
+/**
+ * Compute the common ancestor directory of a set of file paths — this matches
+ * what TypeScript does when `rootDir` is not specified in tsconfig.
+ */
+function computeCommonSourceDirectory(filePaths: string[]): string {
+	if (filePaths.length === 0) return path.dirname(tsConfigFilePath);
+	const dirs = filePaths.map((p) => path.dirname(p.replaceAll("\\", "/")));
+	const segments = dirs.map((d) => d.split("/"));
+	const first = segments[0];
+	let commonLength = first.length;
+	for (const seg of segments.slice(1)) {
+		let i = 0;
+		while (i < commonLength && i < seg.length && first[i] === seg[i]) {
+			i++;
+		}
+		commonLength = i;
+	}
+	return first.slice(0, commonLength).join("/") || "/";
+}
+
 // Parse ALL files for overload definitions (including library dependencies)
 allFiles.forEach((file) => {
 	overloadStore.addOverloadsFromFile(file);
@@ -103,7 +123,7 @@ if (options.tsOut) {
 	const compilerOptions = project.getCompilerOptions();
 	const rootDir = compilerOptions.rootDir
 		? path.resolve(path.dirname(tsConfigFilePath), compilerOptions.rootDir)
-		: path.dirname(tsConfigFilePath);
+		: computeCommonSourceDirectory(projectFiles.map((f) => f.getFilePath()));
 
 	transformResults.forEach((result) => {
 		const relativePath = path.relative(
@@ -130,7 +150,7 @@ if (options.mapsOut) {
 	const compilerOptions = project.getCompilerOptions();
 	const rootDir = compilerOptions.rootDir
 		? path.resolve(path.dirname(tsConfigFilePath), compilerOptions.rootDir)
-		: path.dirname(tsConfigFilePath);
+		: computeCommonSourceDirectory(projectFiles.map((f) => f.getFilePath()));
 
 	transformResults.forEach((result) => {
 		const relativePath = path.relative(

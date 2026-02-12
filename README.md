@@ -127,13 +127,12 @@ boperators/
 - [x] Double check this `ts-morph` dependency - can we keep it to only the core package? And put required `typescript` version in a range?
 - [x] `--project` to specify a TS config file for the CLI.
 - [x] Expose a lot of config options in the core API, then implement a `.bopconf.json` for plugins and the CLI.
-- [ ] MCP server needs a README
+- [x] MCP server needs a README
 - [x] Fix Bun plugin
 - [x] Support unary operators
 - [x] Don't seem to be loading operators from libraries!
-- [ ] Autocomplete hinting for TypeScript LS. E.g. if I type `vec +` it'll suggest other vectors. Idk if that's a thing
 - [ ] Cli/tsc tool to check if a library is valid i.e. exports all classes with overloads.
-- [ ] Fix CLI transformed output to match folder structure that tsc output would have
+- [x] Fix CLI transformed output to match folder structure that tsc output would have
 - [x] Fix intellisense hovering
 - [ ] ???
 
