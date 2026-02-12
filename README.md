@@ -48,6 +48,7 @@ Overloads defined on a parent class are automatically inherited by subclasses. F
 | [`@boperators/plugin-bun`](./plugins/bun/) | Bun plugin - transforms files at runtime |
 | [`@boperators/plugin-ts-language-server`](./plugins/ts-language-server/) | TypeScript Language Server plugin - IDE support with source mapping |
 | [`@boperators/plugin-tsc`](./plugins/tsc/) | ts-patch plugin - transforms during `tsc` compilation |
+| [`@boperators/mcp-server`](./mcp-server/) | MCP server - gives AI assistants access to overload info, transform previews, and scaffolding |
 
 See the [`example/`](./example/) project for a working demo.
 
@@ -129,10 +130,11 @@ boperators/
 - [ ] MCP server needs a README
 - [x] Fix Bun plugin
 - [x] Support unary operators
-- [ ] Don't seem to be loading operators from libraries!
+- [x] Don't seem to be loading operators from libraries!
 - [ ] Autocomplete hinting for TypeScript LS. E.g. if I type `vec +` it'll suggest other vectors. Idk if that's a thing
 - [ ] Cli/tsc tool to check if a library is valid i.e. exports all classes with overloads.
 - [ ] Fix CLI transformed output to match folder structure that tsc output would have
+- [x] Fix intellisense hovering
 - [ ] ???
 
 ### License
