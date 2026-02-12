@@ -248,6 +248,7 @@ const instanceOperatorStrings = new Set([
 	"+=",
 	"-=",
 	"*=",
+	"**=",
 	"/=",
 	"%=",
 	"&&=",

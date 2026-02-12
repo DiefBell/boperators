@@ -8,6 +8,8 @@ export enum Operator {
 	MINUS_EQUALS = "-=",
 	MULTIPLY = "*",
 	MULTIPLY_EQUALS = "*=",
+	EXPONENT = "**",
+	EXPONENT_EQUALS = "**=",
 	DIVIDE = "/",
 	DIVIDE_EQUALS = "/=",
 	GREATER_THAN = ">",
