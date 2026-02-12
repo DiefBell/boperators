@@ -1,20 +1,29 @@
+<center>
+
 # boperators
+### Operator overloading JavaScript and TypeScript.
 
-Operator overloading for TypeScript.
+</center>
 
-`boperators` lets you define operator overloads on your TypeScript classes and transforms binary expressions into the corresponding overload calls at the source level.
+A common programming feature that JavaScript lacks in operator overloading. Just something as simple as adding two vectors, we've got to create a `.Add` method or add elements one-at-a-time.
+
+`boperators` finally brings operator overloading to JavaScript by leveraging TypeScript typings. You define one or more overload functions on a class for whichever operators you want, and with magic we search for anywhere you've used overloaded operators and substitute in your functions.
+
+This is the core library and API, and isn't designed to be used directly. Instead, you can use the [Boperators CLI](TODO after publishing) or our plugins for [compiling with `tsc](TODO after publishing) or for [running directly with Bun](TODO after publishing).
+
+We also offer a [TypeScript Language Server plugin](TODO after publishing) for real-time type hinting and intellisense in your IDE, and an [MCP server](TODO after publishing) to optimize your vibe coding experience.
+
 
 ## Installation
 
 ```sh
-bun add boperators
-# or
-npm install boperators
+npm install -D boperators @boperators/cli @boperators/plugin-ts-language-server
 ```
+
 
 ## Defining Overloads
 
-Define overloads as property arrays on your classes, using the operator string as the property name. Overload fields are arrays so you can define multiple overloads for different types.
+Define overloads as property arrays on your classes, using the operator string as the property name. Overload fields are readonly arrays (with `as const` at the end) so you can define multiple overloads for different types. As long as you don't have overlapping typings between any functions, we can work out which one to use in a given situation. 
 
 ### Static Operators
 
@@ -24,28 +33,27 @@ Arrow functions or function expressions both work for static operators.
 
 ```typescript
 class Vector3 {
-    // String literal property name
     static readonly "+" = [
-        (a: Vector3, b: Vector3) =>
-            new Vector3(a.x + b.x, a.y + b.y, a.z + b.z),
+        (a: Vector3, b: Vector3) => new Vector3(a.x + b.x, a.y + b.y, a.z + b.z),
     ];
 
     // Multiple overloads for different RHS types
     static readonly "*" = [
-        (a: Vector3, b: Vector3): Vector3 =>
-            new Vector3(
+        function (a: Vector3, b: Vector3): Vector3 {
+            return new Vector3(
                 a.y * b.z - a.z * b.y,
                 a.z * b.x - a.x * b.z,
                 a.x * b.y - a.y * b.x,
-            ),
-        (a: Vector3, b: number): Vector3 =>
-            new Vector3(a.x * b, a.y * b, a.z * b),
+            );
+		},
+        function mutliplyByScalar(a: Vector3, b: number): Vector3 {
+            return new Vector3(a.x * b, a.y * b, a.z * b);
+		}
     ] as const;
 
     // Comparison operators must return boolean
     static readonly "==" = [
-        (a: Vector3, b: Vector3): boolean =>
-            a.length() === b.length(),
+        (a: Vector3, b: Vector3): boolean => a.length() === b.length(),
     ];
 }
 ```
@@ -68,6 +76,13 @@ class Vector3 {
 }
 ```
 
+Unlike with JavaScript primitives, you can declare a variable as `const` and still use assignment operators with this, as they're only mutating the object.
+
+```typescript
+const vec3 = new Vector3(3, 4, 5);
+vec3 += new Vector3(6, 7, 8);
+```
+
 ### Prefix Unary Operators
 
 Prefix unary operators (`-`, `+`, `!`, `~`) are `static readonly` fields with one-parameter functions. The parameter must match the class type. For operators that also have binary forms (`-`, `+`), both binary and unary overloads can coexist in the same array, distinguished by parameter count.
@@ -75,8 +90,10 @@ Prefix unary operators (`-`, `+`, `!`, `~`) are `static readonly` fields with on
 ```typescript
 class Vector3 {
     static readonly "-" = [
+		// two parameters means binary operation: `a - b`
         (a: Vector3, b: Vector3) =>
-            new Vector3(a.x - b.x, a.y - b.y, a.z - b.z), // binary: a - b
+            new Vector3(a.x - b.x, a.y - b.y, a.z - b.z),
+		// single parameter means unary operation, e.g. making a value "negative"
         (a: Vector3) =>
             new Vector3(-a.x, -a.y, -a.z), // unary: -a
     ] as const;
@@ -128,21 +145,6 @@ class Expr {
 ```
 
 Writing `lhs + -rhs` inside the overload body would **not** be transformed, since the source transform has not yet run on this code. Use `ClassName["op"][index](args)` for static overloads and `obj["op"][index].call(obj, args)` for instance overloads.
-
-### Using the Operator Enum
-
-Instead of string literals, you can use the `Operator` enum for computed property names:
-
-```typescript
-import { Operator } from "boperators";
-
-class Angle {
-    static readonly [Operator.MODULO] = [
-        (angle: Angle, rads: number): Angle =>
-            new Angle(angle.radians % rads),
-    ];
-}
-```
 
 ## How It Works
 

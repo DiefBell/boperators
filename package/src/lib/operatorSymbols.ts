@@ -1,19 +1,5 @@
 /**
- * Enum of all supported operator overloads.
- *
- * Use the operator string directly as a computed property name
- * in your class to define an overload:
- *
- * @example
- * ```ts
- * class Vector3 {
- *   static readonly ["+"] = [
- *     function (a: Vector3, b: Vector3) {
- *       return new Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
- *     },
- *   ];
- * }
- * ```
+ * Designed for internal use to ensure consistency.
  */
 export enum Operator {
 	PLUS = "+",
