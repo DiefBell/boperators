@@ -33,7 +33,7 @@
 		"dist"
 	],
 	"peerDependencies": {
-		"boperators": "0.1.0",
+		"boperators": "0.1.2",
 		"typescript": ">=5.0.0 <5.10.0"
 	},
 	"devDependencies": {
