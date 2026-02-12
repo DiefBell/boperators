@@ -14,10 +14,26 @@
 		"bop": "dist/index.js",
 		"boperate": "dist/index.js"
 	},
+	"keywords": [
+		"boperators",
+		"typescript",
+		"operator",
+		"overload",
+		"operator-overloading",
+		"cli",
+		"transform"
+	],
 	"scripts": {
 		"build": "tsc",
-		"watch": "tsc -w"
+		"watch": "tsc -w",
+		"prepublish": "bun run build"
 	},
+	"files": [
+		"package.json",
+		"README.md",
+		"license.txt",
+		"dist"
+	],
 	"dependencies": {
 		"@commander-js/extra-typings": "^13.0.0"
 	},

@@ -63,10 +63,12 @@ const program = new Command()
 
 program
 	.command("compile")
-	.description("Transform TypeScript files with operator overloads injected.")
+	.description(
+		"Inject operator overloads into TypeScript files and emit JavaScript.",
+	)
 	.option(
 		"-t, --ts-out <dir>",
-		"Output directory for TypeScript files once overloads have been injected.",
+		"Output directory for the transformed TypeScript files (useful if you want to run another build tool over them afterwards).",
 	)
 	.option(
 		"-p, --project <path>",
@@ -77,7 +79,10 @@ program
 		"-m, --maps-out <dir>",
 		"Output directory for source map files (.map.ts).",
 	)
-	.option("-d, --dry-run", "Preview only without writing files.", false)
+	.option(
+		"--no-emit",
+		"Skip JavaScript output. Useful when combined with --ts-out to only produce transformed TypeScript.",
+	)
 	.option(
 		"--error-on-warning",
 		"Instead of showing a warning, error on conflicting overloads.",
@@ -125,8 +130,9 @@ program
 		);
 		errorManager.throwIfErrorsElseLogWarnings();
 
-		if (options.dryRun) {
-			process.exit(0);
+		// Emit JavaScript to the tsconfig outDir by default
+		if (options.emit) {
+			project.emit();
 		}
 
 		if (options.tsOut) {

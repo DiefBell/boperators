@@ -159,6 +159,9 @@ boperators/
 - [x] Cli/tsc tool to check if a library is valid i.e. exports all classes with overloads.
 - [x] Fix CLI transformed output to match folder structure that tsc output would have
 - [x] Fix intellisense hovering
+- [ ] NextJS/Turbopack plugin
+- [ ] Webpack plugin
+- [ ] Other plugins???
 - [ ] ???
 
 ### License
