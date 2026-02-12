@@ -121,7 +121,7 @@ Add to `.mcp.json` at the root of your project (checked in, shared with the team
   "mcpServers": {
     "boperators": {
       "command": "npx",
-      "args": ["@boperators/mcp-server@latest"]
+      "args": ["--yes", "@boperators/mcp-server@latest"]
     }
   }
 }
@@ -136,7 +136,7 @@ Add to `.vscode/mcp.json` in your workspace,
   "servers": {
     "boperators": {
       "command": "npx",
-      "args": ["@boperators/mcp-server@latest"]
+      "args": ["--yes", "@boperators/mcp-server@latest"]
     }
   }
 }
@@ -149,7 +149,7 @@ Or add it directly to your VS Code `settings.json`:
   "mcp.servers": {
     "boperators": {
       "command": "npx",
-      "args": ["@boperators/mcp-server@latest"]
+      "args": ["--yes", "@boperators/mcp-server@latest"]
     }
   }
 }
