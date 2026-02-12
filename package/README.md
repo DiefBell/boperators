@@ -3,7 +3,7 @@
 # boperators
 ### Operator overloading JavaScript and TypeScript.
 
-![Sym.JS logo](./logo.png)
+![Sym.JS logo](https://github.com/DiefBell/boperators/blob/115faa0286fa71da2970a5725e45590beb91f43d/package/logo.png)
 
 </center>
 
