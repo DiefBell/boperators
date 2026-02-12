@@ -3,6 +3,8 @@
 # boperators
 ### Operator overloading JavaScript and TypeScript.
 
+![Sym.JS logo](./logo.png)
+
 </center>
 
 Operator overloading is a common programming feature that JavaScript lacks. Just something as simple as adding two vectors, we've got to create a `.Add` method or add elements one-at-a-time.

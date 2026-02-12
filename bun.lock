@@ -10,7 +10,7 @@
     },
     "cli": {
       "name": "@boperators/cli",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "bin": {
         "bop": "dist/index.js",
         "boperate": "dist/index.js",
@@ -22,19 +22,19 @@
         "boperators": "file:../package",
       },
       "peerDependencies": {
-        "boperators": "0.1.2",
+        "boperators": "0.1.3",
         "typescript": ">=5.0.0 <5.10.0",
       },
     },
     "mcp-server": {
       "name": "@boperators/mcp-server",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "bin": {
         "boperators-mcp": "./dist/index.js",
       },
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.12.1",
-        "boperators": "0.1.2",
+        "boperators": "0.1.3",
         "zod": "^3.25.0",
       },
       "devDependencies": {
@@ -43,7 +43,7 @@
     },
     "package": {
       "name": "boperators",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "dependencies": {
         "ts-morph": "^27.0.0",
       },
@@ -57,35 +57,35 @@
     },
     "plugins/bun": {
       "name": "@boperators/plugin-bun",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "devDependencies": {
         "@types/bun": "^1.3.8",
         "boperators": "file:../../package",
       },
       "peerDependencies": {
-        "boperators": "0.1.2",
+        "boperators": "0.1.3",
         "typescript": ">=5.0.0 <5.10.0",
       },
     },
     "plugins/ts-language-server": {
       "name": "@boperators/plugin-ts-language-server",
-      "version": "0.1.0",
+      "version": "0.1.3",
       "devDependencies": {
         "boperators": "file:../../package",
       },
       "peerDependencies": {
-        "boperators": "0.1.2",
+        "boperators": "0.1.3",
         "typescript": ">=5.0.0 <5.10.0",
       },
     },
     "plugins/tsc": {
       "name": "@boperators/plugin-tsc",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "devDependencies": {
         "boperators": "file:../../package",
       },
       "peerDependencies": {
-        "boperators": "0.1.2",
+        "boperators": "0.1.3",
         "typescript": ">=5.0.0 <5.10.0",
       },
     },

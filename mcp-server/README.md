@@ -1,5 +1,7 @@
 # @boperators/mcp-server
 
+![Sym.JS logo](./logo.png)
+
 An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that gives AI assistants access to operator overload information in a [boperators](https://www.npmjs.com/package/boperators) project. Useful when asking an AI to read, write, or debug operator overloads — the server lets it inspect what overloads are defined, preview transformations, generate boilerplate, and validate definitions without having to read every source file manually.
 
 The server communicates over stdio and is launched on demand by the AI client.

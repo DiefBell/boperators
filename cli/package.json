@@ -1,6 +1,6 @@
 {
 	"name": "@boperators/cli",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"license": "MIT",
 	"description": "CLI tool for boperators - transforms TypeScript files with operator overloads.",
 	"repository": {
@@ -32,13 +32,14 @@
 		"package.json",
 		"README.md",
 		"license.txt",
-		"dist"
+		"dist",
+		"logo.png"
 	],
 	"dependencies": {
 		"@commander-js/extra-typings": "^13.0.0"
 	},
 	"peerDependencies": {
-		"boperators": "0.1.2",
+		"boperators": "0.1.3",
 		"typescript": ">=5.0.0 <5.10.0"
 	},
 	"devDependencies": {

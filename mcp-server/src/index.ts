@@ -15,7 +15,7 @@ import { ProjectManager } from "./ProjectManager.js";
 
 const server = new McpServer({
 	name: "boperators",
-	version: "0.1.0",
+	version: "0.1.3",
 });
 
 const projectManager = new ProjectManager();

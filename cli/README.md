@@ -1,5 +1,7 @@
 # @boperators/cli
 
+![Sym.JS logo](./logo.png)
+
 CLI tool for [boperators](https://www.npmjs.com/package/boperators) - transforms TypeScript files with operator overloads.
 
 ## Installation

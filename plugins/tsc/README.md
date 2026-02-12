@@ -1,5 +1,7 @@
 # @boperators/plugin-tsc
 
+![Sym.JS logo](./logo.png)
+
 A [ts-patch](https://github.com/package/ts-patch) plugin that runs [boperators](https://www.npmjs.com/package/boperators) transformations during `tsc` compilation.
 
 This plugin operates as a **Program Transformer** — it transforms your operator expressions before TypeScript type-checks the code, so the compiler sees valid function calls rather than unsupported operator usage on class types.
