@@ -35,5 +35,8 @@
 	"peerDependencies": {
 		"boperators": "0.1.0",
 		"typescript": ">=5.0.0 <5.10.0"
+	},
+	"devDependencies": {
+		"boperators": "file:../../package"
 	}
 }

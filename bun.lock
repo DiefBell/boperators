@@ -18,9 +18,27 @@
       "dependencies": {
         "@commander-js/extra-typings": "^13.0.0",
       },
+      "devDependencies": {
+        "boperators": "file:../package",
+      },
       "peerDependencies": {
         "boperators": "0.1.0",
         "typescript": ">=5.0.0 <5.10.0",
+      },
+    },
+    "mcp-server": {
+      "name": "@boperators/mcp-server",
+      "version": "0.1.0",
+      "bin": {
+        "boperators-mcp": "./dist/index.js",
+      },
+      "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.12.1",
+        "boperators": "0.1.0",
+        "zod": "^3.25.0",
+      },
+      "devDependencies": {
+        "boperators": "file:../package",
       },
     },
     "package": {
@@ -45,21 +63,6 @@
       },
       "peerDependencies": {
         "@types/bun": "^1.3.8",
-        "boperators": "0.1.0",
-        "typescript": ">=5.0.0 <5.10.0",
-      },
-    },
-    "plugins/mcp": {
-      "name": "@boperators/mcp-server",
-      "version": "0.1.0",
-      "bin": {
-        "boperators-mcp": "./dist/index.js",
-      },
-      "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.12.1",
-        "zod": "^3.25.0",
-      },
-      "peerDependencies": {
         "boperators": "0.1.0",
         "typescript": ">=5.0.0 <5.10.0",
       },
@@ -102,7 +105,7 @@
 
     "@boperators/cli": ["@boperators/cli@workspace:cli"],
 
-    "@boperators/mcp-server": ["@boperators/mcp-server@workspace:plugins/mcp"],
+    "@boperators/mcp-server": ["@boperators/mcp-server@workspace:mcp-server"],
 
     "@boperators/plugin-bun": ["@boperators/plugin-bun@workspace:plugins/bun"],
 

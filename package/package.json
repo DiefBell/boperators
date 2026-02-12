@@ -45,7 +45,6 @@
 		"package.json",
 		"license.txt",
 		"README.md",
-		"src",
 		"dist"
 	],
 	"devDependencies": {
