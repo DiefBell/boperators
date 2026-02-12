@@ -27,8 +27,7 @@
 		"package.json",
 		"README.md",
 		"license.txt",
-		"index.ts",
-		"logo.png"
+		"index.ts"
 	],
 	"peerDependencies": {
 		"boperators": "0.1.3",

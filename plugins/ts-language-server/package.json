@@ -30,8 +30,7 @@
 		"package.json",
 		"README.md",
 		"license.txt",
-		"dist",
-		"logo.png"
+		"dist"
 	],
 	"peerDependencies": {
 		"boperators": "0.1.3",
