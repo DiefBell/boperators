@@ -1,6 +1,16 @@
 import { type Node, SyntaxKind } from "ts-morph";
 
 /**
+ * Strips `import("...").` qualification from a type name as returned by
+ * ts-morph's `getType().getText()`. Language-server and cross-package contexts
+ * produce fully-qualified names like `import("/path/to/file").ClassName`, but
+ * overloads are keyed by short class names.
+ */
+export function normalizeTypeName(typeName: string): string {
+	return typeName.replace(/import\("[^"]*"\)\./g, "");
+}
+
+/**
  * Resolves the effective type name for a node in a binary expression.
  *
  * Handles special cases:
@@ -8,6 +18,7 @@ import { type Node, SyntaxKind } from "ts-morph";
  * - Boolean literals (not in string context) → `"boolean"`
  * - `"any"` type → falls back to the declared type of the symbol
  *   (needed for compound assignments where TS can't infer the result type)
+ * - Qualified type names → stripped to short class name via `normalizeTypeName`
  */
 export function resolveExpressionType(node: Node): string {
 	let typeName = node.getType().getText();
@@ -28,5 +39,5 @@ export function resolveExpressionType(node: Node): string {
 		if (decl) typeName = decl.getType().getText();
 	}
 
-	return typeName;
+	return normalizeTypeName(typeName);
 }

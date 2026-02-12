@@ -14,6 +14,7 @@ import { operatorSymbols } from "../lib/operatorSymbols";
 import type { BopLogger } from "./BopConfig";
 import { ErrorDescription, type ErrorManager } from "./ErrorManager";
 import { getOperatorStringFromProperty } from "./helpers/getOperatorStringFromProperty";
+import { normalizeTypeName } from "./helpers/resolveExpressionType";
 import { unwrapInitializer } from "./helpers/unwrapInitializer";
 import {
 	comparisonOperators,
@@ -309,7 +310,7 @@ export class OverloadStore extends Map<
 		const classes = sourceFile.getClasses();
 
 		classes.forEach((classDecl) => {
-			const classType = classDecl.getType().getText();
+			const classType = normalizeTypeName(classDecl.getType().getText());
 
 			classDecl.getProperties().forEach((property) => {
 				if (!Node.isPropertyDeclaration(property)) return;
@@ -541,10 +542,12 @@ export class OverloadStore extends Map<
 	): void {
 		let hasWarning = false;
 
-		const lhsType = isStatic ? parameters[0]?.getType().getText() : classType;
+		const lhsType = isStatic
+			? normalizeTypeName(parameters[0]?.getType().getText() ?? "")
+			: classType;
 		const rhsType = isStatic
-			? parameters[1]?.getType().getText()
-			: parameters[0]?.getType().getText();
+			? normalizeTypeName(parameters[1]?.getType().getText() ?? "")
+			: normalizeTypeName(parameters[0]?.getType().getText() ?? "");
 
 		if (isStatic && lhsType !== classType && rhsType !== classType) {
 			this._errorManager.addWarning(
@@ -651,7 +654,9 @@ export class OverloadStore extends Map<
 	): void {
 		let hasWarning = false;
 
-		const operandType = parameters[0]?.getType().getText();
+		const operandType = normalizeTypeName(
+			parameters[0]?.getType().getText() ?? "",
+		);
 
 		if (operandType !== classType) {
 			this._errorManager.addWarning(
@@ -826,7 +831,10 @@ export class OverloadStore extends Map<
 				if (name === "this") continue;
 				const decl = sym.getValueDeclaration();
 				if (!decl) continue;
-				params.push({ name, type: decl.getType().getText() });
+				params.push({
+					name,
+					type: normalizeTypeName(decl.getType().getText()),
+				});
 			}
 			const paramCount = params.length;
 			const returnType = sig.getReturnType().getText();
@@ -1074,7 +1082,7 @@ export class OverloadStore extends Map<
 			if (classDecl) {
 				let current = classDecl.getBaseClass();
 				while (current) {
-					chain.push(current.getType().getText());
+					chain.push(normalizeTypeName(current.getType().getText()));
 					current = current.getBaseClass();
 				}
 				break;
