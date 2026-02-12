@@ -39,6 +39,31 @@ v1 += v2;              // => v1["+="][0].call(v1, v2)
 
 Overloads defined on a parent class are automatically inherited by subclasses. For example, if `Expr` defines `+` and `*`, a `Sym extends Expr` class can use those operators without redeclaring them.
 
+## Publishing a library
+
+If you are publishing a package that exports classes with operator overloads, consumers need to be able to import those classes for the transformed code to work. Run the following before publishing to catch any missing exports:
+
+```sh
+# Level 1 — check every overload class is exported from its source file
+boperate validate
+
+# Level 2 — also verify each class is reachable via your package entry point
+boperate validate --entry src/index.ts
+```
+
+Exit code is 1 on violations (suitable for CI / prepublish scripts). Use `--warn` to emit warnings instead of errors if you want a non-blocking check.
+
+The `validateExports` function is also available in the core API for programmatic use:
+
+```typescript
+import { validateExports } from "boperators";
+
+const result = validateExports({ project, overloadStore, projectDir, entryPoint });
+for (const v of result.violations) {
+    console.error(v.className, v.reason);
+}
+```
+
 ## Packages
 
 | Package | Description |
@@ -131,7 +156,7 @@ boperators/
 - [x] Fix Bun plugin
 - [x] Support unary operators
 - [x] Don't seem to be loading operators from libraries!
-- [ ] Cli/tsc tool to check if a library is valid i.e. exports all classes with overloads.
+- [x] Cli/tsc tool to check if a library is valid i.e. exports all classes with overloads.
 - [x] Fix CLI transformed output to match folder structure that tsc output would have
 - [x] Fix intellisense hovering
 - [ ] ???

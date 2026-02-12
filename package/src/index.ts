@@ -27,6 +27,12 @@ export {
 } from "./core/operatorMap";
 export type { EditRecord } from "./core/SourceMap";
 export { SourceMap } from "./core/SourceMap";
+export type {
+	ExportViolation,
+	ExportViolationReason,
+	ValidateExportsResult,
+} from "./core/validateExports";
+export { validateExports } from "./core/validateExports";
 
 // Operator definitions
 
