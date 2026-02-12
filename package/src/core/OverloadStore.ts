@@ -59,6 +59,7 @@ export type OverloadDescription = {
 	classFilePath: string;
 	operatorString: string;
 	index: number;
+	returnType: string;
 };
 
 /**
@@ -613,6 +614,7 @@ export class OverloadStore extends Map<
 			classFilePath: filePath,
 			operatorString,
 			index,
+			returnType,
 		});
 		operatorOverloads.set(lhsType, lhsMap);
 		this.set(syntaxKind, operatorOverloads);
@@ -682,12 +684,15 @@ export class OverloadStore extends Map<
 
 		if (hasWarning) return;
 
+		const returnType = element.getReturnType().getText();
+
 		operatorOverloads.set(operandType, {
 			isStatic: true,
 			className: classDecl.getName()!,
 			classFilePath: filePath,
 			operatorString,
 			index,
+			returnType,
 		});
 		this._prefixUnaryOverloads.set(syntaxKind, operatorOverloads);
 
@@ -695,12 +700,11 @@ export class OverloadStore extends Map<
 			? element.getName()
 			: undefined;
 		const sl = this._shortTypeName.bind(this);
-		const returnType = sl(element.getReturnType().getText());
 		const label = funcName
 			? `${funcName}(${sl(operandType)})`
 			: `(${sl(operandType)})`;
 		this._logger.debug(
-			`Loaded ${classDecl.getName()}["${operatorString}"][${index}]: ${operatorString}${label} => ${returnType} (prefix unary)`,
+			`Loaded ${classDecl.getName()}["${operatorString}"][${index}]: ${operatorString}${label} => ${sl(returnType)} (prefix unary)`,
 		);
 
 		let fileEntries = this._prefixUnaryFileEntries.get(filePath);
@@ -763,6 +767,7 @@ export class OverloadStore extends Map<
 			classFilePath: filePath,
 			operatorString,
 			index,
+			returnType,
 		});
 		this._postfixUnaryOverloads.set(syntaxKind, operatorOverloads);
 
@@ -880,6 +885,7 @@ export class OverloadStore extends Map<
 					classFilePath: filePath,
 					operatorString,
 					index,
+					returnType,
 				});
 				operatorOverloads.set(lhsType, lhsMap);
 				this.set(binarySyntaxKind, operatorOverloads);
@@ -934,6 +940,7 @@ export class OverloadStore extends Map<
 					classFilePath: filePath,
 					operatorString,
 					index,
+					returnType,
 				});
 				operatorOverloads.set(lhsType, lhsMap);
 				this.set(binarySyntaxKind, operatorOverloads);
@@ -979,6 +986,7 @@ export class OverloadStore extends Map<
 					classFilePath: filePath,
 					operatorString,
 					index,
+					returnType,
 				});
 				this._prefixUnaryOverloads.set(
 					prefixUnarySyntaxKind,
@@ -1025,6 +1033,7 @@ export class OverloadStore extends Map<
 					classFilePath: filePath,
 					operatorString,
 					index,
+					returnType,
 				});
 				this._postfixUnaryOverloads.set(
 					postfixUnarySyntaxKind,

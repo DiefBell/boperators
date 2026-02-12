@@ -163,6 +163,67 @@ export = function init(modules: {
  * that match registered overloads and record their operator token positions.
  * This is used to provide hover info for overloaded operators.
  */
+/**
+ * Recursively resolve the effective type of an expression, accounting for
+ * operator overloads. For sub-expressions that match a registered overload,
+ * uses the overload's declared return type instead of what TypeScript infers
+ * (since TS doesn't know about operator overloading).
+ */
+function resolveOverloadedType(
+	node: Node,
+	overloadStore: OverloadStore,
+): string {
+	if (Node.isParenthesizedExpression(node)) {
+		return resolveOverloadedType(node.getExpression(), overloadStore);
+	}
+
+	if (Node.isBinaryExpression(node)) {
+		const operatorKind = node.getOperatorToken().getKind();
+		if (isOperatorSyntaxKind(operatorKind)) {
+			const leftType = resolveOverloadedType(node.getLeft(), overloadStore);
+			const rightType = resolveOverloadedType(node.getRight(), overloadStore);
+			const overload = overloadStore.findOverload(
+				operatorKind,
+				leftType,
+				rightType,
+			);
+			if (overload) return overload.returnType;
+		}
+	}
+
+	if (Node.isPrefixUnaryExpression(node)) {
+		const operatorKind = node.getOperatorToken();
+		if (isPrefixUnaryOperatorSyntaxKind(operatorKind)) {
+			const operandType = resolveOverloadedType(
+				node.getOperand(),
+				overloadStore,
+			);
+			const overload = overloadStore.findPrefixUnaryOverload(
+				operatorKind,
+				operandType,
+			);
+			if (overload) return overload.returnType;
+		}
+	}
+
+	if (Node.isPostfixUnaryExpression(node)) {
+		const operatorKind = node.getOperatorToken();
+		if (isPostfixUnaryOperatorSyntaxKind(operatorKind)) {
+			const operandType = resolveOverloadedType(
+				node.getOperand(),
+				overloadStore,
+			);
+			const overload = overloadStore.findPostfixUnaryOverload(
+				operatorKind,
+				operandType,
+			);
+			if (overload) return overload.returnType;
+		}
+	}
+
+	return resolveExpressionType(node);
+}
+
 function findOverloadEdits(
 	sourceFile: TsMorphSourceFile,
 	overloadStore: OverloadStore,
@@ -178,8 +239,11 @@ function findOverloadEdits(
 
 		if (!isOperatorSyntaxKind(operatorKind)) continue;
 
-		const leftType = resolveExpressionType(expression.getLeft());
-		const rightType = resolveExpressionType(expression.getRight());
+		const leftType = resolveOverloadedType(expression.getLeft(), overloadStore);
+		const rightType = resolveOverloadedType(
+			expression.getRight(),
+			overloadStore,
+		);
 
 		const overloadDesc = overloadStore.findOverload(
 			operatorKind,
@@ -212,7 +276,10 @@ function findOverloadEdits(
 		const operatorKind = expression.getOperatorToken();
 		if (!isPrefixUnaryOperatorSyntaxKind(operatorKind)) continue;
 
-		const operandType = resolveExpressionType(expression.getOperand());
+		const operandType = resolveOverloadedType(
+			expression.getOperand(),
+			overloadStore,
+		);
 		const overloadDesc = overloadStore.findPrefixUnaryOverload(
 			operatorKind,
 			operandType,
@@ -246,7 +313,10 @@ function findOverloadEdits(
 		const operatorKind = expression.getOperatorToken();
 		if (!isPostfixUnaryOperatorSyntaxKind(operatorKind)) continue;
 
-		const operandType = resolveExpressionType(expression.getOperand());
+		const operandType = resolveOverloadedType(
+			expression.getOperand(),
+			overloadStore,
+		);
 		const overloadDesc = overloadStore.findPostfixUnaryOverload(
 			operatorKind,
 			operandType,
@@ -301,23 +371,59 @@ function getOverloadHoverInfo(
 		});
 		if (!prop || !Node.isPropertyDeclaration(prop)) return undefined;
 
+		// Extract param types and return type from either the initializer (regular
+		// .ts files) or the type annotation (.d.ts files where initializers are
+		// stripped by TypeScript's declaration emit).
+		let params: { typeName: string }[] = [];
+		let returnTypeName: string;
+		let docText: string | undefined;
+
 		const initializer = unwrapInitializer(prop.getInitializer());
-		if (!initializer || !Node.isArrayLiteralExpression(initializer))
-			return undefined;
+		if (initializer && Node.isArrayLiteralExpression(initializer)) {
+			const element = initializer.getElements()[edit.index];
+			if (
+				!element ||
+				(!Node.isFunctionExpression(element) && !Node.isArrowFunction(element))
+			)
+				return undefined;
 
-		const element = initializer.getElements()[edit.index];
-		if (
-			!element ||
-			(!Node.isFunctionExpression(element) && !Node.isArrowFunction(element))
-		)
-			return undefined;
+			const nonThisParams = element
+				.getParameters()
+				.filter((p) => p.getName() !== "this");
+			params = nonThisParams.map((p) => ({
+				typeName: p.getType().getText(element),
+			}));
+			returnTypeName = element.getReturnType().getText(element);
 
-		// Resolve short type names (relative to the function scope)
-		const nonThisParams = element
-			.getParameters()
-			.filter((p) => p.getName() !== "this");
-		const returnType = element.getReturnType();
-		const returnTypeName = returnType.getText(element);
+			const jsDocs = element.getJsDocs();
+			if (jsDocs.length > 0) {
+				const raw = jsDocs[0].getText();
+				docText = raw
+					.replace(/^\/\*\*\s*/, "")
+					.replace(/\s*\*\/$/, "")
+					.replace(/^\s*\* ?/gm, "")
+					.trim();
+			}
+		} else {
+			// Type-annotation fallback for .d.ts files
+			const propertyType = prop.getType();
+			if (!propertyType.isTuple()) return undefined;
+			const tupleElements = propertyType.getTupleElements();
+			if (edit.index >= tupleElements.length) return undefined;
+
+			const elementType = tupleElements[edit.index];
+			const callSigs = elementType.getCallSignatures();
+			if (callSigs.length === 0) return undefined;
+			const sig = callSigs[0];
+
+			for (const sym of sig.getParameters()) {
+				if (sym.getName() === "this") continue;
+				const decl = sym.getValueDeclaration();
+				if (!decl) continue;
+				params.push({ typeName: decl.getType().getText(prop) });
+			}
+			returnTypeName = sig.getReturnType().getText(prop);
+		}
 
 		// Build display signature parts based on overload kind
 		const displayParts: tsRuntime.SymbolDisplayPart[] = [];
@@ -329,9 +435,7 @@ function getOverloadHoverInfo(
 				kind: "operator",
 			});
 			const operandType =
-				nonThisParams.length >= 1
-					? nonThisParams[0].getType().getText(element)
-					: edit.className;
+				params.length >= 1 ? params[0].typeName : edit.className;
 			displayParts.push({ text: operandType, kind: "className" });
 			if (returnTypeName !== "void") {
 				displayParts.push({ text: " = ", kind: "punctuation" });
@@ -347,10 +451,10 @@ function getOverloadHoverInfo(
 				text: edit.operatorString,
 				kind: "operator",
 			});
-		} else if (edit.isStatic && nonThisParams.length >= 2) {
+		} else if (edit.isStatic && params.length >= 2) {
 			// Binary static: "LhsType + RhsType = ReturnType"
-			const lhsType = nonThisParams[0].getType().getText(element);
-			const rhsType = nonThisParams[1].getType().getText(element);
+			const lhsType = params[0].typeName;
+			const rhsType = params[1].typeName;
 			displayParts.push({ text: lhsType, kind: "className" });
 			displayParts.push({ text: " ", kind: "space" });
 			displayParts.push({
@@ -368,10 +472,7 @@ function getOverloadHoverInfo(
 			}
 		} else {
 			// Binary instance: "ClassName += RhsType"
-			const rhsType =
-				nonThisParams.length >= 1
-					? nonThisParams[0].getType().getText(element)
-					: "unknown";
+			const rhsType = params.length >= 1 ? params[0].typeName : "unknown";
 			displayParts.push({ text: edit.className, kind: "className" });
 			displayParts.push({ text: " ", kind: "space" });
 			displayParts.push({
@@ -387,18 +488,6 @@ function getOverloadHoverInfo(
 					kind: "className",
 				});
 			}
-		}
-
-		// Extract JSDoc comment
-		const jsDocs = element.getJsDocs();
-		let docText: string | undefined;
-		if (jsDocs.length > 0) {
-			const raw = jsDocs[0].getText();
-			docText = raw
-				.replace(/^\/\*\*\s*/, "")
-				.replace(/\s*\*\/$/, "")
-				.replace(/^\s*\* ?/gm, "")
-				.trim();
 		}
 
 		return {
