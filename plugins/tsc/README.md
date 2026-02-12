@@ -1,14 +1,12 @@
 # @boperators/plugin-tsc
 
-A [ts-patch](https://github.com/nonara/ts-patch) plugin that runs boperators transformations during `tsc` compilation.
+A [ts-patch](https://github.com/package/ts-patch) plugin that runs [boperators](https://www.npmjs.com/package/boperators) transformations during `tsc` compilation.
 
 This plugin operates as a **Program Transformer** — it transforms your operator expressions before TypeScript type-checks the code, so the compiler sees valid function calls rather than unsupported operator usage on class types.
 
 ## Installation
 
 ```sh
-bun add -D boperators ts-patch @boperators/plugin-tsc
-# or
 npm install -D boperators ts-patch @boperators/plugin-tsc
 ```
 
@@ -82,3 +80,7 @@ If transformation fails for any reason, the plugin logs the error and falls back
 | **`@boperators/cli`** | Before compilation | Batch transform to disk, then compile normally |
 | **`@boperators/plugin-tsc`** | During compilation | Seamless `tsc` integration, no intermediate files |
 | **`@boperators/plugin-bun`** | At runtime | Bun-only, transforms on module load |
+
+## License
+
+MIT

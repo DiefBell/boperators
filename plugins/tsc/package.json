@@ -11,10 +11,27 @@
 	"homepage": "https://github.com/DiefBell/boperators/tree/main/plugins/tsc",
 	"type": "commonjs",
 	"main": "./dist/index.js",
+	"keywords": [
+		"boperators",
+		"typescript",
+		"operator",
+		"overload",
+		"operator-overloading",
+		"ts-patch",
+		"tsc",
+		"transform"
+	],
 	"scripts": {
 		"build": "tsc",
-		"watch": "tsc -w"
+		"watch": "tsc -w",
+		"prepublish": "bun run build"
 	},
+	"files": [
+		"package.json",
+		"README.md",
+		"license.txt",
+		"dist"
+	],
 	"peerDependencies": {
 		"boperators": "0.1.0",
 		"typescript": ">=5.0.0 <5.10.0"
