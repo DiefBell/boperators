@@ -18,7 +18,7 @@
 		"build:bun-plugin": "bun run --filter @boperators/plugin-bun build",
 		"build:tsc-plugin": "bun run --filter @boperators/plugin-tsc build",
 		"build:mcp": "bun run --filter @boperators/mcp-server build",
-		"build": "bun run build:boperators && bun run --filter '*' build",
+		"build": "bun run build:boperators && bun run --filter '!boperators' build",
 		"prepare": "husky",
 		"check": "biome check .",
 		"check:unsafe": "biome check --write --unsafe .",

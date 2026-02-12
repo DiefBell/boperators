@@ -17,6 +17,7 @@ export { OverloadInjector } from "./core/OverloadInjector";
 export type { OverloadDescription, OverloadInfo } from "./core/OverloadStore";
 export { OverloadStore } from "./core/OverloadStore";
 export type {
+	OperatorSyntaxKind,
 	PostfixUnaryOperatorSyntaxKind,
 	PrefixUnaryOperatorSyntaxKind,
 } from "./core/operatorMap";

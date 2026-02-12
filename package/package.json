@@ -14,15 +14,26 @@
 	"types": "./dist/esm/index.d.ts",
 	"exports": {
 		".": {
+			"types": "./dist/esm/index.d.ts",
 			"require": "./dist/cjs/index.js",
-			"import": "./dist/esm/index.js",
-			"types": "./dist/esm/index.d.ts"
+			"import": "./dist/esm/index.js"
 		}
 	},
+	"keywords": [
+		"boperators",
+		"typescript",
+		"operator",
+		"overload",
+		"operator-overloading",
+		"ts-morph",
+		"ast",
+		"transform"
+	],
 	"scripts": {
 		"build": "tsc -p tsconfig.cjs.json && tsc -p tsconfig.esm.json",
 		"watch": "concurrently \"tsc -p tsconfig.cjs.json -w\" \"tsc -p tsconfig.esm.json -w\"",
-		"postinstall": "bun run build"
+		"prepare": "bun run build",
+		"prepublish": "bun run build"
 	},
 	"dependencies": {
 		"ts-morph": "^27.0.0"
