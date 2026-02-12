@@ -5,13 +5,13 @@
 
 </center>
 
-A common programming feature that JavaScript lacks in operator overloading. Just something as simple as adding two vectors, we've got to create a `.Add` method or add elements one-at-a-time.
+Operator overloading is a common programming feature that JavaScript lacks. Just something as simple as adding two vectors, we've got to create a `.Add` method or add elements one-at-a-time.
 
 `boperators` finally brings operator overloading to JavaScript by leveraging TypeScript typings. You define one or more overload functions on a class for whichever operators you want, and with magic we search for anywhere you've used overloaded operators and substitute in your functions.
 
-This is the core library and API, and isn't designed to be used directly. Instead, you can use the [Boperators CLI](TODO after publishing) or our plugins for [compiling with `tsc](TODO after publishing) or for [running directly with Bun](TODO after publishing).
+This is the core library and API, and isn't designed to be used directly. Instead, you can use the [Boperators CLI](https://www.npmjs.com/package/@boperators/cli) or our plugins for [compiling with `tsc`](https://www.npmjs.com/package/@boperators/plugin-tsc) or for [running directly with Bun](https://www.npmjs.com/package/@boperators/plugin-bun).
 
-We also offer a [TypeScript Language Server plugin](TODO after publishing) for real-time type hinting and intellisense in your IDE, and an [MCP server](TODO after publishing) to optimize your vibe coding experience.
+We also offer a [TypeScript Language Server plugin](https://www.npmjs.com/package/@boperators/plugin-ts-language-server) for real-time type hinting and intellisense in your IDE, and an [MCP server](https://www.npmjs.com/package/@boperators/mcp-server) to optimize your vibe coding experience.
 
 
 ## Installation
@@ -35,7 +35,7 @@ Arrow functions or function expressions both work for static operators.
 class Vector3 {
     static readonly "+" = [
         (a: Vector3, b: Vector3) => new Vector3(a.x + b.x, a.y + b.y, a.z + b.z),
-    ];
+    ] as const;
 
     // Multiple overloads for different RHS types
     static readonly "*" = [
@@ -54,7 +54,7 @@ class Vector3 {
     // Comparison operators must return boolean
     static readonly "==" = [
         (a: Vector3, b: Vector3): boolean => a.length() === b.length(),
-    ];
+    ] as const;
 }
 ```
 
@@ -192,33 +192,6 @@ Imports for referenced classes are automatically added where needed.
 | `~` | static | Prefix bitwise NOT (1 param) |
 | `++` | instance | Postfix increment, must return `void` |
 | `--` | instance | Postfix decrement, must return `void` |
-
-## API
-
-The core library exports the transformation pipeline for use in plugins and tooling:
-
-```typescript
-import { OverloadStore, OverloadInjector, ErrorManager } from "boperators";
-import { Project } from "ts-morph";
-
-const project = new Project({ tsConfigFilePath: "tsconfig.json" });
-const errorManager = new ErrorManager(false);
-const store = new OverloadStore(project, errorManager);
-const injector = new OverloadInjector(project, store);
-
-// Phase 1: Parse overload definitions from all files
-for (const file of project.getSourceFiles()) {
-    store.addOverloadsFromFile(file);
-}
-errorManager.throwIfErrorsElseLogWarnings();
-
-// Phase 2: Transform binary expressions
-for (const file of project.getSourceFiles()) {
-    injector.overloadFile(file);
-}
-```
-
-The `Operator` enum and `operatorSymbols` array are also exported for defining overloads with computed property names.
 
 ## Conflict Detection
 
