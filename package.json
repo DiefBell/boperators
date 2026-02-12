@@ -5,6 +5,9 @@
 		"type": "git",
 		"url": "https://github.com/DiefBell/boperators"
 	},
+	"bugs": {
+		"url": "https://github.com/DiefBell/boperators/issues"
+	},
 	"workspaces": [
 		"package",
 		"mcp-server",

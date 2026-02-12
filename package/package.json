@@ -8,6 +8,9 @@
 		"url": "https://github.com/DiefBell/boperators",
 		"directory": "package"
 	},
+	"bugs": {
+		"url": "https://github.com/DiefBell/boperators/issues"
+	},
 	"homepage": "https://github.com/DiefBell/boperators/tree/main/package",
 	"main": "./dist/cjs/index.js",
 	"module": "./dist/esm/index.js",
