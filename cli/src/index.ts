@@ -192,10 +192,7 @@ program
 				if (!fs.existsSync(outDir)) {
 					fs.mkdirSync(outDir, { recursive: true });
 				}
-				fs.writeFileSync(
-					outPath,
-					JSON.stringify(result.sourceMap.edits, null, 2),
-				);
+				fs.writeFileSync(outPath, JSON.stringify(result.edits, null, 2));
 			});
 		}
 	});

@@ -164,6 +164,8 @@ boperators/
 - [ ] NextJS/Turbopack plugin
 - [ ] Webpack plugin
 - [ ] Other plugins???
+- [ ] Add support for Mozilla / V3 source map format, use in webpack plugin.
+- [ ] A lot of logic in plugins, like `transformer` in the `tsc` plugin, that could be unified in core.
 - [ ] ???
 
 ### License

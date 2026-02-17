@@ -14,15 +14,15 @@ import {
 	isPostfixUnaryOperatorSyntaxKind,
 	isPrefixUnaryOperatorSyntaxKind,
 } from "./operatorMap";
-import { SourceMap } from "./SourceMap";
+import { computeEdits, type EditRecord } from "./SourceMap";
 
 export type TransformResult = {
 	/** The mutated ts-morph SourceFile (same reference as input). */
 	sourceFile: SourceFile;
 	/** The full text after transformation. */
 	text: string;
-	/** Bidirectional source map between original and transformed text. */
-	sourceMap: SourceMap;
+	/** Edit records mapping positions between original and transformed text. */
+	edits: readonly EditRecord[];
 };
 
 export class OverloadInjector {
@@ -215,8 +215,8 @@ export class OverloadInjector {
 		}
 
 		const text = sourceFile.getFullText();
-		const sourceMap = new SourceMap(originalText, text);
+		const edits = computeEdits(originalText, text);
 
-		return { sourceFile, text, sourceMap };
+		return { sourceFile, text, edits };
 	}
 }

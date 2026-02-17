@@ -10,13 +10,13 @@ import {
 	OverloadInjector,
 	OverloadStore,
 	resolveExpressionType,
-	SourceMap,
 	SyntaxKind,
 	Project as TsMorphProject,
 	type SourceFile as TsMorphSourceFile,
 	unwrapInitializer,
 } from "boperators";
 import type tsRuntime from "typescript/lib/tsserverlibrary";
+import { SourceMap } from "./SourceMap";
 
 // ----- Types -----
 
@@ -130,7 +130,7 @@ export = function init(modules: {
 				cache.set(fileName, {
 					version,
 					text: result.text,
-					sourceMap: result.sourceMap,
+					sourceMap: new SourceMap(result.edits),
 					overloadEdits,
 				});
 				return ts.ScriptSnapshot.fromString(result.text);
@@ -139,7 +139,7 @@ export = function init(modules: {
 				cache.set(fileName, {
 					version,
 					text: source,
-					sourceMap: new SourceMap(source, source),
+					sourceMap: new SourceMap([]),
 					overloadEdits: [],
 				});
 				return snap;

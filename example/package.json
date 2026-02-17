@@ -8,15 +8,21 @@
 	"scripts": {
 		"transform": "rm -rf ./transformed && boperate --ts-out ./transformed --maps-out ./transformed",
 		"start": "bun run ./transformed/index.ts",
-		"build": "tspc"
+		"build": "tspc",
+		"webpack": "webpack --config webpack.config.cjs",
+		"webpack:run": "node webpack-dist/bundle.js"
 	},
 	"devDependencies": {
 		"@boperators/cli": "link:@boperators/cli",
 		"@boperators/plugin-bun": "link:@boperators/plugin-bun",
 		"@boperators/plugin-ts-language-server": "link:@boperators/plugin-ts-language-server",
 		"@boperators/plugin-tsc": "link:@boperators/plugin-tsc",
+		"@boperators/plugin-webpack": "link:@boperators/plugin-webpack",
 		"@types/bun": "^1.1.16",
 		"boperators": "link:boperators",
-		"ts-patch": "^3.3.0"
+		"ts-loader": "^9.5.2",
+		"ts-patch": "^3.3.0",
+		"webpack": "^5.105.0",
+		"webpack-cli": "^6.0.0"
 	}
 }
