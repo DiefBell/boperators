@@ -30,6 +30,15 @@ and reference that in your `bunfig.toml`:
 preload = ["./preload.ts"]
 ```
 
+## Comparison with Other Approaches
+
+| Approach | When it runs | Use case |
+|----------|-------------|----------|
+| **`@boperators/cli`** | Before compilation | Batch transform to disk, then compile normally |
+| **`@boperators/plugin-tsc`** | During compilation | Seamless `tsc` integration, no intermediate files |
+| **`@boperators/plugin-webpack`** | During bundling | Webpack projects, integrates into existing build pipeline |
+| **`@boperators/plugin-bun`** | At runtime | Bun-only, transforms on module load |
+
 ## License
 
 MIT

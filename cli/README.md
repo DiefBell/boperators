@@ -65,6 +65,15 @@ Exit code is 1 on violations (suitable for CI / prepublish scripts). Use `--warn
 | `--project <path>` | `tsconfig.json` | Path to tsconfig.json to use |
 | `--warn` | `false` | Emit warnings instead of exiting with an error on violations |
 
+## Comparison with Other Approaches
+
+| Approach | When it runs | Use case |
+|----------|-------------|----------|
+| **`@boperators/cli`** | Before compilation | Batch transform to disk, then compile normally |
+| **`@boperators/plugin-tsc`** | During compilation | Seamless `tsc` integration, no intermediate files |
+| **`@boperators/plugin-webpack`** | During bundling | Webpack projects, integrates into existing build pipeline |
+| **`@boperators/plugin-bun`** | At runtime | Bun-only, transforms on module load |
+
 ## License
 
 MIT
