@@ -35,6 +35,8 @@
 	"scripts": {
 		"build": "tsc -p tsconfig.cjs.json && tsc -p tsconfig.esm.json",
 		"watch": "concurrently \"tsc -p tsconfig.cjs.json -w\" \"tsc -p tsconfig.esm.json -w\"",
+		"test": "bun test",
+		"test:watch": "bun test --watch",
 		"prepare": "bun run build",
 		"prepublish": "bun run build"
 	},
