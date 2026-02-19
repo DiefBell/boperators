@@ -149,7 +149,7 @@ boperators/
 - [x] TypeScript compiler plugin with ts-patch.
 - [x] Ensure classes correctly inherit the overloads of their parent class(es).
 - [x] Ensure that when trying to match a binary operation to its overload that we also look at the parents of each operand if they're child classes that may be compatible.
-- [ ] Write tests, set up CI.
+- [x] Write tests, set up CI.
 - [x] MCP server for docs and tools. Allow viewing transformed for specific lines as well as whole file.
 - [x] Double check this `ts-morph` dependency - can we keep it to only the core package? And put required `typescript` version in a range?
 - [x] `--project` to specify a TS config file for the CLI.
@@ -161,10 +161,10 @@ boperators/
 - [x] Cli/tsc tool to check if a library is valid i.e. exports all classes with overloads.
 - [x] Fix CLI transformed output to match folder structure that tsc output would have
 - [x] Fix intellisense hovering
-- [ ] NextJS/Turbopack plugin
-- [ ] Webpack plugin
+- [x] Webpack plugin
+- [x] NextJS/Turbopack plugin **handled by webpack one, technically it's a loader**
 - [ ] Other plugins???
-- [ ] Add support for Mozilla / V3 source map format, use in webpack plugin.
+- [x] Add support for Mozilla / V3 source map format, use in webpack plugin.
 - [ ] A lot of logic in plugins, like `transformer` in the `tsc` plugin, that could be unified in core.
 - [ ] ???
 

@@ -81,7 +81,7 @@ If transformation fails for any reason, the plugin logs the error and falls back
 |----------|-------------|----------|
 | **`@boperators/cli`** | Before compilation | Batch transform to disk, then compile normally |
 | **`@boperators/plugin-tsc`** | During compilation | Seamless `tsc` integration, no intermediate files |
-| **`@boperators/plugin-webpack`** | During bundling | Webpack projects, integrates into existing build pipeline |
+| **`@boperators/webpack-loader`** | During bundling | Webpack projects, integrates into existing build pipeline |
 | **`@boperators/plugin-bun`** | At runtime | Bun-only, transforms on module load |
 
 ## License

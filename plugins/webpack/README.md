@@ -1,4 +1,4 @@
-# @boperators/plugin-webpack
+# @boperators/webpack-loader
 
 ![Sym.JS logo](https://github.com/DiefBell/boperators/blob/653ea138f4dcd1e6b4dd112133a4942f70e91fb3/logo.png)
 
@@ -7,7 +7,7 @@ Webpack loader for [boperators](https://www.npmjs.com/package/boperators) that t
 ## Installation
 
 ```sh
-npm install -D boperators @boperators/plugin-webpack ts-loader webpack
+npm install -D boperators @boperators/webpack-loader ts-loader webpack
 ```
 
 ## Configuration
@@ -28,7 +28,7 @@ module.exports = {
       {
         test: /\.ts$/,
         enforce: "pre",
-        loader: "@boperators/plugin-webpack",
+        loader: "@boperators/webpack-loader",
         exclude: /node_modules/,
       },
     ],
@@ -51,13 +51,67 @@ Options are passed via the loader options:
 {
   test: /\.ts$/,
   enforce: "pre",
-  loader: "@boperators/plugin-webpack",
+  loader: "@boperators/webpack-loader",
   options: {
     project: "./tsconfig.build.json",
   },
   exclude: /node_modules/,
 }
 ```
+
+## Next.js
+
+### Webpack (default)
+
+Next.js exposes webpack config via `next.config.js`. Add boperators as a pre-loader before `ts-loader` handles your TypeScript:
+
+```js
+// next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  webpack(config) {
+    config.module.rules.push({
+      test: /\.tsx?$/,
+      enforce: "pre",
+      loader: "@boperators/webpack-loader",
+      exclude: /node_modules/,
+    });
+    return config;
+  },
+};
+
+module.exports = nextConfig;
+```
+
+You don't need to add a separate `ts-loader` rule — Next.js already configures TypeScript compilation internally.
+
+### Turbopack (Next.js 15+)
+
+Turbopack supports webpack loaders via `turbopack.rules`. The boperators loader is likely compatible, but note that Turbopack's webpack loader API is partial and `this.rootContext` (used for tsconfig discovery) may not be populated. Use the `project` option to specify the tsconfig path explicitly:
+
+```js
+// next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  turbopack: {
+    rules: {
+      "*.{ts,tsx}": {
+        loaders: [
+          {
+            loader: "@boperators/webpack-loader",
+            options: { project: "./tsconfig.json" },
+          },
+        ],
+        as: "*.tsx",
+      },
+    },
+  },
+};
+
+module.exports = nextConfig;
+```
+
+> **Note:** Turbopack support is best-effort. If you encounter issues, fall back to the webpack config above (removing the `--turbopack` flag from your `next dev` command).
 
 ## How It Works
 
@@ -75,7 +129,7 @@ The loader runs as a webpack pre-loader, executing before TypeScript compilation
 |----------|-------------|----------|
 | **`@boperators/cli`** | Before compilation | Batch transform to disk, then compile normally |
 | **`@boperators/plugin-tsc`** | During compilation | Seamless `tsc` integration, no intermediate files |
-| **`@boperators/plugin-webpack`** | During bundling | Webpack projects, integrates into existing build pipeline |
+| **`@boperators/webpack-loader`** | During bundling | Webpack projects, integrates into existing build pipeline |
 | **`@boperators/plugin-bun`** | At runtime | Bun-only, transforms on module load |
 
 ## License
