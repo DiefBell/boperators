@@ -1,9 +1,0 @@
-{
-	"permissions": {
-		"allow": [
-			"mcp__boperators__transform_preview",
-			"mcp__boperators__list_overloads",
-			"mcp__mcp-openmemory__recall_memory_abstract"
-		]
-	}
-}
