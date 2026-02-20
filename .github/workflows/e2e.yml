@@ -80,6 +80,40 @@ jobs:
         run: node dist/bundle.js | grep -q "Vec2(4, 6)"
         working-directory: examples/webpack
 
+  # ─── esbuild example ────────────────────────────────────────────────────────
+  esbuild-example:
+    name: esbuild example
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-monorepo
+
+      - name: Build packages
+        run: bun run build
+
+      - name: Cache esbuild example npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-esbuild-example-${{ hashFiles('examples/esbuild/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-esbuild-example-
+            ${{ runner.os }}-npm-
+
+      - name: Install esbuild example dependencies
+        run: npm install
+        working-directory: examples/esbuild
+
+      - name: Build esbuild bundle
+        run: npm run build
+        working-directory: examples/esbuild
+
+      - name: Assert bundle output
+        run: node dist/bundle.js | grep -q "Vec2(4, 6)"
+        working-directory: examples/esbuild
+
   # ─── Vite example ───────────────────────────────────────────────────────────
   vite-example:
     name: Vite example
