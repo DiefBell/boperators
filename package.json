@@ -28,7 +28,8 @@
 		"check:write": "biome check --write .",
 		"format": "biome format --write .",
 		"watch": "concurrently \"bun run --filter boperators watch\" \"bun run --filter @boperators/plugin-ts-language-server watch\" \"bun run --filter @boperators/plugin-tsc watch\" \"bun run --filter @boperators/cli watch\"",
-		"example": "cd example && bun run transform && bun run start"
+		"example": "cd example && bun run transform && bun run start",
+		"test:e2e": "cd example && bun install && bun run webpack"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.14",

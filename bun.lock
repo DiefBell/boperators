@@ -90,7 +90,7 @@
       },
     },
     "plugins/webpack": {
-      "name": "@boperators/plugin-webpack",
+      "name": "@boperators/webpack-loader",
       "version": "0.1.4",
       "devDependencies": {
         "@types/node": "^25.2.3",
@@ -133,7 +133,7 @@
 
     "@boperators/plugin-tsc": ["@boperators/plugin-tsc@workspace:plugins/tsc"],
 
-    "@boperators/plugin-webpack": ["@boperators/plugin-webpack@workspace:plugins/webpack"],
+    "@boperators/webpack-loader": ["@boperators/webpack-loader@workspace:plugins/webpack"],
 
     "@commander-js/extra-typings": ["@commander-js/extra-typings@13.1.0", "", { "peerDependencies": { "commander": "~13.1.0" } }, "sha512-q5P52BYb1hwVWE6dtID7VvuJWrlfbCv4klj7BjUUOqMz4jbSZD4C9fJ9lRjL2jnBGTg+gDDlaXN51rkWcLk4fg=="],
 

@@ -1,12 +1,11 @@
 const path = require("path");
 
 module.exports = {
-	mode: "development",
-	devtool: "source-map",
+	mode: "production",
 	entry: "./src/index.ts",
 	output: {
+		path: path.resolve(__dirname, "dist"),
 		filename: "bundle.js",
-		path: path.resolve(__dirname, "webpack-dist"),
 	},
 	resolve: {
 		extensions: [".ts", ".js"],

@@ -1,0 +1,17 @@
+{
+	"name": "@boperators/example-webpack",
+	"private": true,
+	"scripts": {
+		"build": "webpack --config webpack.config.cjs",
+		"start": "node ./dist/bundle.js"
+	},
+	"devDependencies": {
+		"@boperators/plugin-ts-language-server": "file:../../plugins/ts-language-server",
+		"@boperators/webpack-loader": "file:../../plugins/webpack",
+		"boperators": "file:../../package",
+		"ts-loader": "^9.5.2",
+		"typescript": "^5.0.0",
+		"webpack": "^5.0.0",
+		"webpack-cli": "^6.0.0"
+	}
+}

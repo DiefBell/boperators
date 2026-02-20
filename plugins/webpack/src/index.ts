@@ -20,7 +20,7 @@ interface BoperatorsLoaderOptions {
 
 const loader: LoaderDefinitionFunction<BoperatorsLoaderOptions> = function (
 	source,
-	map,
+	_map,
 ) {
 	const callback = this.async();
 	if (!callback) return;
@@ -66,14 +66,14 @@ const loader: LoaderDefinitionFunction<BoperatorsLoaderOptions> = function (
 		// Only transform this file
 		const sourceFile = tsMorphProject.getSourceFile(resourcePath);
 		if (!sourceFile) {
-			return callback(null, source, map);
+			return callback(null, source, null);
 		}
 
 		const originalText = sourceFile.getFullText();
 		const result = overloadInjector.overloadFile(sourceFile);
 
 		if (result.text === originalText) {
-			return callback(null, source, map);
+			return callback(null, source, null);
 		}
 
 		const sourceMap = toV3SourceMap(

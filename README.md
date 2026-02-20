@@ -84,6 +84,7 @@ See the [`example/`](./example/) project for a working demo.
 ### Prerequisites
 
 - [Bun](https://bun.sh) (runtime, package manager, and workspace tooling)
+- **Windows only:** [Developer Mode](ms-settings:developers) must be enabled (`Settings → System → For developers → Developer Mode`). Bun uses symlinks to link local packages, which Windows requires elevated permission for.
 
 ### Setup
 
@@ -165,6 +166,7 @@ boperators/
 - [x] NextJS/Turbopack plugin **handled by webpack one, technically it's a loader**
 - [ ] Other plugins???
 - [x] Add support for Mozilla / V3 source map format, use in webpack plugin.
+- [ ] Drop ts-morph dependency???
 - [ ] A lot of logic in plugins, like `transformer` in the `tsc` plugin, that could be unified in core.
 - [ ] ???
 
