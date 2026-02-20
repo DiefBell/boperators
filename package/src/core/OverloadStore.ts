@@ -27,9 +27,7 @@ import {
 	type PrefixUnaryOperatorString,
 	type PrefixUnaryOperatorSyntaxKind,
 	postfixUnaryOperatorMap,
-	postfixUnaryOperatorStrings,
 	prefixUnaryOperatorMap,
-	prefixUnaryOperatorStrings,
 } from "./operatorMap";
 
 /**

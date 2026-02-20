@@ -540,6 +540,7 @@ function createProxy(
 	// Copy all methods from the underlying language service
 	const proxy = Object.create(null) as tsRuntime.LanguageService;
 	for (const key of Object.keys(ls)) {
+		// biome-ignore lint/suspicious/noExplicitAny: <TODO: fix this>
 		(proxy as any)[key] = (ls as any)[key];
 	}
 
@@ -899,6 +900,7 @@ function createProxy(
 			? sourceMap.originalToTransformed(position)
 			: position;
 
+		// biome-ignore lint/complexity/noBannedTypes: <TODO: fix this>
 		const result = (ls.findRenameLocations as Function)(
 			fileName,
 			transformedPos,
