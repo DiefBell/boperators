@@ -66,6 +66,20 @@
         "typescript": ">=5.0.0 <5.10.0",
       },
     },
+    "plugins/esbuild": {
+      "name": "@boperators/plugin-esbuild",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@types/node": "^25.2.3",
+        "boperators": "file:../../package",
+        "esbuild": "^0.25.12",
+      },
+      "peerDependencies": {
+        "boperators": "0.1.4",
+        "esbuild": ">=0.17.0",
+        "typescript": ">=5.0.0 <5.10.0",
+      },
+    },
     "plugins/ts-language-server": {
       "name": "@boperators/plugin-ts-language-server",
       "version": "0.1.4",
@@ -141,6 +155,8 @@
     "@boperators/mcp-server": ["@boperators/mcp-server@workspace:mcp-server"],
 
     "@boperators/plugin-bun": ["@boperators/plugin-bun@workspace:plugins/bun"],
+
+    "@boperators/plugin-esbuild": ["@boperators/plugin-esbuild@workspace:plugins/esbuild"],
 
     "@boperators/plugin-ts-language-server": ["@boperators/plugin-ts-language-server@workspace:plugins/ts-language-server"],
 

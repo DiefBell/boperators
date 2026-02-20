@@ -1,0 +1,51 @@
+{
+	"name": "@boperators/plugin-esbuild",
+	"version": "0.1.0",
+	"license": "MIT",
+	"description": "esbuild plugin for boperators - transforms operator overloads at build time.",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/DiefBell/boperators",
+		"directory": "plugins/esbuild"
+	},
+	"bugs": {
+		"url": "https://github.com/DiefBell/boperators/issues"
+	},
+	"homepage": "https://github.com/DiefBell/boperators/tree/main/plugins/esbuild",
+	"type": "commonjs",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"keywords": [
+		"boperators",
+		"typescript",
+		"operator",
+		"overload",
+		"operator-overloading",
+		"esbuild",
+		"plugin",
+		"transform"
+	],
+	"scripts": {
+		"build": "tsc",
+		"watch": "tsc -w",
+		"test": "bun test",
+		"test:watch": "bun test --watch",
+		"prepublish": "bun run build"
+	},
+	"files": [
+		"package.json",
+		"README.md",
+		"license.txt",
+		"dist"
+	],
+	"peerDependencies": {
+		"boperators": "0.1.4",
+		"esbuild": ">=0.17.0",
+		"typescript": ">=5.0.0 <5.10.0"
+	},
+	"devDependencies": {
+		"@types/node": "^25.2.3",
+		"boperators": "file:../../package",
+		"esbuild": "^0.25.12"
+	}
+}
