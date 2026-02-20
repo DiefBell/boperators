@@ -15,41 +15,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache monorepo bun dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-e2e-monorepo-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-e2e-monorepo-
-            ${{ runner.os }}-bun-
-
-      - name: Install monorepo dependencies
-        run: bun install --frozen-lockfile
+      - uses: ./.github/actions/setup-monorepo
 
       # Packages must be built before the example can link to their dist output
       - name: Build packages
         run: bun run build
 
-      - name: Cache webpack example dependencies
+      - name: Cache webpack example npm dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-e2e-webpack-example-${{ hashFiles('examples/webpack/bun.lock') }}
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-webpack-example-${{ hashFiles('examples/webpack/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-bun-e2e-webpack-example-
-            ${{ runner.os }}-bun-
+            ${{ runner.os }}-npm-webpack-example-
+            ${{ runner.os }}-npm-
 
       - name: Install webpack example dependencies
-        run: bun install
+        run: npm install
         working-directory: examples/webpack
 
       - name: Build webpack bundle
-        run: bun run build
+        run: npm run build
         working-directory: examples/webpack
 
       - name: Assert bundle output
@@ -64,41 +50,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache monorepo bun dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-e2e-monorepo-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-e2e-monorepo-
-            ${{ runner.os }}-bun-
-
-      - name: Install monorepo dependencies
-        run: bun install --frozen-lockfile
+      - uses: ./.github/actions/setup-monorepo
 
       - name: Build packages
         run: bun run build
 
-      - name: Cache Next.js example dependencies
+      - name: Cache Next.js example npm dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-e2e-nextjs-example-${{ hashFiles('examples/nextjs/bun.lock') }}
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-nextjs-example-${{ hashFiles('examples/nextjs/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-bun-e2e-nextjs-example-
-            ${{ runner.os }}-bun-
+            ${{ runner.os }}-npm-nextjs-example-
+            ${{ runner.os }}-npm-
 
       - name: Install Next.js example dependencies
-        run: bun install
+        run: npm install
         working-directory: examples/nextjs
 
       - name: Start Turbopack dev server and assert output
         run: |
-          bun run dev &
+          npm run dev &
           for i in $(seq 1 60); do
             curl -s http://localhost:3000 2>/dev/null | grep -q "Vec2(4, 6)" && exit 0
             sleep 1
