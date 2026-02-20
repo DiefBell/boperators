@@ -4,11 +4,15 @@
  * Output uses GitHub Actions workflow commands so failures surface as
  * annotations in the Actions UI:
  *   ::group::<name> / ::endgroup::   → collapsible log sections
- *   ::error::<message>               → per-failure annotation (fails the step)
+ *   ::error title=<t>::<message>     → per-failure annotation (fails the step)
+ *
+ * Also writes a markdown table to $GITHUB_STEP_SUMMARY when running in CI,
+ * so failures are visible in the job summary tab.
  *
  * Exit code 1 if any assertion fails.
  */
 
+import { appendFileSync } from "node:fs";
 import { ColoredVec2 } from "./ColoredVec2";
 import { Mat4 } from "./Mat4";
 import { Vec2 } from "./Vec2";
@@ -16,15 +20,18 @@ import { Vec3 } from "./Vec3";
 
 let passed = 0;
 let failed = 0;
+const failures: Array<{ description: string; detail: string }> = [];
 
 function assert(condition: boolean, description: string, info?: string): void {
 	if (condition) {
 		console.log(`  ok  ${description}`);
 		passed++;
 	} else {
-		const detail = info ? ` — ${info}` : "";
-		console.log(`::error::FAIL: ${description}${detail}`);
-		console.log(`  FAIL ${description}${detail}`);
+		const detail = info ?? "";
+		const suffix = detail ? ` — ${detail}` : "";
+		console.error(`::error title=FAIL: ${description}::${detail}`);
+		console.log(`  FAIL ${description}${suffix}`);
+		failures.push({ description, detail });
 		failed++;
 	}
 }
@@ -358,6 +365,20 @@ console.log("::endgroup::");
 
 const total = passed + failed;
 console.log(`\n${total} tests: ${passed} passed, ${failed} failed`);
+
+const summaryFile = process.env.GITHUB_STEP_SUMMARY;
+if (summaryFile) {
+	const runtime = typeof Bun !== "undefined" ? "Bun" : "Node";
+	let md = `## ${runtime}: ${passed}/${total} tests passed\n\n`;
+	if (failures.length > 0) {
+		md += `| Test | Detail |\n|---|---|\n`;
+		md += failures
+			.map((f) => `| ❌ ${f.description} | ${f.detail} |`)
+			.join("\n");
+		md += "\n";
+	}
+	appendFileSync(summaryFile, md);
+}
 
 if (failed > 0) {
 	process.exit(1);
