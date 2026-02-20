@@ -1,0 +1,10 @@
+{
+	"compilerOptions": {
+		"target": "ES2020",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"strict": true,
+		"plugins": [{ "name": "@boperators/plugin-ts-language-server" }]
+	},
+	"include": ["src", "vite.config.ts"]
+}

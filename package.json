@@ -21,6 +21,7 @@
 		"build:bun-plugin": "bun run --filter @boperators/plugin-bun build",
 		"build:tsc-plugin": "bun run --filter @boperators/plugin-tsc build",
 		"build:mcp": "bun run --filter @boperators/mcp-server build",
+		"build:vite-plugin": "bun run --filter @boperators/plugin-vite build",
 		"build": "bun run build:boperators && bun run --filter '!boperators' build",
 		"prepare": "husky",
 		"check": "biome check .",

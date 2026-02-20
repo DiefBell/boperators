@@ -1,0 +1,16 @@
+{
+	"name": "@boperators/example-vite",
+	"private": true,
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview"
+	},
+	"devDependencies": {
+		"@boperators/plugin-ts-language-server": "file:../../plugins/ts-language-server",
+		"@boperators/plugin-vite": "file:../../plugins/vite",
+		"boperators": "file:../../package",
+		"typescript": "^5.0.0",
+		"vite": "^6.3.5"
+	}
+}

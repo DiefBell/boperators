@@ -42,3 +42,7 @@ jobs:
             - name: Test (CLI)
               run: bun test
               working-directory: cli
+
+            - name: Test (Vite plugin)
+              run: bun test
+              working-directory: plugins/vite

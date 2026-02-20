@@ -80,6 +80,39 @@ jobs:
         run: node dist/bundle.js | grep -q "Vec2(4, 6)"
         working-directory: examples/webpack
 
+  # ─── Vite example ───────────────────────────────────────────────────────────
+  vite-example:
+    name: Vite example
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-monorepo
+
+      - name: Build packages
+        run: bun run build
+
+      - name: Cache Vite example npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-vite-example-${{ hashFiles('examples/vite/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-vite-example-
+            ${{ runner.os }}-npm-
+
+      - name: Install Vite example dependencies
+        run: npm install
+        working-directory: examples/vite
+
+      - name: Build Vite bundle
+        run: npm run build
+        working-directory: examples/vite
+
+      - name: Assert bundle contains operator overload transformation
+        run: grep -rq 'Vec2\["+"\]\[0\]' examples/vite/dist/
+
   # ─── Next.js example ────────────────────────────────────────────────────────
   nextjs-example:
     name: Next.js example
