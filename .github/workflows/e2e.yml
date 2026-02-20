@@ -37,6 +37,14 @@ jobs:
         run: node dist/index.js | grep -q "Vec2(4, 6)"
         working-directory: examples/cli
 
+      - name: Run operator overload tests (Bun)
+        run: bun run ts-out/test.ts
+        working-directory: examples/cli
+
+      - name: Run operator overload tests (Node)
+        run: node dist/test.js
+        working-directory: examples/cli
+
   # ─── Webpack example ────────────────────────────────────────────────────────
   webpack-example:
     name: Webpack example

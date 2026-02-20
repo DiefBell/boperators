@@ -164,7 +164,7 @@ boperators/
 - [x] Fix intellisense hovering
 - [x] Webpack plugin
 - [x] NextJS/Turbopack plugin **handled by webpack one, technically it's a loader**
-- [ ] Other plugins???
+- [ ] Vite/ESBuild plugin
 - [x] Add support for Mozilla / V3 source map format, use in webpack plugin.
 - [ ] Drop ts-morph dependency???
 - [ ] A lot of logic in plugins, like `transformer` in the `tsc` plugin, that could be unified in core.
