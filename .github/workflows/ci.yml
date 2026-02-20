@@ -7,7 +7,8 @@ on:
         branches: [main]
 
 jobs:
-    ci:
+    lint:
+        name: Lint
         runs-on: ubuntu-latest
 
         steps:
@@ -17,6 +18,15 @@ jobs:
 
             - name: Lint
               run: bun run check
+
+    build-and-test:
+        name: Build and test
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: ./.github/actions/setup-monorepo
 
             - name: Build
               run: bun run build
