@@ -38,3 +38,7 @@ jobs:
             - name: Test (webpack loader)
               run: bun test
               working-directory: plugins/webpack
+
+            - name: Test (CLI)
+              run: bun test
+              working-directory: cli
