@@ -4,7 +4,8 @@
 		"module": "commonjs",
 		"strict": true,
 		"rootDir": "./src",
-		"outDir": "./dist"
+		"outDir": "./dist",
+		"plugins": [{ "name": "@boperators/plugin-ts-language-server" }]
 	},
 	"include": ["src"]
 }
