@@ -7,6 +7,36 @@ on:
     branches: [main]
 
 jobs:
+  # ─── CLI example ─────────────────────────────────────────────────────────────
+  cli-example:
+    name: CLI example
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-monorepo
+
+      # Packages must be built before the example can link to their dist output
+      - name: Build packages
+        run: bun run build
+
+      - name: Install CLI example dependencies
+        run: bun install
+        working-directory: examples/cli
+
+      - name: Build CLI example
+        run: bun run build
+        working-directory: examples/cli
+
+      - name: Assert Bun output (transformed TypeScript)
+        run: bun run ts-out/index.ts | grep -q "Vec2(4, 6)"
+        working-directory: examples/cli
+
+      - name: Assert Node output (emitted JavaScript)
+        run: node dist/index.js | grep -q "Vec2(4, 6)"
+        working-directory: examples/cli
+
   # ─── Webpack example ────────────────────────────────────────────────────────
   webpack-example:
     name: Webpack example
