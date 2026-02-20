@@ -1,6 +1,6 @@
 {
 	"name": "@boperators/plugin-vite",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"license": "MIT",
 	"description": "Vite plugin for boperators - transforms operator overloads at build time.",
 	"repository": {
@@ -39,7 +39,7 @@
 		"dist"
 	],
 	"peerDependencies": {
-		"boperators": "0.1.4",
+		"boperators": "0.2.0",
 		"typescript": ">=5.0.0 <5.10.0",
 		"vite": ">=4.0.0"
 	},

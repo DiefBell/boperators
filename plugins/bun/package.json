@@ -1,6 +1,6 @@
 {
 	"name": "@boperators/plugin-bun",
-	"version": "0.1.5",
+	"version": "0.2.0",
 	"license": "MIT",
 	"description": "Bun plugin for boperators - transforms operator overloads at runtime.",
 	"repository": {
@@ -33,7 +33,7 @@
 		"index.ts"
 	],
 	"peerDependencies": {
-		"boperators": "0.1.4",
+		"boperators": "0.2.0",
 		"typescript": ">=5.0.0 <5.10.0"
 	},
 	"devDependencies": {

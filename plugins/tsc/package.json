@@ -1,6 +1,6 @@
 {
 	"name": "@boperators/plugin-tsc",
-	"version": "0.1.4",
+	"version": "0.2.0",
 	"license": "MIT",
 	"description": "ts-patch plugin for boperators - transforms operator overloads during tsc compilation.",
 	"repository": {
@@ -36,7 +36,7 @@
 		"dist"
 	],
 	"peerDependencies": {
-		"boperators": "0.1.4",
+		"boperators": "0.2.0",
 		"typescript": ">=5.0.0 <5.10.0"
 	},
 	"devDependencies": {
