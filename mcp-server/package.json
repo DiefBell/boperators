@@ -1,6 +1,6 @@
 {
 	"name": "@boperators/mcp-server",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"license": "MIT",
 	"description": "MCP server for boperators - gives AI assistants access to operator overload information.",
 	"repository": {
@@ -42,7 +42,7 @@
 	],
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.12.1",
-		"boperators": "0.2.0",
+		"boperators": "0.2.1",
 		"zod": "^3.25.0"
 	},
 	"devDependencies": {

@@ -10,7 +10,7 @@
     },
     "cli": {
       "name": "@boperators/cli",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "bin": {
         "bop": "dist/index.js",
         "boperate": "dist/index.js",
@@ -22,19 +22,19 @@
         "boperators": "file:../package",
       },
       "peerDependencies": {
-        "boperators": "0.2.0",
+        "boperators": "0.2.1",
         "typescript": ">=5.0.0 <5.10.0",
       },
     },
     "mcp-server": {
       "name": "@boperators/mcp-server",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "bin": {
         "boperators-mcp": "./dist/index.js",
       },
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.12.1",
-        "boperators": "0.2.0",
+        "boperators": "0.2.1",
         "zod": "^3.25.0",
       },
       "devDependencies": {
@@ -43,7 +43,7 @@
     },
     "package": {
       "name": "boperators",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "dependencies": {
         "ts-morph": "^27.0.0",
       },
@@ -56,69 +56,69 @@
     },
     "plugins/bun": {
       "name": "@boperators/plugin-bun",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "devDependencies": {
         "@types/bun": "^1.3.8",
         "boperators": "file:../../package",
       },
       "peerDependencies": {
-        "boperators": "0.2.0",
+        "boperators": "0.2.1",
         "typescript": ">=5.0.0 <5.10.0",
       },
     },
     "plugins/esbuild": {
       "name": "@boperators/plugin-esbuild",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "devDependencies": {
         "@types/node": "^25.2.3",
         "boperators": "file:../../package",
         "esbuild": "^0.25.12",
       },
       "peerDependencies": {
-        "boperators": "0.2.0",
+        "boperators": "0.2.1",
         "esbuild": ">=0.17.0",
         "typescript": ">=5.0.0 <5.10.0",
       },
     },
     "plugins/ts-language-server": {
       "name": "@boperators/plugin-ts-language-server",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "devDependencies": {
         "boperators": "file:../../package",
       },
       "peerDependencies": {
-        "boperators": "0.2.0",
+        "boperators": "0.2.1",
         "typescript": ">=5.0.0 <5.10.0",
       },
     },
     "plugins/tsc": {
       "name": "@boperators/plugin-tsc",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "devDependencies": {
         "boperators": "file:../../package",
       },
       "peerDependencies": {
-        "boperators": "0.2.0",
+        "boperators": "0.2.1",
         "typescript": ">=5.0.0 <5.10.0",
       },
     },
     "plugins/vite": {
       "name": "@boperators/plugin-vite",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "devDependencies": {
         "@types/node": "^25.2.3",
         "boperators": "file:../../package",
         "vite": "^6.3.5",
       },
       "peerDependencies": {
-        "boperators": "0.2.0",
+        "boperators": "0.2.1",
         "typescript": ">=5.0.0 <5.10.0",
         "vite": ">=4.0.0",
       },
     },
     "plugins/webpack": {
       "name": "@boperators/webpack-loader",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "devDependencies": {
         "@types/node": "^25.2.3",
         "@types/webpack": "^5.28.5",
@@ -126,7 +126,7 @@
         "webpack": "^5.105.2",
       },
       "peerDependencies": {
-        "boperators": "0.2.0",
+        "boperators": "0.2.1",
         "typescript": ">=5.0.0 <5.10.0",
       },
     },

@@ -1,6 +1,6 @@
 {
 	"name": "@boperators/plugin-ts-language-server",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"license": "MIT",
 	"description": "TypeScript Language Server plugin for boperators - IDE support with source mapping.",
 	"repository": {
@@ -36,7 +36,7 @@
 		"dist"
 	],
 	"peerDependencies": {
-		"boperators": "0.2.0",
+		"boperators": "0.2.1",
 		"typescript": ">=5.0.0 <5.10.0"
 	},
 	"devDependencies": {
