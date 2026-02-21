@@ -95,6 +95,11 @@ jobs:
 
             # ── Publish ─────────────────────────────────────────────────────────
             # npm authenticates via OIDC (Trusted Publisher) — no stored token needed.
+            # Trusted Publisher OIDC auth requires npm >=11.5.1. setup-monorepo uses
+            # Node 22 (npm 10.x), so we switch to Node 24 (npm 11.x) for publishing.
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
 
             # Publish the core package first — all plugins peer-depend on it.
             - name: Publish boperators (core)

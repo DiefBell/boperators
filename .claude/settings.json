@@ -4,6 +4,7 @@
 			"WebFetch(domain:github.com)",
 			"WebFetch(domain:www.npmjs.com)",
 			"WebFetch(domain:dev.to)",
+			"WebFetch(domain:unpkg.com)",
 			"Bash(findstr:*)",
 			"Bash(npx boperate:*)",
 			"Bash(boperate:*)",
@@ -19,11 +20,14 @@
 			"Bash(bun -e:*)",
 			"Bash(bun info:*)",
 			"Bash(npm view:*)",
+			"Bash(bun test:*)",
+			"Bash(echo:*)",
 			"mcp__mcp-openmemory__recall_memory_abstract",
 			"mcp__mcp-openmemory__get_recent_memories",
 			"mcp__mcp-openmemory__save_memory",
 			"mcp__mcp-openmemory__update_memory_abstract",
-			"WebFetch(domain:app.unpkg.com)"
+			"WebFetch(domain:app.unpkg.com)",
+			"WebFetch(domain:docs.npmjs.com)"
 		]
 	},
 	"enabledMcpjsonServers": ["mcp-openmemory"]
