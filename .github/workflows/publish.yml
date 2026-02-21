@@ -1,0 +1,129 @@
+name: Publish
+
+on:
+    # Fires automatically when a vX.Y.Z tag is pushed to any branch
+    push:
+        tags:
+            - "v*"
+
+    # Manual trigger — useful for re-publishing or testing the workflow.
+    # If no tag is supplied the version is read from package/package.json.
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: "Git tag to release (e.g. v0.2.0). Tag must already exist on the target commit."
+                required: false
+                default: ""
+
+jobs:
+    publish:
+        name: Publish to npm and GitHub Releases
+        runs-on: ubuntu-latest
+
+        permissions:
+            contents: write # create / edit GitHub releases
+            id-token: write # npm provenance attestations (SLSA) + trusted publishing
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: ./.github/actions/setup-monorepo
+
+            - name: Build all packages
+              run: bun run build
+
+            # ── Version validation ──────────────────────────────────────────────
+            # Fail fast if the package.json versions don't match the tag,
+            # or if packages within the monorepo are out of sync with each other.
+
+            - name: Validate versions
+              run: |
+                  if [ "${{ github.event_name }}" = "push" ]; then
+                      TAG="${{ github.ref_name }}"
+                  elif [ -n "${{ inputs.tag }}" ]; then
+                      TAG="${{ inputs.tag }}"
+                  else
+                      TAG=""
+                  fi
+
+                  CORE_VERSION=$(jq -r .version package/package.json)
+
+                  if [ -n "$TAG" ]; then
+                      EXPECTED="${TAG#v}"
+                      if [ "$CORE_VERSION" != "$EXPECTED" ]; then
+                          echo "::error::Tag $TAG does not match core package version $CORE_VERSION"
+                          exit 1
+                      fi
+                  fi
+
+                  for dir in package cli mcp-server plugins/*/; do
+                      [ -f "$dir/package.json" ] || continue
+                      PKG_VERSION=$(jq -r .version "$dir/package.json")
+                      if [ "$PKG_VERSION" != "$CORE_VERSION" ]; then
+                          echo "::error::Version mismatch: $dir is at $PKG_VERSION, expected $CORE_VERSION"
+                          exit 1
+                      fi
+                  done
+
+                  echo "All packages are at version $CORE_VERSION — OK"
+
+            # ── Determine release tag ───────────────────────────────────────────
+
+            - name: Determine release tag
+              id: tag
+              run: |
+                  if [ "${{ github.event_name }}" = "push" ]; then
+                      echo "name=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+                  elif [ -n "${{ inputs.tag }}" ]; then
+                      echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "name=v$(jq -r .version package/package.json)" >> "$GITHUB_OUTPUT"
+                  fi
+
+            # ── Pack ───────────────────────────────────────────────────────────
+            # Pack before publishing so a broken pack doesn't leave us in a
+            # half-published state.
+
+            - name: Pack all packages
+              run: |
+                  DEST="${{ github.workspace }}/release-tarballs"
+                  mkdir -p "$DEST"
+                  for dir in package cli mcp-server plugins/*/; do
+                      [ -f "$dir/package.json" ] || continue
+                      (cd "$dir" && npm pack --ignore-scripts --pack-destination "$DEST")
+                  done
+
+            # ── Publish ─────────────────────────────────────────────────────────
+            # npm authenticates via OIDC (Trusted Publisher) — no stored token needed.
+
+            # Publish the core package first — all plugins peer-depend on it.
+            - name: Publish boperators (core)
+              run: npm publish --ignore-scripts --access public --provenance
+              working-directory: package
+
+            # Publish the remaining packages in any order.
+            - name: Publish remaining packages
+              run: |
+                  for dir in cli mcp-server plugins/*/; do
+                      [ -f "$dir/package.json" ] || continue
+                      echo "::group::Publishing $dir"
+                      (cd "$dir" && npm publish --ignore-scripts --access public --provenance)
+                      echo "::endgroup::"
+                  done
+
+            # ── GitHub Release ──────────────────────────────────────────────────
+
+            - name: Create or update GitHub release
+              run: |
+                  TAG="${{ steps.tag.outputs.name }}"
+                  if gh release view "$TAG" &>/dev/null; then
+                      # Release already exists — just attach the tarballs
+                      gh release upload "$TAG" release-tarballs/*.tgz --clobber
+                  else
+                      gh release create "$TAG" \
+                          --title "$TAG" \
+                          --generate-notes \
+                          release-tarballs/*.tgz
+                  fi
+              env:
+                  GH_TOKEN: ${{ github.token }}
