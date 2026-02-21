@@ -14,7 +14,7 @@ Operator overloading is a common programming feature that JavaScript lacks. Just
 This is the core library and API, and isn't designed to be used directly. Instead, you can use:
 - The [Boperators CLI](https://www.npmjs.com/package/@boperators/cli);
 - The [`tsc`](https://www.npmjs.com/package/@boperators/plugin-tsc) plugin;
-- The [webpack loader](https://www.npmjs.com/package/@boperators/webpack-loader);
+- The [NextJS/Webpack loader](https://www.npmjs.com/package/@boperators/webpack-loader);
 - The [Vite plugin](https://www.npmjs.com/package/@boperators/plugin-vite);
 - The [ESBuild plugin](https://www.npmjs.com/package/@boperators/plugin-esbuild);
 - The [Bun plugin](https://www.npmjs.com/package/@boperators/plugin-bun) for running directly with Bun.
