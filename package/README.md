@@ -15,6 +15,8 @@ This is the core library and API, and isn't designed to be used directly. Instea
 - The [Boperators CLI](https://www.npmjs.com/package/@boperators/cli);
 - The [`tsc`](https://www.npmjs.com/package/@boperators/plugin-tsc) plugin;
 - The [webpack loader](https://www.npmjs.com/package/@boperators/webpack-loader);
+- The [Vite plugin](https://www.npmjs.com/package/@boperators/plugin-vite);
+- The [ESBuild plugin](https://www.npmjs.com/package/@boperators/plugin-esbuild);
 - The [Bun plugin](https://www.npmjs.com/package/@boperators/plugin-bun) for running directly with Bun.
 
 We also offer a [TypeScript Language Server plugin](https://www.npmjs.com/package/@boperators/plugin-ts-language-server) for real-time type hinting and intellisense in your IDE, and an [MCP server](https://www.npmjs.com/package/@boperators/mcp-server) to optimize your vibe coding experience.

@@ -75,6 +75,9 @@ for (const v of result.violations) {
 | [`@boperators/plugin-bun`](./plugins/bun/) | Bun plugin - transforms files at runtime |
 | [`@boperators/plugin-ts-language-server`](./plugins/ts-language-server/) | TypeScript Language Server plugin - IDE support with source mapping |
 | [`@boperators/plugin-tsc`](./plugins/tsc/) | ts-patch plugin - transforms during `tsc` compilation |
+| [`@boperators/webpack-loader`](./plugins/webpack/) | Webpack loader - transforms files during webpack bundling |
+| [`@boperators/plugin-vite`](./plugins/vite/) | Vite plugin - transforms files during Vite/Rollup bundling |
+| [`@boperators/plugin-esbuild`](./plugins/esbuild/) | ESBuild plugin - transforms files during ESBuild bundling |
 | [`@boperators/mcp-server`](./mcp-server/) | MCP server - gives AI assistants access to overload info, transform previews, and scaffolding |
 
 See the [`example/`](./example/) project for a working demo.
@@ -140,7 +143,10 @@ boperators/
     bun/            Bun plugin (@boperators/plugin-bun)
     tsc/            ts-patch plugin (@boperators/plugin-tsc)
     ts-language-server/  TS Language Server plugin
-  example/          Example project
+    webpack/        Webpack loader (@boperators/webpack-loader)
+    vite/           Vite plugin (@boperators/plugin-vite)
+    esbuild/        ESBuild plugin (@boperators/plugin-esbuild)
+  examples/         Example projects
 ```
 
 ### Planned Features and TODO
@@ -164,11 +170,12 @@ boperators/
 - [x] Fix intellisense hovering
 - [x] Webpack plugin
 - [x] NextJS/Turbopack plugin **handled by webpack one, technically it's a loader**
-- [ ] Vite/ESBuild plugin
+- [x] Vite plugin
+- [x] ESBuild plugin
 - [x] Add support for Mozilla / V3 source map format, use in webpack plugin.
 - [ ] Drop ts-morph dependency???
 - [ ] A lot of logic in plugins, like `transformer` in the `tsc` plugin, that could be unified in core.
-- [ ] Update main package's README for new plugins
+- [x] Update main package's README for new plugins
 - [ ] e2e test for Bun plugin and tsc plugin
 - [ ] ???
 
