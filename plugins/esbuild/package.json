@@ -5,7 +5,7 @@
 	"description": "esbuild plugin for boperators - transforms operator overloads at build time.",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/DiefBell/boperators",
+		"url": "git+https://github.com/DiefBell/boperators.git",
 		"directory": "plugins/esbuild"
 	},
 	"bugs": {

@@ -5,7 +5,7 @@
 	"description": "ts-patch plugin for boperators - transforms operator overloads during tsc compilation.",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/DiefBell/boperators",
+		"url": "git+https://github.com/DiefBell/boperators.git",
 		"directory": "plugins/tsc"
 	},
 	"bugs": {

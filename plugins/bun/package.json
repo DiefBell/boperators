@@ -5,7 +5,7 @@
 	"description": "Bun plugin for boperators - transforms operator overloads at runtime.",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/DiefBell/boperators",
+		"url": "git+https://github.com/DiefBell/boperators.git",
 		"directory": "plugins/bun"
 	},
 	"bugs": {

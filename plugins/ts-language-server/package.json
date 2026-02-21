@@ -5,7 +5,7 @@
 	"description": "TypeScript Language Server plugin for boperators - IDE support with source mapping.",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/DiefBell/boperators",
+		"url": "git+https://github.com/DiefBell/boperators.git",
 		"directory": "plugins/ts-language-server"
 	},
 	"bugs": {

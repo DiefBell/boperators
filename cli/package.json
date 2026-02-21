@@ -5,7 +5,7 @@
 	"description": "CLI tool for boperators - transforms TypeScript files with operator overloads.",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/DiefBell/boperators",
+		"url": "git+https://github.com/DiefBell/boperators.git",
 		"directory": "cli"
 	},
 	"bugs": {

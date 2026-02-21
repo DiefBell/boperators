@@ -5,7 +5,7 @@
 	"description": "webpack loader for boperators",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/DiefBell/boperators",
+		"url": "git+https://github.com/DiefBell/boperators.git",
 		"directory": "plugins/webpack"
 	},
 	"bugs": {
