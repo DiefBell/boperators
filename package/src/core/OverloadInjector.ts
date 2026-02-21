@@ -14,15 +14,15 @@ import {
 	isPostfixUnaryOperatorSyntaxKind,
 	isPrefixUnaryOperatorSyntaxKind,
 } from "./operatorMap";
-import { SourceMap } from "./SourceMap";
+import { computeEdits, type EditRecord } from "./SourceMap";
 
 export type TransformResult = {
 	/** The mutated ts-morph SourceFile (same reference as input). */
 	sourceFile: SourceFile;
 	/** The full text after transformation. */
 	text: string;
-	/** Bidirectional source map between original and transformed text. */
-	sourceMap: SourceMap;
+	/** Edit records mapping positions between original and transformed text. */
+	edits: readonly EditRecord[];
 };
 
 export class OverloadInjector {
@@ -52,159 +52,178 @@ export class OverloadInjector {
 		const originalText = sourceFile.getFullText();
 		let transformCount = 0;
 
-		// Process one innermost binary expression per iteration,
-		// re-fetching descendants each time so types resolve correctly
-		// after each transformation and AST references stay fresh.
-		let changed = true;
-		while (changed) {
-			changed = false;
-			// Reverse DFS pre-order → innermost expressions first
-			const binaryExpressions = sourceFile
-				.getDescendantsOfKind(SyntaxKind.BinaryExpression)
-				.reverse();
+		// Outer loop: re-run all three passes until the file is fully stable.
+		// This is necessary because transforming a unary expression can unblock
+		// a binary expression (e.g. in `-v1 + v2`, the unary `-` must be
+		// replaced first so TypeScript can resolve its return type; the binary
+		// `+` overload then becomes matchable on the next outer iteration).
+		let outerChanged = true;
+		while (outerChanged) {
+			outerChanged = false;
 
-			for (const expression of binaryExpressions) {
-				const operatorKind = expression.getOperatorToken().getKind();
-				if (!isOperatorSyntaxKind(operatorKind)) continue;
+			// ── Binary expressions ────────────────────────────────────────────
+			// Process one innermost expression per inner iteration, re-fetching
+			// descendants each time so types resolve correctly after each
+			// transformation and AST references stay fresh.
+			let changed = true;
+			while (changed) {
+				changed = false;
+				const binaryExpressions = sourceFile
+					.getDescendantsOfKind(SyntaxKind.BinaryExpression)
+					.reverse();
 
-				const lhs = expression.getLeft();
-				const leftType = resolveExpressionType(lhs);
+				for (const expression of binaryExpressions) {
+					const operatorKind = expression.getOperatorToken().getKind();
+					if (!isOperatorSyntaxKind(operatorKind)) continue;
 
-				const rhs = expression.getRight();
-				const rightType = resolveExpressionType(rhs);
+					const lhs = expression.getLeft();
+					const leftType = resolveExpressionType(lhs);
 
-				const overloadDesc = this._overloadStore.findOverload(
-					operatorKind,
-					leftType,
-					rightType,
-				);
-				if (!overloadDesc) continue;
+					const rhs = expression.getRight();
+					const rightType = resolveExpressionType(rhs);
 
-				const {
-					className: classNameRaw,
-					classFilePath,
-					operatorString,
-					index,
-					isStatic,
-				} = overloadDesc;
+					const overloadDesc = this._overloadStore.findOverload(
+						operatorKind,
+						leftType,
+						rightType,
+					);
+					if (!overloadDesc) continue;
 
-				// Look up the fresh ClassDeclaration from the project
-				const classSourceFile =
-					this._project.getSourceFileOrThrow(classFilePath);
-				const classDecl = classSourceFile.getClassOrThrow(classNameRaw);
+					const {
+						className: classNameRaw,
+						classFilePath,
+						operatorString,
+						index,
+						isStatic,
+					} = overloadDesc;
 
-				// Ensure class is imported, get its textual name
-				const classModuleSpecifier = getModuleSpecifier(
-					sourceFile,
-					classSourceFile,
-				);
-				const className = ensureImportedName(
-					sourceFile,
-					classDecl.getSymbol()!,
-					classModuleSpecifier,
-				);
+					// Look up the fresh ClassDeclaration from the project
+					const classSourceFile =
+						this._project.getSourceFileOrThrow(classFilePath);
+					const classDecl = classSourceFile.getClassOrThrow(classNameRaw);
 
-				// Build the text code to replace the binary operator with the overload call
-				const overloadCall = isStatic
-					? `${className}["${operatorString}"][${index}](${lhs.getText()}, ${rhs.getText()})`
-					: `${lhs.getText()}["${operatorString}"][${index}].call(${lhs.getText()}, ${rhs.getText()})`;
+					// Ensure class is imported, get its textual name
+					const classSymbol = classDecl.getSymbol();
+					if (!classSymbol)
+						throw new Error(`No symbol for class "${classNameRaw}"`);
+					const classModuleSpecifier = getModuleSpecifier(
+						sourceFile,
+						classSourceFile,
+					);
+					const className = ensureImportedName(
+						sourceFile,
+						classSymbol,
+						classModuleSpecifier,
+					);
 
-				this._logger.debug(
-					`${fileName}: ${expression.getText()} => ${overloadCall}`,
-				);
-				expression.replaceWithText(overloadCall);
-				transformCount++;
-				changed = true;
-				break; // re-fetch descendants after each mutation
+					// Build the text code to replace the binary operator with the overload call
+					const overloadCall = isStatic
+						? `${className}["${operatorString}"][${index}](${lhs.getText()}, ${rhs.getText()})`
+						: `${lhs.getText()}["${operatorString}"][${index}].call(${lhs.getText()}, ${rhs.getText()})`;
+
+					this._logger.debug(
+						`${fileName}: ${expression.getText()} => ${overloadCall}`,
+					);
+					expression.replaceWithText(overloadCall);
+					transformCount++;
+					changed = true;
+					outerChanged = true;
+					break; // re-fetch descendants after each mutation
+				}
 			}
-		}
 
-		// Process prefix unary expressions (-x, +x, !x, ~x)
-		changed = true;
-		while (changed) {
-			changed = false;
-			const prefixExpressions = sourceFile
-				.getDescendantsOfKind(SyntaxKind.PrefixUnaryExpression)
-				.reverse();
+			// ── Prefix unary expressions (-x, +x, !x, ~x) ───────────────────
+			changed = true;
+			while (changed) {
+				changed = false;
+				const prefixExpressions = sourceFile
+					.getDescendantsOfKind(SyntaxKind.PrefixUnaryExpression)
+					.reverse();
 
-			for (const expression of prefixExpressions) {
-				const operatorKind = expression.getOperatorToken();
-				if (!isPrefixUnaryOperatorSyntaxKind(operatorKind)) continue;
+				for (const expression of prefixExpressions) {
+					const operatorKind = expression.getOperatorToken();
+					if (!isPrefixUnaryOperatorSyntaxKind(operatorKind)) continue;
 
-				const operand = expression.getOperand();
-				const operandType = resolveExpressionType(operand);
+					const operand = expression.getOperand();
+					const operandType = resolveExpressionType(operand);
 
-				const overloadDesc = this._overloadStore.findPrefixUnaryOverload(
-					operatorKind,
-					operandType,
-				);
-				if (!overloadDesc) continue;
+					const overloadDesc = this._overloadStore.findPrefixUnaryOverload(
+						operatorKind,
+						operandType,
+					);
+					if (!overloadDesc) continue;
 
-				const {
-					className: classNameRaw,
-					classFilePath,
-					operatorString,
-					index,
-				} = overloadDesc;
+					const {
+						className: classNameRaw,
+						classFilePath,
+						operatorString,
+						index,
+					} = overloadDesc;
 
-				const classSourceFile =
-					this._project.getSourceFileOrThrow(classFilePath);
-				const classDecl = classSourceFile.getClassOrThrow(classNameRaw);
+					const classSourceFile =
+						this._project.getSourceFileOrThrow(classFilePath);
+					const classDecl = classSourceFile.getClassOrThrow(classNameRaw);
 
-				const classModuleSpecifier = getModuleSpecifier(
-					sourceFile,
-					classSourceFile,
-				);
-				const className = ensureImportedName(
-					sourceFile,
-					classDecl.getSymbol()!,
-					classModuleSpecifier,
-				);
+					const classSymbol = classDecl.getSymbol();
+					if (!classSymbol)
+						throw new Error(`No symbol for class "${classNameRaw}"`);
+					const classModuleSpecifier = getModuleSpecifier(
+						sourceFile,
+						classSourceFile,
+					);
+					const className = ensureImportedName(
+						sourceFile,
+						classSymbol,
+						classModuleSpecifier,
+					);
 
-				const overloadCall = `${className}["${operatorString}"][${index}](${operand.getText()})`;
+					const overloadCall = `${className}["${operatorString}"][${index}](${operand.getText()})`;
 
-				this._logger.debug(
-					`${fileName}: ${expression.getText()} => ${overloadCall}`,
-				);
-				expression.replaceWithText(overloadCall);
-				transformCount++;
-				changed = true;
-				break;
+					this._logger.debug(
+						`${fileName}: ${expression.getText()} => ${overloadCall}`,
+					);
+					expression.replaceWithText(overloadCall);
+					transformCount++;
+					changed = true;
+					outerChanged = true;
+					break;
+				}
 			}
-		}
 
-		// Process postfix unary expressions (x++, x--)
-		changed = true;
-		while (changed) {
-			changed = false;
-			const postfixExpressions = sourceFile
-				.getDescendantsOfKind(SyntaxKind.PostfixUnaryExpression)
-				.reverse();
+			// ── Postfix unary expressions (x++, x--) ─────────────────────────
+			changed = true;
+			while (changed) {
+				changed = false;
+				const postfixExpressions = sourceFile
+					.getDescendantsOfKind(SyntaxKind.PostfixUnaryExpression)
+					.reverse();
 
-			for (const expression of postfixExpressions) {
-				const operatorKind = expression.getOperatorToken();
-				if (!isPostfixUnaryOperatorSyntaxKind(operatorKind)) continue;
+				for (const expression of postfixExpressions) {
+					const operatorKind = expression.getOperatorToken();
+					if (!isPostfixUnaryOperatorSyntaxKind(operatorKind)) continue;
 
-				const operand = expression.getOperand();
-				const operandType = resolveExpressionType(operand);
+					const operand = expression.getOperand();
+					const operandType = resolveExpressionType(operand);
 
-				const overloadDesc = this._overloadStore.findPostfixUnaryOverload(
-					operatorKind,
-					operandType,
-				);
-				if (!overloadDesc) continue;
+					const overloadDesc = this._overloadStore.findPostfixUnaryOverload(
+						operatorKind,
+						operandType,
+					);
+					if (!overloadDesc) continue;
 
-				const { operatorString, index } = overloadDesc;
+					const { operatorString, index } = overloadDesc;
 
-				const overloadCall = `${operand.getText()}["${operatorString}"][${index}].call(${operand.getText()})`;
+					const overloadCall = `${operand.getText()}["${operatorString}"][${index}].call(${operand.getText()})`;
 
-				this._logger.debug(
-					`${fileName}: ${expression.getText()} => ${overloadCall}`,
-				);
-				expression.replaceWithText(overloadCall);
-				transformCount++;
-				changed = true;
-				break;
+					this._logger.debug(
+						`${fileName}: ${expression.getText()} => ${overloadCall}`,
+					);
+					expression.replaceWithText(overloadCall);
+					transformCount++;
+					changed = true;
+					outerChanged = true;
+					break;
+				}
 			}
 		}
 
@@ -215,8 +234,8 @@ export class OverloadInjector {
 		}
 
 		const text = sourceFile.getFullText();
-		const sourceMap = new SourceMap(originalText, text);
+		const edits = computeEdits(originalText, text);
 
-		return { sourceFile, text, sourceMap };
+		return { sourceFile, text, edits };
 	}
 }

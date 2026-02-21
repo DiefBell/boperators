@@ -1,0 +1,15 @@
+{
+	"include": ["src"],
+	"exclude": ["src/**/*.test.ts"],
+	"compilerOptions": {
+		"target": "es2016",
+		"module": "commonjs",
+		"rootDir": "./src",
+		"outDir": "./dist",
+		"declaration": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"strict": true,
+		"skipLibCheck": true
+	}
+}

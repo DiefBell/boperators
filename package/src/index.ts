@@ -27,7 +27,9 @@ export {
 	isPrefixUnaryOperatorSyntaxKind,
 } from "./core/operatorMap";
 export type { EditRecord } from "./core/SourceMap";
-export { SourceMap } from "./core/SourceMap";
+export { computeEdits } from "./core/SourceMap";
+export type { V3SourceMap } from "./core/v3SourceMap";
+export { toV3SourceMap } from "./core/v3SourceMap";
 export type {
 	ExportViolation,
 	ExportViolationReason,

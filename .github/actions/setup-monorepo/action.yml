@@ -1,0 +1,24 @@
+name: Set up monorepo
+description: Install Bun, Node 22, and monorepo dependencies
+
+runs:
+  using: composite
+  steps:
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+
+    - uses: actions/cache@v4
+      with:
+        path: ~/.bun/install/cache
+        key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-bun-
+
+    - name: Install monorepo dependencies
+      run: bun install --frozen-lockfile
+      shell: bash

@@ -1,0 +1,23 @@
+{
+	"name": "@boperators/example-nextjs",
+	"private": true,
+	"scripts": {
+		"dev": "next dev --turbopack",
+		"build": "next build --turbopack",
+		"start": "next start"
+	},
+	"dependencies": {
+		"next": "^15.0.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0"
+	},
+	"devDependencies": {
+		"@boperators/plugin-ts-language-server": "file:../../plugins/ts-language-server",
+		"@boperators/webpack-loader": "file:../../plugins/webpack",
+		"@types/node": "^22.0.0",
+		"@types/react": "^19.0.0",
+		"@types/react-dom": "^19.0.0",
+		"boperators": "file:../../package",
+		"typescript": "^5.0.0"
+	}
+}

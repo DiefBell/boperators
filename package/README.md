@@ -11,7 +11,13 @@ Operator overloading is a common programming feature that JavaScript lacks. Just
 
 `boperators` finally brings operator overloading to JavaScript by leveraging TypeScript typings. You define one or more overload functions on a class for whichever operators you want, and with magic we search for anywhere you've used overloaded operators and substitute in your functions.
 
-This is the core library and API, and isn't designed to be used directly. Instead, you can use the [Boperators CLI](https://www.npmjs.com/package/@boperators/cli) or our plugins for [compiling with `tsc`](https://www.npmjs.com/package/@boperators/plugin-tsc) or for [running directly with Bun](https://www.npmjs.com/package/@boperators/plugin-bun).
+This is the core library and API, and isn't designed to be used directly. Instead, you can use:
+- The [Boperators CLI](https://www.npmjs.com/package/@boperators/cli);
+- The [`tsc`](https://www.npmjs.com/package/@boperators/plugin-tsc) plugin;
+- The [webpack loader](https://www.npmjs.com/package/@boperators/webpack-loader);
+- The [Vite plugin](https://www.npmjs.com/package/@boperators/plugin-vite);
+- The [ESBuild plugin](https://www.npmjs.com/package/@boperators/plugin-esbuild);
+- The [Bun plugin](https://www.npmjs.com/package/@boperators/plugin-bun) for running directly with Bun.
 
 We also offer a [TypeScript Language Server plugin](https://www.npmjs.com/package/@boperators/plugin-ts-language-server) for real-time type hinting and intellisense in your IDE, and an [MCP server](https://www.npmjs.com/package/@boperators/mcp-server) to optimize your vibe coding experience.
 

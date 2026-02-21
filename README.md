@@ -75,6 +75,9 @@ for (const v of result.violations) {
 | [`@boperators/plugin-bun`](./plugins/bun/) | Bun plugin - transforms files at runtime |
 | [`@boperators/plugin-ts-language-server`](./plugins/ts-language-server/) | TypeScript Language Server plugin - IDE support with source mapping |
 | [`@boperators/plugin-tsc`](./plugins/tsc/) | ts-patch plugin - transforms during `tsc` compilation |
+| [`@boperators/webpack-loader`](./plugins/webpack/) | Webpack loader - transforms files during webpack bundling |
+| [`@boperators/plugin-vite`](./plugins/vite/) | Vite plugin - transforms files during Vite/Rollup bundling |
+| [`@boperators/plugin-esbuild`](./plugins/esbuild/) | ESBuild plugin - transforms files during ESBuild bundling |
 | [`@boperators/mcp-server`](./mcp-server/) | MCP server - gives AI assistants access to overload info, transform previews, and scaffolding |
 
 See the [`example/`](./example/) project for a working demo.
@@ -84,6 +87,7 @@ See the [`example/`](./example/) project for a working demo.
 ### Prerequisites
 
 - [Bun](https://bun.sh) (runtime, package manager, and workspace tooling)
+- **Windows only:** [Developer Mode](ms-settings:developers) must be enabled (`Settings → System → For developers → Developer Mode`). Bun uses symlinks to link local packages, which Windows requires elevated permission for.
 
 ### Setup
 
@@ -139,7 +143,10 @@ boperators/
     bun/            Bun plugin (@boperators/plugin-bun)
     tsc/            ts-patch plugin (@boperators/plugin-tsc)
     ts-language-server/  TS Language Server plugin
-  example/          Example project
+    webpack/        Webpack loader (@boperators/webpack-loader)
+    vite/           Vite plugin (@boperators/plugin-vite)
+    esbuild/        ESBuild plugin (@boperators/plugin-esbuild)
+  examples/         Example projects
 ```
 
 ### Planned Features and TODO
@@ -149,7 +156,7 @@ boperators/
 - [x] TypeScript compiler plugin with ts-patch.
 - [x] Ensure classes correctly inherit the overloads of their parent class(es).
 - [x] Ensure that when trying to match a binary operation to its overload that we also look at the parents of each operand if they're child classes that may be compatible.
-- [ ] Write tests, set up CI.
+- [x] Write tests, set up CI.
 - [x] MCP server for docs and tools. Allow viewing transformed for specific lines as well as whole file.
 - [x] Double check this `ts-morph` dependency - can we keep it to only the core package? And put required `typescript` version in a range?
 - [x] `--project` to specify a TS config file for the CLI.
@@ -161,9 +168,15 @@ boperators/
 - [x] Cli/tsc tool to check if a library is valid i.e. exports all classes with overloads.
 - [x] Fix CLI transformed output to match folder structure that tsc output would have
 - [x] Fix intellisense hovering
-- [ ] NextJS/Turbopack plugin
-- [ ] Webpack plugin
-- [ ] Other plugins???
+- [x] Webpack plugin
+- [x] NextJS/Turbopack plugin **handled by webpack one, technically it's a loader**
+- [x] Vite plugin
+- [x] ESBuild plugin
+- [x] Add support for Mozilla / V3 source map format, use in webpack plugin.
+- [ ] Drop ts-morph dependency???
+- [ ] A lot of logic in plugins, like `transformer` in the `tsc` plugin, that could be unified in core.
+- [x] Update main package's README for new plugins
+- [ ] e2e test for Bun plugin and tsc plugin
 - [ ] ???
 
 ### License

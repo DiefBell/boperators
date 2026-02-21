@@ -1,0 +1,12 @@
+{
+	"name": "@boperators/example-cli",
+	"private": true,
+	"scripts": {
+		"build": "bop compile --ts-out ts-out"
+	},
+	"devDependencies": {
+		"@boperators/cli": "file:../../cli",
+		"boperators": "file:../../package",
+		"typescript": "^5.0.0"
+	}
+}

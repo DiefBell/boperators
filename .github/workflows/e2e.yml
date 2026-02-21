@@ -1,0 +1,185 @@
+name: E2E
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ─── CLI example ─────────────────────────────────────────────────────────────
+  cli-example:
+    name: CLI example
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-monorepo
+
+      # Packages must be built before the example can link to their dist output
+      - name: Build packages
+        run: bun run build
+
+      - name: Install CLI example dependencies
+        run: bun install
+        working-directory: examples/cli
+
+      - name: Build CLI example
+        run: bun run build
+        working-directory: examples/cli
+
+      - name: Assert Bun output (transformed TypeScript)
+        run: bun run ts-out/index.ts | grep -q "Vec2(4, 6)"
+        working-directory: examples/cli
+
+      - name: Assert Node output (emitted JavaScript)
+        run: node dist/index.js | grep -q "Vec2(4, 6)"
+        working-directory: examples/cli
+
+      - name: Run operator overload tests (Bun)
+        run: bun run ts-out/test.ts
+        working-directory: examples/cli
+
+      - name: Run operator overload tests (Node)
+        run: node dist/test.js
+        working-directory: examples/cli
+
+  # ─── Webpack example ────────────────────────────────────────────────────────
+  webpack-example:
+    name: Webpack example
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-monorepo
+
+      # Packages must be built before the example can link to their dist output
+      - name: Build packages
+        run: bun run build
+
+      - name: Cache webpack example npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-webpack-example-${{ hashFiles('examples/webpack/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-webpack-example-
+            ${{ runner.os }}-npm-
+
+      - name: Install webpack example dependencies
+        run: npm install
+        working-directory: examples/webpack
+
+      - name: Build webpack bundle
+        run: npm run build
+        working-directory: examples/webpack
+
+      - name: Assert bundle output
+        run: node dist/bundle.js | grep -q "Vec2(4, 6)"
+        working-directory: examples/webpack
+
+  # ─── esbuild example ────────────────────────────────────────────────────────
+  esbuild-example:
+    name: esbuild example
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-monorepo
+
+      - name: Build packages
+        run: bun run build
+
+      - name: Cache esbuild example npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-esbuild-example-${{ hashFiles('examples/esbuild/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-esbuild-example-
+            ${{ runner.os }}-npm-
+
+      - name: Install esbuild example dependencies
+        run: npm install
+        working-directory: examples/esbuild
+
+      - name: Build esbuild bundle
+        run: npm run build
+        working-directory: examples/esbuild
+
+      - name: Assert bundle output
+        run: node dist/bundle.js | grep -q "Vec2(4, 6)"
+        working-directory: examples/esbuild
+
+  # ─── Vite example ───────────────────────────────────────────────────────────
+  vite-example:
+    name: Vite example
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-monorepo
+
+      - name: Build packages
+        run: bun run build
+
+      - name: Cache Vite example npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-vite-example-${{ hashFiles('examples/vite/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-vite-example-
+            ${{ runner.os }}-npm-
+
+      - name: Install Vite example dependencies
+        run: npm install
+        working-directory: examples/vite
+
+      - name: Build Vite bundle
+        run: npm run build
+        working-directory: examples/vite
+
+      - name: Assert bundle contains operator overload transformation
+        run: grep -rq 'Vec2\["+"\]\[0\]' examples/vite/dist/
+
+  # ─── Next.js example ────────────────────────────────────────────────────────
+  nextjs-example:
+    name: Next.js example
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-monorepo
+
+      - name: Build packages
+        run: bun run build
+
+      - name: Cache Next.js example npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-nextjs-example-${{ hashFiles('examples/nextjs/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-nextjs-example-
+            ${{ runner.os }}-npm-
+
+      - name: Install Next.js example dependencies
+        run: npm install
+        working-directory: examples/nextjs
+
+      - name: Start Turbopack dev server and assert output
+        run: |
+          npm run dev &
+          for i in $(seq 1 60); do
+            curl -s http://localhost:3000 2>/dev/null | grep -q "Vec2(4, 6)" && exit 0
+            sleep 1
+          done
+          echo "Timed out waiting for expected output"
+          exit 1
+        working-directory: examples/nextjs

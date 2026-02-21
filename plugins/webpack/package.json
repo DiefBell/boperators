@@ -1,0 +1,49 @@
+{
+	"name": "@boperators/webpack-loader",
+	"version": "0.2.0",
+	"license": "MIT",
+	"description": "webpack loader for boperators",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/DiefBell/boperators",
+		"directory": "plugins/webpack"
+	},
+	"bugs": {
+		"url": "https://github.com/DiefBell/boperators/issues"
+	},
+	"homepage": "https://github.com/DiefBell/boperators/tree/main/plugins/webpack",
+	"type": "commonjs",
+	"main": "./dist/index.js",
+	"keywords": [
+		"boperators",
+		"typescript",
+		"operator",
+		"overload",
+		"operator-overloading",
+		"webpack",
+		"transform"
+	],
+	"scripts": {
+		"build": "tsc",
+		"watch": "tsc -w",
+		"test": "bun test",
+		"test:watch": "bun test --watch",
+		"prepublish": "bun run build"
+	},
+	"files": [
+		"package.json",
+		"README.md",
+		"license.txt",
+		"dist"
+	],
+	"peerDependencies": {
+		"boperators": "0.2.0",
+		"typescript": ">=5.0.0 <5.10.0"
+	},
+	"devDependencies": {
+		"@types/node": "^25.2.3",
+		"@types/webpack": "^5.28.5",
+		"boperators": "file:../../package",
+		"webpack": "^5.105.2"
+	}
+}

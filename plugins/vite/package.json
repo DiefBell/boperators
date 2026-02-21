@@ -1,0 +1,51 @@
+{
+	"name": "@boperators/plugin-vite",
+	"version": "0.2.0",
+	"license": "MIT",
+	"description": "Vite plugin for boperators - transforms operator overloads at build time.",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/DiefBell/boperators",
+		"directory": "plugins/vite"
+	},
+	"bugs": {
+		"url": "https://github.com/DiefBell/boperators/issues"
+	},
+	"homepage": "https://github.com/DiefBell/boperators/tree/main/plugins/vite",
+	"type": "commonjs",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"keywords": [
+		"boperators",
+		"typescript",
+		"operator",
+		"overload",
+		"operator-overloading",
+		"vite",
+		"plugin",
+		"rollup"
+	],
+	"scripts": {
+		"build": "tsc",
+		"watch": "tsc -w",
+		"test": "bun test",
+		"test:watch": "bun test --watch",
+		"prepublish": "bun run build"
+	},
+	"files": [
+		"package.json",
+		"README.md",
+		"license.txt",
+		"dist"
+	],
+	"peerDependencies": {
+		"boperators": "0.2.0",
+		"typescript": ">=5.0.0 <5.10.0",
+		"vite": ">=4.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "^25.2.3",
+		"boperators": "file:../../package",
+		"vite": "^6.3.5"
+	}
+}

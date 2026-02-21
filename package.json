@@ -21,6 +21,8 @@
 		"build:bun-plugin": "bun run --filter @boperators/plugin-bun build",
 		"build:tsc-plugin": "bun run --filter @boperators/plugin-tsc build",
 		"build:mcp": "bun run --filter @boperators/mcp-server build",
+		"build:vite-plugin": "bun run --filter @boperators/plugin-vite build",
+		"build:esbuild-plugin": "bun run --filter @boperators/plugin-esbuild build",
 		"build": "bun run build:boperators && bun run --filter '!boperators' build",
 		"prepare": "husky",
 		"check": "biome check .",
@@ -28,7 +30,8 @@
 		"check:write": "biome check --write .",
 		"format": "biome format --write .",
 		"watch": "concurrently \"bun run --filter boperators watch\" \"bun run --filter @boperators/plugin-ts-language-server watch\" \"bun run --filter @boperators/plugin-tsc watch\" \"bun run --filter @boperators/cli watch\"",
-		"example": "cd example && bun run transform && bun run start"
+		"example": "cd example && bun run transform && bun run start",
+		"test:e2e": "cd example && bun install && bun run webpack"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.14",
