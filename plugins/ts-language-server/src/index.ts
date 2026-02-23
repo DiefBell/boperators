@@ -357,6 +357,14 @@ function findOverloadEdits(
 // ----- Overload hover info -----
 
 /**
+ * Strip fully-qualified import paths from a type name so that
+ * `import("/path/to/Vec2").Vec2` is displayed as just `Vec2`.
+ */
+function simplifyTypeName(typeName: string): string {
+	return typeName.replace(/\bimport\("[^"]*"\)\./g, "");
+}
+
+/**
  * Build a QuickInfo response for hovering over an operator token
  * that corresponds to an overloaded operator. Extracts the function
  * signature and JSDoc from the overload definition.
@@ -394,14 +402,14 @@ function getOverloadHoverInfo(
 
 		// Build display signature parts based on overload kind.
 		// Types are sourced from the resolved expression types stored at scan time.
-		const returnTypeName = edit.returnType;
+		const returnTypeName = simplifyTypeName(edit.returnType);
 		const displayParts: tsRuntime.SymbolDisplayPart[] = [];
 
 		if (edit.kind === "prefixUnary") {
 			// Prefix unary: "-Vector3 = Vector3"
 			displayParts.push({ text: edit.operatorString, kind: "operator" });
 			displayParts.push({
-				text: edit.operandType ?? edit.className,
+				text: simplifyTypeName(edit.operandType ?? edit.className),
 				kind: "className",
 			});
 			if (returnTypeName !== "void") {
@@ -415,14 +423,14 @@ function getOverloadHoverInfo(
 		} else if (edit.isStatic) {
 			// Binary static: "LhsType + RhsType = ReturnType"
 			displayParts.push({
-				text: edit.lhsType ?? edit.className,
+				text: simplifyTypeName(edit.lhsType ?? edit.className),
 				kind: "className",
 			});
 			displayParts.push({ text: " ", kind: "space" });
 			displayParts.push({ text: edit.operatorString, kind: "operator" });
 			displayParts.push({ text: " ", kind: "space" });
 			displayParts.push({
-				text: edit.rhsType ?? edit.className,
+				text: simplifyTypeName(edit.rhsType ?? edit.className),
 				kind: "className",
 			});
 			if (returnTypeName !== "void") {
@@ -436,7 +444,7 @@ function getOverloadHoverInfo(
 			displayParts.push({ text: edit.operatorString, kind: "operator" });
 			displayParts.push({ text: " ", kind: "space" });
 			displayParts.push({
-				text: edit.rhsType ?? "unknown",
+				text: simplifyTypeName(edit.rhsType ?? "unknown"),
 				kind: "className",
 			});
 			if (returnTypeName !== "void") {
