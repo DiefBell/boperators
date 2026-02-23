@@ -19,8 +19,7 @@ export class ColoredVec2 extends Vec2 {
 	}
 
 	// Override + to return a ColoredVec2 with a blended color label
-	static readonly "+" = [
-		(a: ColoredVec2, b: ColoredVec2): ColoredVec2 =>
-			new ColoredVec2(a.x + b.x, a.y + b.y, `${a.color}+${b.color}`),
-	] as const;
+	static "+"(a: ColoredVec2, b: ColoredVec2): ColoredVec2 {
+		return new ColoredVec2(a.x + b.x, a.y + b.y, `${a.color}+${b.color}`);
+	}
 }

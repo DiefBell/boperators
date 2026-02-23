@@ -15,73 +15,66 @@ export class Vec3 {
 
 	// ── Binary arithmetic ──────────────────────────────────────────────────────
 
-	static readonly "+" = [
-		(a: Vec3, b: Vec3): Vec3 => new Vec3(a.x + b.x, a.y + b.y, a.z + b.z),
-	] as const;
+	static "+"(a: Vec3, b: Vec3): Vec3 {
+		return new Vec3(a.x + b.x, a.y + b.y, a.z + b.z);
+	}
 
-	// [0] Vec3 - Vec3  [1] -Vec3 (negate)
-	static readonly "-" = [
-		(a: Vec3, b: Vec3): Vec3 => new Vec3(a.x - b.x, a.y - b.y, a.z - b.z),
-		(a: Vec3): Vec3 => new Vec3(-a.x, -a.y, -a.z),
-	] as const;
+	// Binary Vec3 - Vec3, and prefix unary -Vec3 (negate), combined on one method
+	static "-"(a: Vec3, b: Vec3): Vec3;
+	static "-"(a: Vec3): Vec3;
+	static "-"(a: Vec3, b?: Vec3): Vec3 {
+		if (b) return new Vec3(a.x - b.x, a.y - b.y, a.z - b.z);
+		return new Vec3(-a.x, -a.y, -a.z);
+	}
 
-	static readonly "*" = [
-		(a: Vec3, b: number): Vec3 => new Vec3(a.x * b, a.y * b, a.z * b),
-	] as const;
+	static "*"(a: Vec3, b: number): Vec3 {
+		return new Vec3(a.x * b, a.y * b, a.z * b);
+	}
 
 	// Cross product: a × b
-	static readonly "%" = [
-		(a: Vec3, b: Vec3): Vec3 =>
-			new Vec3(
-				a.y * b.z - a.z * b.y,
-				a.z * b.x - a.x * b.z,
-				a.x * b.y - a.y * b.x,
-			),
-	] as const;
+	static "%"(a: Vec3, b: Vec3): Vec3 {
+		return new Vec3(
+			a.y * b.z - a.z * b.y,
+			a.z * b.x - a.x * b.z,
+			a.x * b.y - a.y * b.x,
+		);
+	}
 
 	// ── Comparison ─────────────────────────────────────────────────────────────
 
-	static readonly "==" = [
-		(a: Vec3, b: Vec3): boolean => a.x === b.x && a.y === b.y && a.z === b.z,
-	] as const;
+	static "=="(a: Vec3, b: Vec3): boolean {
+		return a.x === b.x && a.y === b.y && a.z === b.z;
+	}
 
-	static readonly "!=" = [
-		(a: Vec3, b: Vec3): boolean => a.x !== b.x || a.y !== b.y || a.z !== b.z,
-	] as const;
+	static "!="(a: Vec3, b: Vec3): boolean {
+		return a.x !== b.x || a.y !== b.y || a.z !== b.z;
+	}
 
-	// ── Compound assignment (instance, function expressions, return void) ──────
+	// ── Compound assignment (instance methods, return void) ───────────────────
 
-	readonly "+=" = [
-		function (this: Vec3, b: Vec3): void {
-			this.x += b.x;
-			this.y += b.y;
-			this.z += b.z;
-		},
-	] as const;
+	"+="(b: Vec3): void {
+		this.x += b.x;
+		this.y += b.y;
+		this.z += b.z;
+	}
 
-	readonly "-=" = [
-		function (this: Vec3, b: Vec3): void {
-			this.x -= b.x;
-			this.y -= b.y;
-			this.z -= b.z;
-		},
-	] as const;
+	"-="(b: Vec3): void {
+		this.x -= b.x;
+		this.y -= b.y;
+		this.z -= b.z;
+	}
 
-	readonly "*=" = [
-		function (this: Vec3, b: number): void {
-			this.x *= b;
-			this.y *= b;
-			this.z *= b;
-		},
-	] as const;
+	"*="(b: number): void {
+		this.x *= b;
+		this.y *= b;
+		this.z *= b;
+	}
 
-	// ── Postfix unary (instance, function expressions, return void) ───────────
+	// ── Postfix unary (instance methods, return void) ─────────────────────────
 
-	readonly "++" = [
-		function (this: Vec3): void {
-			this.x++;
-			this.y++;
-			this.z++;
-		},
-	] as const;
+	"++"(): void {
+		this.x++;
+		this.y++;
+		this.z++;
+	}
 }

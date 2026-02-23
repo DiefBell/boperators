@@ -5,18 +5,14 @@ import { ErrorManager } from "./ErrorManager";
 import { OverloadInjector } from "./OverloadInjector";
 import { OverloadStore } from "./OverloadStore";
 
-// A minimal in-memory Vec2 class with a static "+" overload
+// A minimal in-memory Vec2 class with static "+" and "-" overloads
 const VEC2_SOURCE = `
 export class Vec2 {
 	x: number;
 	y: number;
 	constructor(x: number, y: number) { this.x = x; this.y = y; }
-	static readonly "+" = [
-		(a: Vec2, b: Vec2): Vec2 => new Vec2(a.x + b.x, a.y + b.y),
-	] as const;
-	static readonly "-" = [
-		(a: Vec2, b: Vec2): Vec2 => new Vec2(a.x - b.x, a.y - b.y),
-	] as const;
+	static "+"(a: Vec2, b: Vec2): Vec2 { return new Vec2(a.x + b.x, a.y + b.y); }
+	static "-"(a: Vec2, b: Vec2): Vec2 { return new Vec2(a.x - b.x, a.y - b.y); }
 }
 `.trim();
 
@@ -52,7 +48,7 @@ const c = a + b;
 		);
 
 		const result = injector.overloadFile(usageFile);
-		expect(result.text).toContain('Vec2["+"][0](a, b)');
+		expect(result.text).toContain('Vec2["+"](a, b)');
 	});
 
 	it("produces non-empty edits when a transformation occurs", () => {
@@ -98,7 +94,7 @@ const e = b + c;
 		);
 
 		const result = injector.overloadFile(usageFile);
-		expect(result.text.match(/Vec2\["\+"\]\[0\]/g)?.length).toBe(2);
+		expect(result.text.match(/Vec2\["\+"\]/g)?.length).toBe(2);
 	});
 
 	it("transforms different operators independently", () => {
@@ -115,8 +111,8 @@ const diff = a - b;
 		);
 
 		const result = injector.overloadFile(usageFile);
-		expect(result.text).toContain('Vec2["+"][0](a, b)');
-		expect(result.text).toContain('Vec2["-"][0](a, b)');
+		expect(result.text).toContain('Vec2["+"](a, b)');
+		expect(result.text).toContain('Vec2["-"](a, b)');
 	});
 
 	it("returns the same SourceFile reference as the input", () => {

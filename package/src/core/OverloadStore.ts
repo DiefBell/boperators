@@ -306,7 +306,10 @@ export class OverloadStore extends Map<
 			const classType = normalizeTypeName(classDecl.getType().getText());
 
 			// Group method declarations by operator string.
-			// Each group may contain overload signatures (no body) and an implementation (with body).
+			// For each implementation, we use its overload signatures for per-type discrimination.
+			// If there are no overload signatures (simple one-signature methods), we use the
+			// implementation itself. In .d.ts files getMethods() returns declaration-only nodes with
+			// no body and no overloads, so they are naturally pushed as-is and treated as individual sigs.
 			const methodGroups = new Map<string, MethodDeclaration[]>();
 			for (const method of classDecl.getMethods()) {
 				const operatorString = getOperatorStringFromMethod(method);
@@ -317,13 +320,16 @@ export class OverloadStore extends Map<
 					group = [];
 					methodGroups.set(operatorString, group);
 				}
-				group.push(method);
+				// Use individual overload signatures for per-type discrimination.
+				// Fall back to the implementation itself when there are no overloads.
+				const overloadSigs = method.getOverloads();
+				group.push(...(overloadSigs.length > 0 ? overloadSigs : [method]));
 			}
 
 			methodGroups.forEach((methods, operatorString) => {
-				// Use overload signatures (no body); fall back to the implementation if there are none.
-				// In .d.ts files all method declarations lack a body, so they are naturally treated
-				// as overload signatures without any special-casing.
+				// All entries are either overload signatures (no body) or implementations
+				// with no overloads. Use the no-body ones preferentially; if all have bodies
+				// (implementation-only methods), use them directly.
 				const overloadSigs = methods.filter((m) => !m.hasBody());
 				const sigsToProcess = overloadSigs.length > 0 ? overloadSigs : methods;
 
@@ -454,12 +460,19 @@ export class OverloadStore extends Map<
 	): void {
 		let hasWarning = false;
 
-		const lhsType = isStatic
-			? normalizeTypeName(parameters[0]?.getType().getText() ?? "")
-			: classType;
+		// Use the declared type annotation text rather than the resolved type.
+		// `parameter.getType().getText()` on an overload signature may return a union
+		// of all overload signatures' types (e.g. `Vec2 | undefined`) instead of the
+		// type declared in this specific signature (e.g. `Vec2`).
+		const getParamTypeName = (p: ParameterDeclaration | undefined): string =>
+			normalizeTypeName(
+				p?.getTypeNode()?.getText() ?? p?.getType().getText() ?? "",
+			);
+
+		const lhsType = isStatic ? getParamTypeName(parameters[0]) : classType;
 		const rhsType = isStatic
-			? normalizeTypeName(parameters[1]?.getType().getText() ?? "")
-			: normalizeTypeName(parameters[0]?.getType().getText() ?? "");
+			? getParamTypeName(parameters[1])
+			: getParamTypeName(parameters[0]);
 
 		if (isStatic && lhsType !== classType && rhsType !== classType) {
 			this._errorManager.addWarning(
@@ -557,8 +570,11 @@ export class OverloadStore extends Map<
 	): void {
 		let hasWarning = false;
 
+		// Use the declared type annotation to avoid union widening from overload groups.
 		const operandType = normalizeTypeName(
-			parameters[0]?.getType().getText() ?? "",
+			parameters[0]?.getTypeNode()?.getText() ??
+				parameters[0]?.getType().getText() ??
+				"",
 		);
 
 		if (operandType !== classType) {

@@ -265,9 +265,9 @@ assertEq(
 const lhs = String(T1 * T2 * point);
 const rhs = String(T1 * (T2 * point));
 assertEq(lhs, rhs, "Mat4: (T1*T2)*p == T1*(T2*p) (associativity)");
-// The key chain: Mat4*Mat4 dispatches to overload [0], Mat4*Vec3 dispatches to overload [1]
-// T1 * T2 → Mat4 (uses overload [0])
-// Mat4 * point → Vec3 (uses overload [1])
+// The key chain: Mat4*Mat4 dispatches to the Mat4 overload, Mat4*Vec3 dispatches to the Vec3 overload
+// T1 * T2 → Mat4 (uses Mat4 overload)
+// Mat4 * point → Vec3 (uses Vec3 overload)
 assertEq(
 	String(T1 * T2 * point),
 	"Vec3(6, 9, 12)",
@@ -301,7 +301,7 @@ assertEq(
 console.log("::endgroup::");
 
 console.log("::group::Inheritance — fallback to Vec2 overloads");
-// - not overridden → type chain falls through to Vec2["-"][0], returns Vec2
+// - not overridden → type chain falls through to Vec2["-"](), returns Vec2
 assertEq(String(cv2 - cv1), "Vec2(2, 2)", "Inheritance: - falls back to Vec2");
 // unary - not overridden
 assertEq(
@@ -331,7 +331,7 @@ console.log("::endgroup::");
 console.log("::group::Inheritance — mixed type (ColoredVec2 op Vec2)");
 // LHS chain: [ColoredVec2, Vec2], RHS chain: [Vec2]
 // ColoredVec2's + requires both sides to be ColoredVec2, so it is skipped.
-// Falls through to Vec2["+"][0](cv1, v1), returning a plain Vec2.
+// Falls through to Vec2["+"](cv1, v1), returning a plain Vec2.
 assertEq(
 	String(cv1 + v1),
 	"Vec2(2, 4)",
@@ -340,9 +340,9 @@ assertEq(
 console.log("::endgroup::");
 
 console.log("::group::Inheritance — inherited postfix and compound assignment");
-// ++ is inherited: boperators calls cv4["++"][0].call(cv4), which is Vec2's
-// function and mutates .x and .y in place. cv4 is still a ColoredVec2 instance
-// so toString() still includes the color.
+// ++ is inherited: boperators calls cv4["++"](), which is Vec2's method and
+// mutates .x and .y in place. cv4 is still a ColoredVec2 instance so
+// toString() still includes the color.
 let cv4 = new ColoredVec2(5, 5, "purple");
 cv4++;
 assertEq(
