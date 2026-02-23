@@ -145,7 +145,7 @@ jobs:
         working-directory: examples/vite
 
       - name: Assert bundle contains operator overload transformation
-        run: grep -rq 'Vec2\["+"\]\[0\]' examples/vite/dist/
+        run: grep -rq 'Vec2\["+"\](' examples/vite/dist/
 
   # ─── Next.js example ────────────────────────────────────────────────────────
   nextjs-example:
