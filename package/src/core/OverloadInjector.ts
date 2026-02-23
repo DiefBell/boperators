@@ -93,7 +93,6 @@ export class OverloadInjector {
 						className: classNameRaw,
 						classFilePath,
 						operatorString,
-						index,
 						isStatic,
 					} = overloadDesc;
 
@@ -118,8 +117,8 @@ export class OverloadInjector {
 
 					// Build the text code to replace the binary operator with the overload call
 					const overloadCall = isStatic
-						? `${className}["${operatorString}"][${index}](${lhs.getText()}, ${rhs.getText()})`
-						: `${lhs.getText()}["${operatorString}"][${index}].call(${lhs.getText()}, ${rhs.getText()})`;
+						? `${className}["${operatorString}"](${lhs.getText()}, ${rhs.getText()})`
+						: `${lhs.getText()}["${operatorString}"](${rhs.getText()})`;
 
 					this._logger.debug(
 						`${fileName}: ${expression.getText()} => ${overloadCall}`,
@@ -157,7 +156,6 @@ export class OverloadInjector {
 						className: classNameRaw,
 						classFilePath,
 						operatorString,
-						index,
 					} = overloadDesc;
 
 					const classSourceFile =
@@ -177,7 +175,7 @@ export class OverloadInjector {
 						classModuleSpecifier,
 					);
 
-					const overloadCall = `${className}["${operatorString}"][${index}](${operand.getText()})`;
+					const overloadCall = `${className}["${operatorString}"](${operand.getText()})`;
 
 					this._logger.debug(
 						`${fileName}: ${expression.getText()} => ${overloadCall}`,
@@ -211,9 +209,9 @@ export class OverloadInjector {
 					);
 					if (!overloadDesc) continue;
 
-					const { operatorString, index } = overloadDesc;
+					const { operatorString } = overloadDesc;
 
-					const overloadCall = `${operand.getText()}["${operatorString}"][${index}].call(${operand.getText()})`;
+					const overloadCall = `${operand.getText()}["${operatorString}"]()`;
 
 					this._logger.debug(
 						`${fileName}: ${expression.getText()} => ${overloadCall}`,
