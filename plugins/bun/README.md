@@ -32,6 +32,10 @@ and reference that in your `bunfig.toml`:
 preload = ["./preload.ts"]
 ```
 
+## Source Maps
+
+Bun's runtime plugin API (`OnLoadResult`) does not support returning a source map from `onLoad` callbacks. This means breakpoints will land on the **transformed** code (e.g. `Vec2["+"](a, b)`) rather than the original operator expression (e.g. `a + b`). The [webpack loader](../webpack/) and [Vite plugin](../vite/) do not have this limitation.
+
 ## Comparison with Other Approaches
 
 | Approach | When it runs | Use case |
