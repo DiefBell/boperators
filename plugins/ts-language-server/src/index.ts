@@ -1,7 +1,7 @@
 import {
 	type BopLogger,
 	ErrorManager,
-	getOperatorStringFromProperty,
+	getOperatorStringFromMethod,
 	isOperatorSyntaxKind,
 	isPostfixUnaryOperatorSyntaxKind,
 	isPrefixUnaryOperatorSyntaxKind,
@@ -13,7 +13,6 @@ import {
 	SyntaxKind,
 	Project as TsMorphProject,
 	type SourceFile as TsMorphSourceFile,
-	unwrapInitializer,
 } from "boperators";
 import type tsRuntime from "typescript/lib/tsserverlibrary";
 import { SourceMap } from "./SourceMap";
@@ -43,7 +42,13 @@ type OverloadEditInfo = {
 	className: string;
 	classFilePath: string;
 	operatorString: string;
-	index: number;
+	returnType: string;
+	/** LHS type (binary overloads only) */
+	lhsType?: string;
+	/** RHS type (binary overloads only) */
+	rhsType?: string;
+	/** Operand type (unary overloads only) */
+	operandType?: string;
 	isStatic: boolean;
 	kind: "binary" | "prefixUnary" | "postfixUnary";
 };
@@ -262,7 +267,9 @@ function findOverloadEdits(
 			className: overloadDesc.className,
 			classFilePath: overloadDesc.classFilePath,
 			operatorString: overloadDesc.operatorString,
-			index: overloadDesc.index,
+			returnType: overloadDesc.returnType,
+			lhsType: leftType,
+			rhsType: rightType,
 			isStatic: overloadDesc.isStatic,
 			kind: "binary",
 		});
@@ -299,7 +306,8 @@ function findOverloadEdits(
 			className: overloadDesc.className,
 			classFilePath: overloadDesc.classFilePath,
 			operatorString: overloadDesc.operatorString,
-			index: overloadDesc.index,
+			returnType: overloadDesc.returnType,
+			operandType: operandType,
 			isStatic: overloadDesc.isStatic,
 			kind: "prefixUnary",
 		});
@@ -336,7 +344,8 @@ function findOverloadEdits(
 			className: overloadDesc.className,
 			classFilePath: overloadDesc.classFilePath,
 			operatorString: overloadDesc.operatorString,
-			index: overloadDesc.index,
+			returnType: overloadDesc.returnType,
+			operandType: operandType,
 			isStatic: overloadDesc.isStatic,
 			kind: "postfixUnary",
 		});
@@ -358,135 +367,81 @@ function getOverloadHoverInfo(
 	edit: OverloadEditInfo,
 ): tsRuntime.QuickInfo | undefined {
 	try {
-		const classSourceFile = project.getSourceFile(edit.classFilePath);
-		if (!classSourceFile) return undefined;
-
-		const classDecl = classSourceFile.getClass(edit.className);
-		if (!classDecl) return undefined;
-
-		// Find the property with the matching operator string
-		const prop = classDecl.getProperties().find((p) => {
-			if (!Node.isPropertyDeclaration(p)) return false;
-			return getOperatorStringFromProperty(p) === edit.operatorString;
-		});
-		if (!prop || !Node.isPropertyDeclaration(prop)) return undefined;
-
-		// Extract param types and return type from either the initializer (regular
-		// .ts files) or the type annotation (.d.ts files where initializers are
-		// stripped by TypeScript's declaration emit).
-		let params: { typeName: string }[] = [];
-		let returnTypeName: string;
+		// Extract JSDoc from the method declaration (or its first overload signature).
 		let docText: string | undefined;
-
-		const initializer = unwrapInitializer(prop.getInitializer());
-		if (initializer && Node.isArrayLiteralExpression(initializer)) {
-			const element = initializer.getElements()[edit.index];
-			if (
-				!element ||
-				(!Node.isFunctionExpression(element) && !Node.isArrowFunction(element))
-			)
-				return undefined;
-
-			const nonThisParams = element
-				.getParameters()
-				.filter((p) => p.getName() !== "this");
-			params = nonThisParams.map((p) => ({
-				typeName: p.getType().getText(element),
-			}));
-			returnTypeName = element.getReturnType().getText(element);
-
-			const jsDocs = element.getJsDocs();
-			if (jsDocs.length > 0) {
-				const raw = jsDocs[0].getText();
-				docText = raw
-					.replace(/^\/\*\*\s*/, "")
-					.replace(/\s*\*\/$/, "")
-					.replace(/^\s*\* ?/gm, "")
-					.trim();
+		const classSourceFile = project.getSourceFile(edit.classFilePath);
+		if (classSourceFile) {
+			const classDecl = classSourceFile.getClass(edit.className);
+			if (classDecl) {
+				const method = classDecl
+					.getMethods()
+					.find((m) => getOperatorStringFromMethod(m) === edit.operatorString);
+				if (method) {
+					const overloads = method.getOverloads();
+					const source = overloads.length > 0 ? overloads[0] : method;
+					const jsDocs = source.getJsDocs();
+					if (jsDocs.length > 0) {
+						const raw = jsDocs[0].getText();
+						docText = raw
+							.replace(/^\/\*\*\s*/, "")
+							.replace(/\s*\*\/$/, "")
+							.replace(/^\s*\* ?/gm, "")
+							.trim();
+					}
+				}
 			}
-		} else {
-			// Type-annotation fallback for .d.ts files
-			const propertyType = prop.getType();
-			if (!propertyType.isTuple()) return undefined;
-			const tupleElements = propertyType.getTupleElements();
-			if (edit.index >= tupleElements.length) return undefined;
-
-			const elementType = tupleElements[edit.index];
-			const callSigs = elementType.getCallSignatures();
-			if (callSigs.length === 0) return undefined;
-			const sig = callSigs[0];
-
-			for (const sym of sig.getParameters()) {
-				if (sym.getName() === "this") continue;
-				const decl = sym.getValueDeclaration();
-				if (!decl) continue;
-				params.push({ typeName: decl.getType().getText(prop) });
-			}
-			returnTypeName = sig.getReturnType().getText(prop);
 		}
 
-		// Build display signature parts based on overload kind
+		// Build display signature parts based on overload kind.
+		// Types are sourced from the resolved expression types stored at scan time.
+		const returnTypeName = edit.returnType;
 		const displayParts: tsRuntime.SymbolDisplayPart[] = [];
 
 		if (edit.kind === "prefixUnary") {
 			// Prefix unary: "-Vector3 = Vector3"
+			displayParts.push({ text: edit.operatorString, kind: "operator" });
 			displayParts.push({
-				text: edit.operatorString,
-				kind: "operator",
+				text: edit.operandType ?? edit.className,
+				kind: "className",
 			});
-			const operandType =
-				params.length >= 1 ? params[0].typeName : edit.className;
-			displayParts.push({ text: operandType, kind: "className" });
 			if (returnTypeName !== "void") {
 				displayParts.push({ text: " = ", kind: "punctuation" });
-				displayParts.push({
-					text: returnTypeName,
-					kind: "className",
-				});
+				displayParts.push({ text: returnTypeName, kind: "className" });
 			}
 		} else if (edit.kind === "postfixUnary") {
 			// Postfix unary: "Vector3++"
 			displayParts.push({ text: edit.className, kind: "className" });
-			displayParts.push({
-				text: edit.operatorString,
-				kind: "operator",
-			});
-		} else if (edit.isStatic && params.length >= 2) {
+			displayParts.push({ text: edit.operatorString, kind: "operator" });
+		} else if (edit.isStatic) {
 			// Binary static: "LhsType + RhsType = ReturnType"
-			const lhsType = params[0].typeName;
-			const rhsType = params[1].typeName;
-			displayParts.push({ text: lhsType, kind: "className" });
-			displayParts.push({ text: " ", kind: "space" });
 			displayParts.push({
-				text: edit.operatorString,
-				kind: "operator",
+				text: edit.lhsType ?? edit.className,
+				kind: "className",
 			});
 			displayParts.push({ text: " ", kind: "space" });
-			displayParts.push({ text: rhsType, kind: "className" });
+			displayParts.push({ text: edit.operatorString, kind: "operator" });
+			displayParts.push({ text: " ", kind: "space" });
+			displayParts.push({
+				text: edit.rhsType ?? edit.className,
+				kind: "className",
+			});
 			if (returnTypeName !== "void") {
 				displayParts.push({ text: " = ", kind: "punctuation" });
-				displayParts.push({
-					text: returnTypeName,
-					kind: "className",
-				});
+				displayParts.push({ text: returnTypeName, kind: "className" });
 			}
 		} else {
 			// Binary instance: "ClassName += RhsType"
-			const rhsType = params.length >= 1 ? params[0].typeName : "unknown";
 			displayParts.push({ text: edit.className, kind: "className" });
 			displayParts.push({ text: " ", kind: "space" });
-			displayParts.push({
-				text: edit.operatorString,
-				kind: "operator",
-			});
+			displayParts.push({ text: edit.operatorString, kind: "operator" });
 			displayParts.push({ text: " ", kind: "space" });
-			displayParts.push({ text: rhsType, kind: "className" });
+			displayParts.push({
+				text: edit.rhsType ?? "unknown",
+				kind: "className",
+			});
 			if (returnTypeName !== "void") {
 				displayParts.push({ text: " = ", kind: "punctuation" });
-				displayParts.push({
-					text: returnTypeName,
-					kind: "className",
-				});
+				displayParts.push({ text: returnTypeName, kind: "className" });
 			}
 		}
 
