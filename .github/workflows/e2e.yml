@@ -114,6 +114,27 @@ jobs:
         run: node dist/bundle.js | grep -q "Vec2(4, 6)"
         working-directory: examples/esbuild
 
+  # ─── Bun example ────────────────────────────────────────────────────────────
+  bun-example:
+    name: Bun example
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-monorepo
+
+      - name: Build packages
+        run: bun run build
+
+      - name: Install Bun example dependencies
+        run: bun install
+        working-directory: examples/bun
+
+      - name: Assert Bun output
+        run: bun run start | grep -q "Vec2(4, 6)"
+        working-directory: examples/bun
+
   # ─── Vite example ───────────────────────────────────────────────────────────
   vite-example:
     name: Vite example
