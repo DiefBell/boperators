@@ -36,6 +36,31 @@ v1 += v2;              // => v1["+="](v2)
 
 Overloads defined on a parent class are automatically inherited by subclasses. For example, if `Expr` defines `+` and `*`, a `Sym extends Expr` class can use those operators without redeclaring them.
 
+## Multiple overloads per operator
+
+A single operator can handle multiple type combinations using standard TypeScript method overload signatures. boperators registers each signature separately and dispatches to the correct one based on the operand types at each call site:
+
+```typescript
+class Vec2 {
+    // Vec2 * Vec2 → component-wise multiplication
+    static "*"(a: Vec2, b: Vec2): Vec2;
+    // Vec2 * number → scalar multiplication
+    static "*"(a: Vec2, b: number): Vec2;
+    static "*"(a: Vec2, b: Vec2 | number): Vec2 {
+        if (b instanceof Vec2) return new Vec2(a.x * b.x, a.y * b.y);
+        return new Vec2(a.x * b, a.y * b);
+    }
+}
+
+const a = new Vec2(1, 2);
+const b = new Vec2(3, 4);
+
+a * b;   // => Vec2["*"](a, b)   → Vec2(3, 8)  — routes to the Vec2 overload
+a * 2;   // => Vec2["*"](a, 2)   → Vec2(2, 4)  — routes to the number overload
+```
+
+The implementation method must accept the union of all overload parameter types; only the overload signatures (those without a body) are registered in the overload store.
+
 ## Publishing a library
 
 If you are publishing a package that exports classes with operator overloads, consumers need to be able to import those classes for the transformed code to work. Run the following before publishing to catch any missing exports:

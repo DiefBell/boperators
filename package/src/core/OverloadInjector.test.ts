@@ -144,4 +144,49 @@ const y = 1 + 2 + 3;
 		const result = injector.overloadFile(usageFile);
 		expect(result.edits.length).toBe(0);
 	});
+
+	it("routes each TypeScript overload signature to the correct transformed call", () => {
+		// Vec2 with two overloads for "*": Vec2*Vec2 (component-wise) and Vec2*number (scalar).
+		// Each overload signature is a separate entry in the store and dispatches correctly.
+		const multiOverloadSource = `
+export class Vec2 {
+	x: number;
+	y: number;
+	constructor(x: number, y: number) { this.x = x; this.y = y; }
+	static "*"(a: Vec2, b: Vec2): Vec2;
+	static "*"(a: Vec2, b: number): Vec2;
+	static "*"(a: Vec2, b: Vec2 | number): Vec2 {
+		if (b instanceof Vec2) return new Vec2(a.x * b.x, a.y * b.y);
+		return new Vec2(a.x * b, a.y * b);
+	}
+}
+`.trim();
+
+		const project = new Project({ useInMemoryFileSystem: true });
+		const vec2File = project.createSourceFile(
+			"/Vec2Multi.ts",
+			multiOverloadSource,
+		);
+		const errorManager = new ErrorManager(silentConfig);
+		const store = new OverloadStore(project, errorManager, silentConfig.logger);
+		store.addOverloadsFromFile(vec2File);
+		const injector = new OverloadInjector(project, store, silentConfig.logger);
+
+		const usageFile = project.createSourceFile(
+			"/usage_multi.ts",
+			`
+import { Vec2 } from "./Vec2Multi";
+const a = new Vec2(1, 2);
+const b = new Vec2(3, 4);
+const c = a * b;
+const d = a * 2;
+`.trim(),
+		);
+
+		const result = injector.overloadFile(usageFile);
+		expect(result.text).toContain('Vec2["*"](a, b)');
+		expect(result.text).toContain('Vec2["*"](a, 2)');
+		expect(result.text).not.toContain("a * b");
+		expect(result.text).not.toContain("a * 2");
+	});
 });

@@ -52,6 +52,7 @@ const v0 = new Vec2(0, 0);
 console.log("::group::Vec2 binary arithmetic");
 assertEq(String(v1 + v2), "Vec2(4, 6)", "Vec2: +");
 assertEq(String(v2 - v1), "Vec2(2, 2)", "Vec2: -");
+assertEq(String(v1 * v2), "Vec2(3, 8)", "Vec2: * Vec2 (component-wise)"); // 1*3=3, 2*4=8
 assertEq(String(v1 * 3), "Vec2(3, 6)", "Vec2: * scalar");
 assertEq(String(v2 / 2), "Vec2(1.5, 2)", "Vec2: / scalar");
 assertEq(String(v2 % 3), "Vec2(0, 1)", "Vec2: % scalar"); // 3%3=0, 4%3=1
