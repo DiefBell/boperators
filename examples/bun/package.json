@@ -1,0 +1,13 @@
+{
+	"name": "@boperators/example-bun",
+	"private": true,
+	"scripts": {
+		"start": "bun run src/index.ts"
+	},
+	"devDependencies": {
+		"@boperators/plugin-bun": "file:../../plugins/bun",
+		"@boperators/plugin-ts-language-server": "file:../../plugins/ts-language-server",
+		"boperators": "file:../../package",
+		"typescript": "^5.0.0"
+	}
+}

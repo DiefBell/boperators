@@ -32,6 +32,9 @@
 		"license.txt",
 		"index.ts"
 	],
+	"engines": {
+		"bun": ">=1.3.0"
+	},
 	"peerDependencies": {
 		"boperators": "0.3.0",
 		"typescript": ">=5.0.0 <5.10.0"

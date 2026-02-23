@@ -4,6 +4,8 @@
 
 Bun plugin for [boperators](https://www.npmjs.com/package/boperators) that ensures operator overloads work when running TypeScript files directly with Bun, instead of requiring an intermediate transform step.
 
+> **Requires Bun ≥ 1.3.0.** Older versions have a known bug where preloaded plugins prevent TypeScript files from being transpiled correctly.
+
 ## Installation
 
 ```sh
