@@ -173,9 +173,10 @@ boperators/
 - [x] Vite plugin
 - [x] ESBuild plugin
 - [x] Add support for Mozilla / V3 source map format, use in webpack plugin.
-- [ ] Drop ts-morph dependency???
+- [ ] ~~Drop ts-morph dependency???~~ NOPE
 - [ ] A lot of logic in plugins, like `transformer` in the `tsc` plugin, that could be unified in core.
 - [x] Update main package's README for new plugins
+- [ ] Sub-package for using Symbols
 - [ ] e2e test for Bun plugin and tsc plugin
 - [ ] ???
 
