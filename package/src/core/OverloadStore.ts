@@ -1,5 +1,4 @@
 import {
-	type ClassDeclaration,
 	type MethodDeclaration,
 	type ParameterDeclaration,
 	SourceFile,

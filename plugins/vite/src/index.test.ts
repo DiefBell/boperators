@@ -70,10 +70,8 @@ describe("@boperators/plugin-vite", () => {
 		source: string,
 		filePath: string,
 	): { code: string; map: unknown } | null | undefined {
-		// biome-ignore lint/suspicious/noExplicitAny: mocking Rollup plugin context
-		const fn = plugin.transform as
-			| ((code: string, id: string) => any)
-			| undefined;
+		// biome-ignore lint/complexity/noBannedTypes: TODO, address this properly if we can
+		const fn = plugin.transform as Function | undefined;
 		return fn?.call({} as never, source, filePath);
 	}
 
@@ -133,9 +131,8 @@ describe("@boperators/plugin-vite", () => {
 			root: tmpDir,
 		});
 
-		// biome-ignore lint/suspicious/noExplicitAny: mocking Rollup plugin context
 		const fn = plugin2.transform as
-			| ((code: string, id: string) => any)
+			| ((code: string, id: string) => { code?: string })
 			| undefined;
 		const result = fn?.call(
 			{} as never,
