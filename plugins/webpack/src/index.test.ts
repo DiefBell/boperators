@@ -10,9 +10,7 @@ export class Vec2 {
 	x: number;
 	y: number;
 	constructor(x: number, y: number) { this.x = x; this.y = y; }
-	static readonly "+" = [
-		(a: Vec2, b: Vec2): Vec2 => new Vec2(a.x + b.x, a.y + b.y),
-	] as const;
+	static "+"(a: Vec2, b: Vec2): Vec2 { return new Vec2(a.x + b.x, a.y + b.y); }
 }
 `.trim();
 
@@ -89,7 +87,7 @@ describe("@boperators/webpack-loader", () => {
 			path.join(tmpDir, "usage.ts"),
 		);
 		expect(error).toBeNull();
-		expect(code as string).toContain('Vec2["+"][0](a, b)');
+		expect(code as string).toContain('Vec2["+"](a, b)');
 	});
 
 	it("provides a V3 source map for the transformed output", () => {
@@ -129,7 +127,7 @@ describe("@boperators/webpack-loader", () => {
 			{ project: "tsconfig.json" },
 		);
 		expect(error).toBeNull();
-		expect(code as string).toContain('Vec2["+"][0](a, b)');
+		expect(code as string).toContain('Vec2["+"](a, b)');
 	});
 
 	it("calls the error callback when tsconfig cannot be found", () => {

@@ -45,7 +45,7 @@ boperators({
 The plugin initialises once when Vite resolves its config, then transforms files on demand:
 
 1. `configResolved` — creates a [ts-morph](https://ts-morph.com) Project from your tsconfig and scans all source files for operator overload definitions
-2. `transform` — for each `.ts`/`.tsx` file, syncs ts-morph's in-memory state with the current file content (so HMR edits are picked up without restarting), then replaces operator expressions (e.g. `v1 + v2` becomes `Vector3["+"][0](v1, v2)`) and returns a V3 source map so breakpoints and stack traces map back to the original source
+2. `transform` — for each `.ts`/`.tsx` file, syncs ts-morph's in-memory state with the current file content (so HMR edits are picked up without restarting), then replaces operator expressions (e.g. `v1 + v2` becomes `Vector3["+"](v1, v2)`) and returns a V3 source map so breakpoints and stack traces map back to the original source
 
 ## Comparison with Other Approaches
 

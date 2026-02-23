@@ -22,7 +22,7 @@ bun add -D @boperators/mcp-server
 |------|-------------|:-------------------:|
 | [`list_overloads`](#list_overloads) | List all registered overloads in the project, with optional filtering by class or operator | ✓ |
 | [`transform_preview`](#transform_preview) | Preview the transformed output for a file or a line range within it | ✓ |
-| [`scaffold_overloads`](#scaffold_overloads) | Generate `as const` boilerplate for a set of operators on a named class | — |
+| [`scaffold_overloads`](#scaffold_overloads) | Generate method boilerplate for a set of operators on a named class | — |
 | [`validate_overloads`](#validate_overloads) | Validate overload definitions in a single file and return structured diagnostics | ✓ |
 | [`explain_expression`](#explain_expression) | Reverse-engineer a transformed call expression back to its original operator and overload metadata | optional |
 
@@ -57,11 +57,11 @@ Transforms a file and returns the original and transformed text side by side, al
 
 ### `scaffold_overloads`
 
-Generates ready-to-paste TypeScript property declarations for a list of operators on a given class. Automatically uses the correct form for each operator:
+Generates ready-to-paste TypeScript method declarations for a list of operators on a given class. Automatically uses the correct form for each operator:
 
-- **Static binary** (`+`, `-`, `*`, …) — `static readonly "+" = [(a: T, b: T): T => { … }] as const`
+- **Static binary** (`+`, `-`, `*`, …) — `static "+"(a: T, b: T): T { … }`
 - **Comparison** (`>`, `==`, …) — static, returns `boolean`
-- **Instance compound** (`+=`, `-=`, …) — instance, `function(this: T, rhs: T): void`
+- **Instance compound** (`+=`, `-=`, …) — instance, `"+="(rhs: T): void { … }`
 - **Prefix unary** (`!`, `~`) — static, one parameter
 - **Postfix unary** (`++`, `--`) — instance, no parameters, returns `void`
 
@@ -80,7 +80,7 @@ Does not require a `tsconfig` — it is purely generative.
 
 Runs the boperators scanning pipeline against a single file in isolation and returns structured diagnostics without modifying any state. Reports:
 
-- **Errors** — wrong arity, missing `as const`, return type violations
+- **Errors** — wrong arity, return type violations
 - **Warnings** — duplicate/conflicting overload registrations
 - The count of successfully parsed overloads
 
@@ -95,7 +95,7 @@ Runs the boperators scanning pipeline against a single file in isolation and ret
 
 ### `explain_expression`
 
-Given a transformed boperators expression (e.g. `Vector3["+"][0](a, b)` or `v["+="][0].call(v, rhs)`), decodes it back to the original operator, identifies whether it is static/instance and binary/unary, and optionally enriches the result with metadata from the project's overload store.
+Given a transformed boperators expression (e.g. `Vector3["+"](a, b)` or `v["+="](rhs)` or `v["++"]( )`), decodes it back to the original operator, identifies whether it is static/instance and binary/unary, and optionally enriches the result with metadata from the project's overload store.
 
 **Inputs**
 

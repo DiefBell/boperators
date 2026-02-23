@@ -4,7 +4,7 @@ Operator overloading for TypeScript.
 
 ![Sym.JS logo](https://github.com/DiefBell/boperators/blob/653ea138f4dcd1e6b4dd112133a4942f70e91fb3/logo.png)
 
-`boperators` lets you define operator overloads (`+`, `-`, `*=`, `==`, etc.) on your TypeScript classes. It works by transforming your source code at the AST level using [ts-morph](https://ts-morph.com), replacing expressions like `v1 + v2` with the corresponding overload call `Vector3["+"][0](v1, v2)`.
+`boperators` lets you define operator overloads (`+`, `-`, `*=`, `==`, etc.) on your TypeScript classes. It works by transforming your source code at the AST level using [ts-morph](https://ts-morph.com), replacing expressions like `v1 + v2` with the corresponding overload call `Vector3["+"](v1, v2)`.
 
 ## Quick Start
 
@@ -14,30 +14,25 @@ class Vector3 {
     public y: number;
     public z: number;
 
-    // Static operator: takes two parameters
-    static readonly "+" = [
-        (a: Vector3, b: Vector3) =>
-            new Vector3(a.x + b.x, a.y + b.y, a.z + b.z),
-    ] as const;
+    // Static operator: takes two parameters, returns a new instance
+    static "+"(a: Vector3, b: Vector3): Vector3 {
+        return new Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
+    }
 
-    // Instance operator: takes one parameter, uses `this`
-    readonly "+=" = [
-        function (this: Vector3, rhs: Vector3): void {
-            this.x += rhs.x;
-            this.y += rhs.y;
-            this.z += rhs.z;
-        },
-    ] as const;
+    // Instance operator: takes one parameter, mutates in place
+    "+="(rhs: Vector3): void {
+        this.x += rhs.x;
+        this.y += rhs.y;
+        this.z += rhs.z;
+    }
 
     // ...
 }
 
 // Usage - these get transformed automatically:
-const v3 = v1 + v2;    // => Vector3["+"][0](v1, v2)
-v1 += v2;              // => v1["+="][0].call(v1, v2)
+const v3 = v1 + v2;    // => Vector3["+"](v1, v2)
+v1 += v2;              // => v1["+="](v2)
 ```
-
-> **Important:** Overload arrays **must** use `as const`. Without it, TypeScript widens the array type and loses individual function signatures, causing type errors in the generated code. boperators will error if `as const` is missing.
 
 Overloads defined on a parent class are automatically inherited by subclasses. For example, if `Expr` defines `+` and `*`, a `Sym extends Expr` class can use those operators without redeclaring them.
 
