@@ -27,6 +27,7 @@
 	"scripts": {
 		"build": "tsc",
 		"watch": "tsc --watch",
+		"test": "bun test",
 		"prepublish": "bun run build"
 	},
 	"files": [
