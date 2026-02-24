@@ -188,7 +188,7 @@ describe("getOverloadHoverInfo", () => {
 		const result = getOverloadHoverInfo(mockTs, project, edit);
 
 		expect(result).toBeDefined();
-		const joined = result!.displayParts.map((p) => p.text).join("");
+		const joined = result?.displayParts.map((p) => p.text).join("");
 		expect(joined).toBe("Vec2 + Vec2 = Vec2");
 	});
 
@@ -214,7 +214,7 @@ describe("getOverloadHoverInfo", () => {
 		const result = getOverloadHoverInfo(mockTs, project, edit);
 
 		expect(result).toBeDefined();
-		const joined = result!.displayParts.map((p) => p.text).join("");
+		const joined = result?.displayParts.map((p) => p.text).join("");
 		expect(joined).not.toContain("import(");
 		expect(joined).toContain("Vec2");
 	});
@@ -241,8 +241,8 @@ describe("getOverloadHoverInfo", () => {
 		const result = getOverloadHoverInfo(mockTs, project, edit);
 
 		expect(result).toBeDefined();
-		expect(result!.documentation).toBeDefined();
-		expect(result!.documentation![0].text).toContain("Adds two vectors");
+		expect(result?.documentation).toBeDefined();
+		expect(result?.documentation?.[0].text).toContain("Adds two vectors");
 	});
 
 	it("returns a result without documentation when the class file is not in the project", () => {
@@ -268,8 +268,8 @@ describe("getOverloadHoverInfo", () => {
 
 		// No class source file → no JSDoc, but display parts still built from edit fields
 		expect(result).toBeDefined();
-		expect(result!.documentation).toBeUndefined();
-		const joined = result!.displayParts.map((p) => p.text).join("");
+		expect(result?.documentation).toBeUndefined();
+		const joined = result?.displayParts.map((p) => p.text).join("");
 		expect(joined).toContain("+");
 	});
 
@@ -294,7 +294,7 @@ describe("getOverloadHoverInfo", () => {
 		const result = getOverloadHoverInfo(mockTs, project, edit);
 
 		expect(result).toBeDefined();
-		const parts = result!.displayParts;
+		const parts = result?.displayParts;
 		expect(parts[0].text).toBe("-");
 		expect(parts[1].text).toBe("Vec2");
 	});
@@ -320,7 +320,7 @@ describe("getOverloadHoverInfo", () => {
 		const result = getOverloadHoverInfo(mockTs, project, edit);
 
 		expect(result).toBeDefined();
-		const parts = result!.displayParts;
+		const parts = result?.displayParts;
 		expect(parts[0].text).toBe("Vec2");
 		expect(parts[1].text).toBe("++");
 	});
@@ -346,6 +346,6 @@ describe("getOverloadHoverInfo", () => {
 
 		const result = getOverloadHoverInfo(mockTs, project, edit);
 
-		expect(result!.kindModifiers).toBe("static");
+		expect(result?.kindModifiers).toBe("static");
 	});
 });

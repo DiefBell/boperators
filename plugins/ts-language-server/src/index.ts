@@ -142,18 +142,16 @@ function getSourceMapForFile(
 	return entry.sourceMap;
 }
 
-function remapDiagnosticSpan(
-	diag: { start?: number; length?: number },
+function withRemappedSpan<T extends { start?: number; length?: number }>(
+	diag: T,
 	sourceMap: SourceMap,
-): void {
-	if (diag.start !== undefined && diag.length !== undefined) {
-		const remapped = sourceMap.remapSpan({
-			start: diag.start,
-			length: diag.length,
-		});
-		diag.start = remapped.start;
-		diag.length = remapped.length;
-	}
+): T {
+	if (diag.start === undefined || diag.length === undefined) return diag;
+	const remapped = sourceMap.remapSpan({
+		start: diag.start,
+		length: diag.length,
+	});
+	return { ...diag, start: remapped.start, length: remapped.length };
 }
 
 function createProxy(
@@ -186,27 +184,31 @@ function createProxy(
 		return false;
 	};
 
+	function remapDiagnostics<
+		T extends tsRuntime.Diagnostic | tsRuntime.DiagnosticWithLocation,
+	>(result: readonly T[], entry: CacheEntry | undefined): T[] {
+		const sourceMap =
+			entry?.sourceMap.isEmpty === false ? entry.sourceMap : undefined;
+		if (!sourceMap) return result as T[];
+		return result.map((diag) => {
+			const remapped = withRemappedSpan(diag, sourceMap);
+			if (!remapped.relatedInformation?.length) return remapped;
+			return {
+				...remapped,
+				relatedInformation: remapped.relatedInformation.map((related) => {
+					const relatedMap = related.file
+						? getSourceMapForFile(cache, related.file.fileName)
+						: undefined;
+					return relatedMap ? withRemappedSpan(related, relatedMap) : related;
+				}),
+			};
+		});
+	}
+
 	proxy.getSemanticDiagnostics = (fileName) => {
 		const result = ls.getSemanticDiagnostics(fileName);
 		const entry = cache.get(fileName);
-		const sourceMap =
-			entry?.sourceMap.isEmpty === false ? entry.sourceMap : undefined;
-
-		if (sourceMap) {
-			for (const diag of result) {
-				remapDiagnosticSpan(diag, sourceMap);
-				if (diag.relatedInformation) {
-					for (const related of diag.relatedInformation) {
-						const relatedMap = related.file
-							? getSourceMapForFile(cache, related.file.fileName)
-							: undefined;
-						if (relatedMap) remapDiagnosticSpan(related, relatedMap);
-					}
-				}
-			}
-		}
-
-		return result.filter(
+		return remapDiagnostics(result, entry).filter(
 			(diag) => !isOverloadSuppressed(diag.code, diag.start, entry),
 		);
 	};
@@ -214,37 +216,18 @@ function createProxy(
 	proxy.getSyntacticDiagnostics = (fileName) => {
 		const result = ls.getSyntacticDiagnostics(fileName);
 		const entry = cache.get(fileName);
-		const sourceMap =
-			entry?.sourceMap.isEmpty === false ? entry.sourceMap : undefined;
-
-		if (sourceMap) {
-			for (const diag of result) {
-				remapDiagnosticSpan(diag, sourceMap);
-				if (diag.relatedInformation) {
-					for (const related of diag.relatedInformation) {
-						const relatedMap = related.file
-							? getSourceMapForFile(cache, related.file.fileName)
-							: undefined;
-						if (relatedMap) remapDiagnosticSpan(related, relatedMap);
-					}
-				}
-			}
-		}
-
-		return result.filter(
+		return remapDiagnostics(result, entry).filter(
 			(diag) => !isOverloadSuppressed(diag.code, diag.start, entry),
-		);
+		) as tsRuntime.DiagnosticWithLocation[];
 	};
 
 	proxy.getSuggestionDiagnostics = (fileName) => {
 		const result = ls.getSuggestionDiagnostics(fileName);
-		const sourceMap = getSourceMapForFile(cache, fileName);
-		if (!sourceMap) return result;
-
-		for (const diag of result) {
-			remapDiagnosticSpan(diag, sourceMap);
-		}
-		return result;
+		const entry = cache.get(fileName);
+		return remapDiagnostics(
+			result,
+			entry,
+		) as tsRuntime.DiagnosticWithLocation[];
 	};
 
 	// --- Hover: remap input position + output span, custom operator hover ---
