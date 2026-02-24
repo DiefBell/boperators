@@ -272,57 +272,47 @@ function generateOverloadProperty(className: string, operator: string): string {
 	if (postfixUnaryOperatorStrings.has(operator)) {
 		// Postfix unary: instance, no params, returns void
 		return [
-			`\tpublic readonly "${operator}" = [`,
-			`\t\tfunction (this: ${className}): void {`,
-			"\t\t\t// TODO: implement",
-			"\t\t},",
-			"\t] as const;",
+			`\tpublic "${operator}"(): void {`,
+			"\t\t// TODO: implement",
+			"\t}",
 		].join("\n");
 	}
 
 	if (exclusivePrefixUnaryStrings.has(operator)) {
 		// Prefix unary: static, one param (self), returns ClassName
 		return [
-			`\tpublic static readonly "${operator}" = [`,
-			`\t\t(a: ${className}): ${className} => {`,
-			"\t\t\t// TODO: implement",
-			`\t\t\treturn new ${className}();`,
-			"\t\t},",
-			"\t] as const;",
+			`\tpublic static "${operator}"(a: ${className}): ${className} {`,
+			"\t\t// TODO: implement",
+			`\t\treturn new ${className}();`,
+			"\t}",
 		].join("\n");
 	}
 
 	if (instanceOperatorStrings.has(operator)) {
 		// Instance mutation: instance, one param, returns void
 		return [
-			`\tpublic readonly "${operator}" = [`,
-			`\t\tfunction (this: ${className}, other: ${className}): void {`,
-			"\t\t\t// TODO: implement",
-			"\t\t},",
-			"\t] as const;",
+			`\tpublic "${operator}"(other: ${className}): void {`,
+			"\t\t// TODO: implement",
+			"\t}",
 		].join("\n");
 	}
 
 	if (comparisonOperatorStrings.has(operator)) {
 		// Comparison: static, two params, returns boolean
 		return [
-			`\tpublic static readonly "${operator}" = [`,
-			`\t\t(a: ${className}, b: ${className}): boolean => {`,
-			"\t\t\t// TODO: implement",
-			"\t\t\treturn false;",
-			"\t\t},",
-			"\t] as const;",
+			`\tpublic static "${operator}"(a: ${className}, b: ${className}): boolean {`,
+			"\t\t// TODO: implement",
+			"\t\treturn false;",
+			"\t}",
 		].join("\n");
 	}
 
 	// Static binary: two params, returns ClassName
 	return [
-		`\tpublic static readonly "${operator}" = [`,
-		`\t\t(a: ${className}, b: ${className}): ${className} => {`,
-		"\t\t\t// TODO: implement",
-		`\t\t\treturn new ${className}();`,
-		"\t\t},",
-		"\t] as const;",
+		`\tpublic static "${operator}"(a: ${className}, b: ${className}): ${className} {`,
+		"\t\t// TODO: implement",
+		`\t\treturn new ${className}();`,
+		"\t}",
 	].join("\n");
 }
 
@@ -332,7 +322,7 @@ server.registerTool(
 		description:
 			"Generate TypeScript boilerplate for operator overload definitions on a class. " +
 			"Returns code ready to paste into a class body, with correct static/instance " +
-			"placement, as const assertions, and this parameters for instance operators.",
+			"placement and parameter types.",
 		inputSchema: {
 			className: z
 				.string()
@@ -392,7 +382,7 @@ server.registerTool(
 	{
 		description:
 			"Validate operator overload definitions in a single file. " +
-			"Returns structured diagnostics: errors (wrong arity, bad types, missing as const) " +
+			"Returns structured diagnostics: errors (wrong arity, bad types) " +
 			"and warnings (e.g. conflicting overloads). Does not transform the file.",
 		inputSchema: {
 			tsconfig: z
@@ -478,32 +468,39 @@ server.registerTool(
 // ---------- Tool 5: explain_expression ----------
 
 /**
- * Regex for instance-style calls:
- *   expr["op"][idx].call(expr, ...)
- * Captures: [1] operator, [2] index
+ * Regex for postfix-unary calls (instance, no args):
+ *   expr["op"]()
+ * Captures: [1] operator
  */
-const instanceCallPattern = /\["([^"]+)"\]\[(\d+)\]\.call\(/;
+const postfixCallPattern = /\["([^"]+)"\]\(\)$/;
 
 /**
- * Regex for static-style calls:
- *   ClassName["op"][idx](...)
- * Captures: [1] class name, [2] operator, [3] index
+ * Regex for instance-style calls (lowercase callee):
+ *   expr["op"](other)
+ * Captures: [1] callee, [2] operator
  */
-const staticCallPattern = /^(\w+)\["([^"]+)"\]\[(\d+)\]\(/;
+const instanceCallPattern = /^([a-z_$]\w*)\["([^"]+)"\]\(/;
+
+/**
+ * Regex for static-style calls (uppercase callee / class name):
+ *   ClassName["op"](...)
+ * Captures: [1] class name, [2] operator
+ */
+const staticCallPattern = /^([A-Z]\w*)\["([^"]+)"\]\(/;
 
 server.registerTool(
 	"explain_expression",
 	{
 		description:
 			"Explain a transformed boperators expression. " +
-			'Given an expression like Vector3["+"][0](a, b) or v["++"][0].call(v), ' +
+			'Given an expression like Vec2["+"](a, b) or a["+="](b) or a["++"](), ' +
 			"identifies the operator kind, class, and overload entry. " +
 			"Optionally looks up full overload metadata when tsconfig is provided.",
 		inputSchema: {
 			expression: z
 				.string()
 				.describe(
-					"The transformed expression to explain, e.g. 'Vector3[\"+\"][0](a, b)'.",
+					"The transformed expression to explain, e.g. 'Vec2[\"+\"](a, b)'.",
 				),
 			tsconfig: z
 				.string()
@@ -518,63 +515,65 @@ server.registerTool(
 		try {
 			const trimmed = expression.trim();
 
-			// Try instance pattern first (has .call)
-			const instanceMatch = trimmed.match(instanceCallPattern);
-			if (instanceMatch) {
-				const [, operator, indexStr] = instanceMatch;
-				const index = Number.parseInt(indexStr, 10);
-
-				// Determine if postfix unary (0 args after .call(expr)) or
-				// instance binary (.call(expr, rhs))
-				const callArgs = trimmed.slice(
-					trimmed.indexOf(".call(") + 6,
-					trimmed.lastIndexOf(")"),
-				);
-				const hasSecondArg = callArgs.includes(",");
-
-				const kind = hasSecondArg ? "instance binary" : "postfix unary";
-				const originalPattern = hasSecondArg
-					? `lhs ${operator} rhs`
-					: `operand${operator}`;
-
+			// Try postfix unary first: expr["op"]()
+			const postfixMatch = trimmed.match(postfixCallPattern);
+			if (postfixMatch) {
+				const [, operator] = postfixMatch;
 				const result: Record<string, unknown> = {
-					kind,
+					kind: "postfix unary",
 					operator,
-					index,
 					isStatic: false,
-					originalExpression: originalPattern,
-					explanation: hasSecondArg
-						? `Instance binary operator "${operator}": mutates the left-hand side in place (e.g. compound assignment).`
-						: `Postfix unary operator "${operator}": mutates the operand in place.`,
+					originalExpression: `operand${operator}`,
+					explanation: `Postfix unary operator "${operator}": mutates the operand in place.`,
 				};
 
 				if (tsconfig) {
-					const overloadInfo = lookupOverload(tsconfig, operator, index, false);
+					const overloadInfo = lookupOverload(tsconfig, operator, false);
 					if (overloadInfo) Object.assign(result, overloadInfo);
 				}
 
 				return {
 					content: [
-						{
-							type: "text" as const,
-							text: JSON.stringify(result, null, 2),
-						},
+						{ type: "text" as const, text: JSON.stringify(result, null, 2) },
 					],
 				};
 			}
 
-			// Try static pattern
+			// Try instance binary: lowercase_var["op"](other)
+			const instanceMatch = trimmed.match(instanceCallPattern);
+			if (instanceMatch) {
+				const [, , operator] = instanceMatch;
+				const result: Record<string, unknown> = {
+					kind: "instance binary",
+					operator,
+					isStatic: false,
+					originalExpression: `lhs ${operator} rhs`,
+					explanation: `Instance binary operator "${operator}": mutates the left-hand side in place (e.g. compound assignment).`,
+				};
+
+				if (tsconfig) {
+					const overloadInfo = lookupOverload(tsconfig, operator, false);
+					if (overloadInfo) Object.assign(result, overloadInfo);
+				}
+
+				return {
+					content: [
+						{ type: "text" as const, text: JSON.stringify(result, null, 2) },
+					],
+				};
+			}
+
+			// Try static: ClassName["op"](...)
 			const staticMatch = trimmed.match(staticCallPattern);
 			if (staticMatch) {
-				const [, className, operator, indexStr] = staticMatch;
-				const index = Number.parseInt(indexStr, 10);
+				const [, className, operator] = staticMatch;
 
-				// Count args to distinguish binary (2 args) from prefix unary (1 arg)
+				// Count args to distinguish static binary (2 args) from prefix unary (1 arg)
 				const argsStr = trimmed.slice(
 					trimmed.indexOf("](") + 2,
 					trimmed.lastIndexOf(")"),
 				);
-				const argCount = argsStr.split(",").length;
+				const argCount = argsStr.trim() === "" ? 0 : argsStr.split(",").length;
 
 				const kind = argCount >= 2 ? "static binary" : "prefix unary";
 				const originalPattern =
@@ -583,7 +582,6 @@ server.registerTool(
 				const result: Record<string, unknown> = {
 					kind,
 					operator,
-					index,
 					className,
 					isStatic: true,
 					originalExpression: originalPattern,
@@ -597,7 +595,6 @@ server.registerTool(
 					const overloadInfo = lookupOverload(
 						tsconfig,
 						operator,
-						index,
 						true,
 						className,
 					);
@@ -606,10 +603,7 @@ server.registerTool(
 
 				return {
 					content: [
-						{
-							type: "text" as const,
-							text: JSON.stringify(result, null, 2),
-						},
+						{ type: "text" as const, text: JSON.stringify(result, null, 2) },
 					],
 				};
 			}
@@ -621,8 +615,9 @@ server.registerTool(
 						text:
 							`Could not parse expression as a boperators transformed call. ` +
 							`Expected patterns:\n` +
-							`  Static:   ClassName["op"][index](args)\n` +
-							`  Instance: expr["op"][index].call(expr, args)`,
+							`  Static:   ClassName["op"](args)\n` +
+							`  Instance: expr["op"](other)\n` +
+							`  Postfix:  expr["op"]()`,
 					},
 				],
 				isError: true,
@@ -645,7 +640,6 @@ server.registerTool(
 function lookupOverload(
 	tsconfig: string,
 	operator: string,
-	index: number,
 	isStatic: boolean,
 	className?: string,
 ): Record<string, unknown> | null {
@@ -655,7 +649,6 @@ function lookupOverload(
 
 		const match = allOverloads.find((o) => {
 			if (o.operatorString !== operator) return false;
-			if (o.index !== index) return false;
 			if (className && o.className !== className) return false;
 			if (o.isStatic !== isStatic) return false;
 			return true;

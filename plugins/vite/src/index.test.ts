@@ -11,9 +11,7 @@ export class Vec2 {
 	x: number;
 	y: number;
 	constructor(x: number, y: number) { this.x = x; this.y = y; }
-	static readonly "+" = [
-		(a: Vec2, b: Vec2): Vec2 => new Vec2(a.x + b.x, a.y + b.y),
-	] as const;
+	static "+"(a: Vec2, b: Vec2): Vec2 { return new Vec2(a.x + b.x, a.y + b.y); }
 }
 `.trim();
 
@@ -70,17 +68,15 @@ describe("@boperators/plugin-vite", () => {
 		source: string,
 		filePath: string,
 	): { code: string; map: unknown } | null | undefined {
-		// biome-ignore lint/suspicious/noExplicitAny: mocking Rollup plugin context
-		const fn = plugin.transform as
-			| ((code: string, id: string) => any)
-			| undefined;
+		// biome-ignore lint/complexity/noBannedTypes: TODO, address this properly if we can
+		const fn = plugin.transform as Function | undefined;
 		return fn?.call({} as never, source, filePath);
 	}
 
 	it("transforms a binary overloaded expression", () => {
 		const result = callTransform(USAGE_SOURCE, path.join(tmpDir, "usage.ts"));
 		expect(result).not.toBeNull();
-		expect(result?.code).toContain('Vec2["+"][0](a, b)');
+		expect(result?.code).toContain('Vec2["+"](a, b)');
 	});
 
 	it("provides a V3 source map for the transformed output", () => {
@@ -112,7 +108,7 @@ describe("@boperators/plugin-vite", () => {
 			USAGE_SOURCE,
 			`${path.join(tmpDir, "usage.ts")}?t=123456`,
 		);
-		expect(result?.code).toContain('Vec2["+"][0](a, b)');
+		expect(result?.code).toContain('Vec2["+"](a, b)');
 	});
 
 	it("re-transforms updated source on subsequent calls (HMR behaviour)", () => {
@@ -123,7 +119,7 @@ describe("@boperators/plugin-vite", () => {
 
 		// Second call with identical source — should still work (idempotent)
 		const result = callTransform(USAGE_SOURCE, usagePath);
-		expect(result?.code).toContain('Vec2["+"][0](a, b)');
+		expect(result?.code).toContain('Vec2["+"](a, b)');
 	});
 
 	it("accepts an explicit project option pointing to tsconfig", () => {
@@ -133,15 +129,14 @@ describe("@boperators/plugin-vite", () => {
 			root: tmpDir,
 		});
 
-		// biome-ignore lint/suspicious/noExplicitAny: mocking Rollup plugin context
 		const fn = plugin2.transform as
-			| ((code: string, id: string) => any)
+			| ((code: string, id: string) => { code?: string })
 			| undefined;
 		const result = fn?.call(
 			{} as never,
 			USAGE_SOURCE,
 			path.join(tmpDir, "usage.ts"),
 		);
-		expect(result?.code).toContain('Vec2["+"][0](a, b)');
+		expect(result?.code).toContain('Vec2["+"](a, b)');
 	});
 });

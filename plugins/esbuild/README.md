@@ -52,7 +52,7 @@ plugins: [
 The plugin initialises once inside `setup(build)`, then transforms files on demand:
 
 1. **Setup** — creates a [ts-morph](https://ts-morph.com) Project from your tsconfig and scans all source files for operator overload definitions
-2. **`build.onLoad`** — for each `.ts`/`.tsx` file that matches the filter, replaces operator expressions (e.g. `v1 + v2` becomes `Vector3["+"][0](v1, v2)`) and returns the transformed source to ESBuild with the correct `ts`/`tsx` loader
+2. **`build.onLoad`** — for each `.ts`/`.tsx` file that matches the filter, replaces operator expressions (e.g. `v1 + v2` becomes `Vector3["+"](v1, v2)`) and returns the transformed source to ESBuild with the correct `ts`/`tsx` loader
 
 If a file contains no overloaded operators it is returned as-is with no overhead.
 

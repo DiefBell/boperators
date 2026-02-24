@@ -1,21 +1,17 @@
 import {
 	type BopLogger,
 	ErrorManager,
-	getOperatorStringFromProperty,
-	isOperatorSyntaxKind,
-	isPostfixUnaryOperatorSyntaxKind,
-	isPrefixUnaryOperatorSyntaxKind,
 	loadConfig,
-	Node,
 	OverloadInjector,
 	OverloadStore,
-	resolveExpressionType,
-	SyntaxKind,
 	Project as TsMorphProject,
-	type SourceFile as TsMorphSourceFile,
-	unwrapInitializer,
 } from "boperators";
 import type tsRuntime from "typescript/lib/tsserverlibrary";
+import {
+	findOverloadEdits,
+	getOverloadHoverInfo,
+	type OverloadEditInfo,
+} from "./helpers";
 import { SourceMap } from "./SourceMap";
 
 // ----- Types -----
@@ -25,27 +21,6 @@ type CacheEntry = {
 	text: string;
 	sourceMap: SourceMap;
 	overloadEdits: OverloadEditInfo[];
-};
-
-type OverloadEditInfo = {
-	/** Start of the operator token in the original source */
-	operatorStart: number;
-	/** End of the operator token in the original source */
-	operatorEnd: number;
-	/** Start of the hover hit-test area (includes surrounding whitespace) */
-	hoverStart: number;
-	/** End of the hover hit-test area (includes surrounding whitespace) */
-	hoverEnd: number;
-	/** Start of the full expression in the original source */
-	exprStart: number;
-	/** End of the full expression in the original source */
-	exprEnd: number;
-	className: string;
-	classFilePath: string;
-	operatorString: string;
-	index: number;
-	isStatic: boolean;
-	kind: "binary" | "prefixUnary" | "postfixUnary";
 };
 
 // ----- Plugin entry -----
@@ -156,356 +131,6 @@ export = function init(modules: {
 	return { create };
 };
 
-// ----- Overload edit scanner -----
-
-/**
- * Before transformation, find all expressions (binary, prefix unary, postfix unary)
- * that match registered overloads and record their operator token positions.
- * This is used to provide hover info for overloaded operators.
- */
-/**
- * Recursively resolve the effective type of an expression, accounting for
- * operator overloads. For sub-expressions that match a registered overload,
- * uses the overload's declared return type instead of what TypeScript infers
- * (since TS doesn't know about operator overloading).
- */
-function resolveOverloadedType(
-	node: Node,
-	overloadStore: OverloadStore,
-): string {
-	if (Node.isParenthesizedExpression(node)) {
-		return resolveOverloadedType(node.getExpression(), overloadStore);
-	}
-
-	if (Node.isBinaryExpression(node)) {
-		const operatorKind = node.getOperatorToken().getKind();
-		if (isOperatorSyntaxKind(operatorKind)) {
-			const leftType = resolveOverloadedType(node.getLeft(), overloadStore);
-			const rightType = resolveOverloadedType(node.getRight(), overloadStore);
-			const overload = overloadStore.findOverload(
-				operatorKind,
-				leftType,
-				rightType,
-			);
-			if (overload) return overload.returnType;
-		}
-	}
-
-	if (Node.isPrefixUnaryExpression(node)) {
-		const operatorKind = node.getOperatorToken();
-		if (isPrefixUnaryOperatorSyntaxKind(operatorKind)) {
-			const operandType = resolveOverloadedType(
-				node.getOperand(),
-				overloadStore,
-			);
-			const overload = overloadStore.findPrefixUnaryOverload(
-				operatorKind,
-				operandType,
-			);
-			if (overload) return overload.returnType;
-		}
-	}
-
-	if (Node.isPostfixUnaryExpression(node)) {
-		const operatorKind = node.getOperatorToken();
-		if (isPostfixUnaryOperatorSyntaxKind(operatorKind)) {
-			const operandType = resolveOverloadedType(
-				node.getOperand(),
-				overloadStore,
-			);
-			const overload = overloadStore.findPostfixUnaryOverload(
-				operatorKind,
-				operandType,
-			);
-			if (overload) return overload.returnType;
-		}
-	}
-
-	return resolveExpressionType(node);
-}
-
-function findOverloadEdits(
-	sourceFile: TsMorphSourceFile,
-	overloadStore: OverloadStore,
-): OverloadEditInfo[] {
-	const edits: OverloadEditInfo[] = [];
-	const binaryExpressions = sourceFile.getDescendantsOfKind(
-		SyntaxKind.BinaryExpression,
-	);
-
-	for (const expression of binaryExpressions) {
-		const operatorToken = expression.getOperatorToken();
-		const operatorKind = operatorToken.getKind();
-
-		if (!isOperatorSyntaxKind(operatorKind)) continue;
-
-		const leftType = resolveOverloadedType(expression.getLeft(), overloadStore);
-		const rightType = resolveOverloadedType(
-			expression.getRight(),
-			overloadStore,
-		);
-
-		const overloadDesc = overloadStore.findOverload(
-			operatorKind,
-			leftType,
-			rightType,
-		);
-		if (!overloadDesc) continue;
-
-		edits.push({
-			operatorStart: operatorToken.getStart(),
-			operatorEnd: operatorToken.getEnd(),
-			hoverStart: expression.getLeft().getEnd(),
-			hoverEnd: expression.getRight().getStart(),
-			exprStart: expression.getStart(),
-			exprEnd: expression.getEnd(),
-			className: overloadDesc.className,
-			classFilePath: overloadDesc.classFilePath,
-			operatorString: overloadDesc.operatorString,
-			index: overloadDesc.index,
-			isStatic: overloadDesc.isStatic,
-			kind: "binary",
-		});
-	}
-
-	// Scan prefix unary expressions
-	const prefixExpressions = sourceFile.getDescendantsOfKind(
-		SyntaxKind.PrefixUnaryExpression,
-	);
-	for (const expression of prefixExpressions) {
-		const operatorKind = expression.getOperatorToken();
-		if (!isPrefixUnaryOperatorSyntaxKind(operatorKind)) continue;
-
-		const operandType = resolveOverloadedType(
-			expression.getOperand(),
-			overloadStore,
-		);
-		const overloadDesc = overloadStore.findPrefixUnaryOverload(
-			operatorKind,
-			operandType,
-		);
-		if (!overloadDesc) continue;
-
-		const exprStart = expression.getStart();
-		const operand = expression.getOperand();
-
-		edits.push({
-			operatorStart: exprStart,
-			operatorEnd: operand.getStart(),
-			hoverStart: exprStart,
-			hoverEnd: operand.getStart(),
-			exprStart,
-			exprEnd: expression.getEnd(),
-			className: overloadDesc.className,
-			classFilePath: overloadDesc.classFilePath,
-			operatorString: overloadDesc.operatorString,
-			index: overloadDesc.index,
-			isStatic: overloadDesc.isStatic,
-			kind: "prefixUnary",
-		});
-	}
-
-	// Scan postfix unary expressions
-	const postfixExpressions = sourceFile.getDescendantsOfKind(
-		SyntaxKind.PostfixUnaryExpression,
-	);
-	for (const expression of postfixExpressions) {
-		const operatorKind = expression.getOperatorToken();
-		if (!isPostfixUnaryOperatorSyntaxKind(operatorKind)) continue;
-
-		const operandType = resolveOverloadedType(
-			expression.getOperand(),
-			overloadStore,
-		);
-		const overloadDesc = overloadStore.findPostfixUnaryOverload(
-			operatorKind,
-			operandType,
-		);
-		if (!overloadDesc) continue;
-
-		const operand = expression.getOperand();
-		const operatorStart = operand.getEnd();
-
-		edits.push({
-			operatorStart,
-			operatorEnd: expression.getEnd(),
-			hoverStart: operatorStart,
-			hoverEnd: expression.getEnd(),
-			exprStart: expression.getStart(),
-			exprEnd: expression.getEnd(),
-			className: overloadDesc.className,
-			classFilePath: overloadDesc.classFilePath,
-			operatorString: overloadDesc.operatorString,
-			index: overloadDesc.index,
-			isStatic: overloadDesc.isStatic,
-			kind: "postfixUnary",
-		});
-	}
-
-	return edits;
-}
-
-// ----- Overload hover info -----
-
-/**
- * Build a QuickInfo response for hovering over an operator token
- * that corresponds to an overloaded operator. Extracts the function
- * signature and JSDoc from the overload definition.
- */
-function getOverloadHoverInfo(
-	ts: typeof tsRuntime,
-	project: TsMorphProject,
-	edit: OverloadEditInfo,
-): tsRuntime.QuickInfo | undefined {
-	try {
-		const classSourceFile = project.getSourceFile(edit.classFilePath);
-		if (!classSourceFile) return undefined;
-
-		const classDecl = classSourceFile.getClass(edit.className);
-		if (!classDecl) return undefined;
-
-		// Find the property with the matching operator string
-		const prop = classDecl.getProperties().find((p) => {
-			if (!Node.isPropertyDeclaration(p)) return false;
-			return getOperatorStringFromProperty(p) === edit.operatorString;
-		});
-		if (!prop || !Node.isPropertyDeclaration(prop)) return undefined;
-
-		// Extract param types and return type from either the initializer (regular
-		// .ts files) or the type annotation (.d.ts files where initializers are
-		// stripped by TypeScript's declaration emit).
-		let params: { typeName: string }[] = [];
-		let returnTypeName: string;
-		let docText: string | undefined;
-
-		const initializer = unwrapInitializer(prop.getInitializer());
-		if (initializer && Node.isArrayLiteralExpression(initializer)) {
-			const element = initializer.getElements()[edit.index];
-			if (
-				!element ||
-				(!Node.isFunctionExpression(element) && !Node.isArrowFunction(element))
-			)
-				return undefined;
-
-			const nonThisParams = element
-				.getParameters()
-				.filter((p) => p.getName() !== "this");
-			params = nonThisParams.map((p) => ({
-				typeName: p.getType().getText(element),
-			}));
-			returnTypeName = element.getReturnType().getText(element);
-
-			const jsDocs = element.getJsDocs();
-			if (jsDocs.length > 0) {
-				const raw = jsDocs[0].getText();
-				docText = raw
-					.replace(/^\/\*\*\s*/, "")
-					.replace(/\s*\*\/$/, "")
-					.replace(/^\s*\* ?/gm, "")
-					.trim();
-			}
-		} else {
-			// Type-annotation fallback for .d.ts files
-			const propertyType = prop.getType();
-			if (!propertyType.isTuple()) return undefined;
-			const tupleElements = propertyType.getTupleElements();
-			if (edit.index >= tupleElements.length) return undefined;
-
-			const elementType = tupleElements[edit.index];
-			const callSigs = elementType.getCallSignatures();
-			if (callSigs.length === 0) return undefined;
-			const sig = callSigs[0];
-
-			for (const sym of sig.getParameters()) {
-				if (sym.getName() === "this") continue;
-				const decl = sym.getValueDeclaration();
-				if (!decl) continue;
-				params.push({ typeName: decl.getType().getText(prop) });
-			}
-			returnTypeName = sig.getReturnType().getText(prop);
-		}
-
-		// Build display signature parts based on overload kind
-		const displayParts: tsRuntime.SymbolDisplayPart[] = [];
-
-		if (edit.kind === "prefixUnary") {
-			// Prefix unary: "-Vector3 = Vector3"
-			displayParts.push({
-				text: edit.operatorString,
-				kind: "operator",
-			});
-			const operandType =
-				params.length >= 1 ? params[0].typeName : edit.className;
-			displayParts.push({ text: operandType, kind: "className" });
-			if (returnTypeName !== "void") {
-				displayParts.push({ text: " = ", kind: "punctuation" });
-				displayParts.push({
-					text: returnTypeName,
-					kind: "className",
-				});
-			}
-		} else if (edit.kind === "postfixUnary") {
-			// Postfix unary: "Vector3++"
-			displayParts.push({ text: edit.className, kind: "className" });
-			displayParts.push({
-				text: edit.operatorString,
-				kind: "operator",
-			});
-		} else if (edit.isStatic && params.length >= 2) {
-			// Binary static: "LhsType + RhsType = ReturnType"
-			const lhsType = params[0].typeName;
-			const rhsType = params[1].typeName;
-			displayParts.push({ text: lhsType, kind: "className" });
-			displayParts.push({ text: " ", kind: "space" });
-			displayParts.push({
-				text: edit.operatorString,
-				kind: "operator",
-			});
-			displayParts.push({ text: " ", kind: "space" });
-			displayParts.push({ text: rhsType, kind: "className" });
-			if (returnTypeName !== "void") {
-				displayParts.push({ text: " = ", kind: "punctuation" });
-				displayParts.push({
-					text: returnTypeName,
-					kind: "className",
-				});
-			}
-		} else {
-			// Binary instance: "ClassName += RhsType"
-			const rhsType = params.length >= 1 ? params[0].typeName : "unknown";
-			displayParts.push({ text: edit.className, kind: "className" });
-			displayParts.push({ text: " ", kind: "space" });
-			displayParts.push({
-				text: edit.operatorString,
-				kind: "operator",
-			});
-			displayParts.push({ text: " ", kind: "space" });
-			displayParts.push({ text: rhsType, kind: "className" });
-			if (returnTypeName !== "void") {
-				displayParts.push({ text: " = ", kind: "punctuation" });
-				displayParts.push({
-					text: returnTypeName,
-					kind: "className",
-				});
-			}
-		}
-
-		return {
-			kind: ts.ScriptElementKind.functionElement,
-			kindModifiers: edit.isStatic ? "static" : "",
-			textSpan: {
-				start: edit.operatorStart,
-				length: edit.operatorEnd - edit.operatorStart,
-			},
-			displayParts,
-			documentation: docText ? [{ text: docText, kind: "text" }] : undefined,
-			tags: [],
-		};
-	} catch {
-		return undefined;
-	}
-}
-
 // ----- LanguageService proxy -----
 
 function getSourceMapForFile(
@@ -517,18 +142,16 @@ function getSourceMapForFile(
 	return entry.sourceMap;
 }
 
-function remapDiagnosticSpan(
-	diag: { start?: number; length?: number },
+function withRemappedSpan<T extends { start?: number; length?: number }>(
+	diag: T,
 	sourceMap: SourceMap,
-): void {
-	if (diag.start !== undefined && diag.length !== undefined) {
-		const remapped = sourceMap.remapSpan({
-			start: diag.start,
-			length: diag.length,
-		});
-		diag.start = remapped.start;
-		diag.length = remapped.length;
-	}
+): T {
+	if (diag.start === undefined || diag.length === undefined) return diag;
+	const remapped = sourceMap.remapSpan({
+		start: diag.start,
+		length: diag.length,
+	});
+	return { ...diag, start: remapped.start, length: remapped.length };
 }
 
 function createProxy(
@@ -561,27 +184,31 @@ function createProxy(
 		return false;
 	};
 
+	function remapDiagnostics<
+		T extends tsRuntime.Diagnostic | tsRuntime.DiagnosticWithLocation,
+	>(result: readonly T[], entry: CacheEntry | undefined): T[] {
+		const sourceMap =
+			entry?.sourceMap.isEmpty === false ? entry.sourceMap : undefined;
+		if (!sourceMap) return result as T[];
+		return result.map((diag) => {
+			const remapped = withRemappedSpan(diag, sourceMap);
+			if (!remapped.relatedInformation?.length) return remapped;
+			return {
+				...remapped,
+				relatedInformation: remapped.relatedInformation.map((related) => {
+					const relatedMap = related.file
+						? getSourceMapForFile(cache, related.file.fileName)
+						: undefined;
+					return relatedMap ? withRemappedSpan(related, relatedMap) : related;
+				}),
+			};
+		});
+	}
+
 	proxy.getSemanticDiagnostics = (fileName) => {
 		const result = ls.getSemanticDiagnostics(fileName);
 		const entry = cache.get(fileName);
-		const sourceMap =
-			entry?.sourceMap.isEmpty === false ? entry.sourceMap : undefined;
-
-		if (sourceMap) {
-			for (const diag of result) {
-				remapDiagnosticSpan(diag, sourceMap);
-				if (diag.relatedInformation) {
-					for (const related of diag.relatedInformation) {
-						const relatedMap = related.file
-							? getSourceMapForFile(cache, related.file.fileName)
-							: undefined;
-						if (relatedMap) remapDiagnosticSpan(related, relatedMap);
-					}
-				}
-			}
-		}
-
-		return result.filter(
+		return remapDiagnostics(result, entry).filter(
 			(diag) => !isOverloadSuppressed(diag.code, diag.start, entry),
 		);
 	};
@@ -589,37 +216,18 @@ function createProxy(
 	proxy.getSyntacticDiagnostics = (fileName) => {
 		const result = ls.getSyntacticDiagnostics(fileName);
 		const entry = cache.get(fileName);
-		const sourceMap =
-			entry?.sourceMap.isEmpty === false ? entry.sourceMap : undefined;
-
-		if (sourceMap) {
-			for (const diag of result) {
-				remapDiagnosticSpan(diag, sourceMap);
-				if (diag.relatedInformation) {
-					for (const related of diag.relatedInformation) {
-						const relatedMap = related.file
-							? getSourceMapForFile(cache, related.file.fileName)
-							: undefined;
-						if (relatedMap) remapDiagnosticSpan(related, relatedMap);
-					}
-				}
-			}
-		}
-
-		return result.filter(
+		return remapDiagnostics(result, entry).filter(
 			(diag) => !isOverloadSuppressed(diag.code, diag.start, entry),
-		);
+		) as tsRuntime.DiagnosticWithLocation[];
 	};
 
 	proxy.getSuggestionDiagnostics = (fileName) => {
 		const result = ls.getSuggestionDiagnostics(fileName);
-		const sourceMap = getSourceMapForFile(cache, fileName);
-		if (!sourceMap) return result;
-
-		for (const diag of result) {
-			remapDiagnosticSpan(diag, sourceMap);
-		}
-		return result;
+		const entry = cache.get(fileName);
+		return remapDiagnostics(
+			result,
+			entry,
+		) as tsRuntime.DiagnosticWithLocation[];
 	};
 
 	// --- Hover: remap input position + output span, custom operator hover ---

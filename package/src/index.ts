@@ -9,6 +9,7 @@ export type {
 } from "./core/BopConfig";
 export { ConsoleLogger, loadConfig } from "./core/BopConfig";
 export { ErrorDescription, ErrorManager } from "./core/ErrorManager";
+export { getOperatorStringFromMethod } from "./core/helpers/getOperatorStringFromMethod";
 export { getOperatorStringFromProperty } from "./core/helpers/getOperatorStringFromProperty";
 export { resolveExpressionType } from "./core/helpers/resolveExpressionType";
 export { unwrapInitializer } from "./core/helpers/unwrapInitializer";

@@ -68,7 +68,7 @@ The plugin runs as a ts-patch Program Transformer, which executes during `ts.cre
 
 1. Creates a [ts-morph](https://ts-morph.com) Project from your tsconfig
 2. Scans all source files for operator overload definitions
-3. Transforms expressions in project files (e.g. `v1 + v2` becomes `Vector3["+"][0](v1, v2)`)
+3. Transforms expressions in project files (e.g. `v1 + v2` becomes `Vector3["+"](v1, v2)`)
 4. Returns a new TypeScript Program with the transformed source text
 
 TypeScript then type-checks and emits the transformed code, which contains only valid function calls.

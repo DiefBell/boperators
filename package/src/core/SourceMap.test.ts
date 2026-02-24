@@ -105,7 +105,7 @@ describe("computeEdits", () => {
 		// "a + b" gets replaced with a function call — the edit should cover
 		// the expression but leave the surrounding code untouched.
 		const original = "const result = a + b;";
-		const transformed = 'const result = Vec["+"][0](a, b);';
+		const transformed = 'const result = Vec["+"](a, b);';
 		const edits = computeEdits(original, transformed);
 		expect(edits.length).toBeGreaterThan(0);
 		// The edit region in the original should not reference Vec

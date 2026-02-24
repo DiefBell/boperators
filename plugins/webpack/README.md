@@ -119,7 +119,7 @@ The loader runs as a webpack pre-loader, executing before TypeScript compilation
 
 1. Creates a [ts-morph](https://ts-morph.com) Project from your tsconfig
 2. Scans all source files for operator overload definitions
-3. Transforms expressions in the current file (e.g. `v1 + v2` becomes `Vector3["+"][0](v1, v2)`)
+3. Transforms expressions in the current file (e.g. `v1 + v2` becomes `Vector3["+"](v1, v2)`)
 4. Generates a V3 source map so stack traces and debugger breakpoints map back to your original source
 5. Passes the transformed code to the next loader (e.g. `ts-loader`)
 

@@ -13,140 +13,131 @@ export class Vec2 {
 
 	// ── Binary arithmetic ──────────────────────────────────────────────────────
 
-	// [0] Vec2 + Vec2  [1] +Vec2 (copy)
-	static readonly "+" = [
-		(a: Vec2, b: Vec2): Vec2 => new Vec2(a.x + b.x, a.y + b.y),
-		(a: Vec2): Vec2 => new Vec2(a.x, a.y),
-	] as const;
+	// Binary Vec2 + Vec2, and prefix unary +Vec2 (copy), combined on one method
+	static "+"(a: Vec2, b: Vec2): Vec2;
+	static "+"(a: Vec2): Vec2;
+	static "+"(a: Vec2, b?: Vec2): Vec2 {
+		if (b) return new Vec2(a.x + b.x, a.y + b.y);
+		return new Vec2(a.x, a.y);
+	}
 
-	// [0] Vec2 - Vec2  [1] -Vec2 (negate)
-	static readonly "-" = [
-		(a: Vec2, b: Vec2): Vec2 => new Vec2(a.x - b.x, a.y - b.y),
-		(a: Vec2): Vec2 => new Vec2(-a.x, -a.y),
-	] as const;
+	// Binary Vec2 - Vec2, and prefix unary -Vec2 (negate), combined on one method
+	static "-"(a: Vec2, b: Vec2): Vec2;
+	static "-"(a: Vec2): Vec2;
+	static "-"(a: Vec2, b?: Vec2): Vec2 {
+		if (b) return new Vec2(a.x - b.x, a.y - b.y);
+		return new Vec2(-a.x, -a.y);
+	}
 
-	// Scalar operations
-	static readonly "*" = [
-		(a: Vec2, b: number): Vec2 => new Vec2(a.x * b, a.y * b),
-	] as const;
+	// Component-wise multiplication (Vec2 * Vec2) and scalar multiplication (Vec2 * number)
+	static "*"(a: Vec2, b: Vec2): Vec2;
+	static "*"(a: Vec2, b: number): Vec2;
+	static "*"(a: Vec2, b: Vec2 | number): Vec2 {
+		if (b instanceof Vec2) return new Vec2(a.x * b.x, a.y * b.y);
+		return new Vec2(a.x * b, a.y * b);
+	}
 
-	static readonly "/" = [
-		(a: Vec2, b: number): Vec2 => new Vec2(a.x / b, a.y / b),
-	] as const;
+	static "/"(a: Vec2, b: number): Vec2 {
+		return new Vec2(a.x / b, a.y / b);
+	}
 
-	static readonly "%" = [
-		(a: Vec2, b: number): Vec2 => new Vec2(a.x % b, a.y % b),
-	] as const;
+	static "%"(a: Vec2, b: number): Vec2 {
+		return new Vec2(a.x % b, a.y % b);
+	}
 
 	// Component-wise exponentiation
-	static readonly "**" = [
-		(a: Vec2, b: number): Vec2 => new Vec2(a.x ** b, a.y ** b),
-	] as const;
+	static "**"(a: Vec2, b: number): Vec2 {
+		return new Vec2(a.x ** b, a.y ** b);
+	}
 
 	// ── Comparison (by component equality) ────────────────────────────────────
 
-	static readonly "==" = [
-		(a: Vec2, b: Vec2): boolean => a.x === b.x && a.y === b.y,
-	] as const;
+	static "=="(a: Vec2, b: Vec2): boolean {
+		return a.x === b.x && a.y === b.y;
+	}
 
-	static readonly "===" = [
-		(a: Vec2, b: Vec2): boolean => a.x === b.x && a.y === b.y,
-	] as const;
+	static "==="(a: Vec2, b: Vec2): boolean {
+		return a.x === b.x && a.y === b.y;
+	}
 
-	static readonly "!=" = [
-		(a: Vec2, b: Vec2): boolean => a.x !== b.x || a.y !== b.y,
-	] as const;
+	static "!="(a: Vec2, b: Vec2): boolean {
+		return a.x !== b.x || a.y !== b.y;
+	}
 
-	static readonly "!==" = [
-		(a: Vec2, b: Vec2): boolean => a.x !== b.x || a.y !== b.y,
-	] as const;
+	static "!=="(a: Vec2, b: Vec2): boolean {
+		return a.x !== b.x || a.y !== b.y;
+	}
 
 	// Ordered comparison by squared magnitude: |a|² vs |b|²
-	static readonly "<" = [
-		(a: Vec2, b: Vec2): boolean =>
-			a.x * a.x + a.y * a.y < b.x * b.x + b.y * b.y,
-	] as const;
+	static "<"(a: Vec2, b: Vec2): boolean {
+		return a.x * a.x + a.y * a.y < b.x * b.x + b.y * b.y;
+	}
 
-	static readonly "<=" = [
-		(a: Vec2, b: Vec2): boolean =>
-			a.x * a.x + a.y * a.y <= b.x * b.x + b.y * b.y,
-	] as const;
+	static "<="(a: Vec2, b: Vec2): boolean {
+		return a.x * a.x + a.y * a.y <= b.x * b.x + b.y * b.y;
+	}
 
-	static readonly ">" = [
-		(a: Vec2, b: Vec2): boolean =>
-			a.x * a.x + a.y * a.y > b.x * b.x + b.y * b.y,
-	] as const;
+	static ">"(a: Vec2, b: Vec2): boolean {
+		return a.x * a.x + a.y * a.y > b.x * b.x + b.y * b.y;
+	}
 
-	static readonly ">=" = [
-		(a: Vec2, b: Vec2): boolean =>
-			a.x * a.x + a.y * a.y >= b.x * b.x + b.y * b.y,
-	] as const;
+	static ">="(a: Vec2, b: Vec2): boolean {
+		return a.x * a.x + a.y * a.y >= b.x * b.x + b.y * b.y;
+	}
 
 	// ── Prefix unary ───────────────────────────────────────────────────────────
 
 	// Returns true if this is the zero vector
-	static readonly "!" = [(a: Vec2): boolean => a.x === 0 && a.y === 0] as const;
+	static "!"(a: Vec2): boolean {
+		return a.x === 0 && a.y === 0;
+	}
 
 	// Left-hand perpendicular: (x, y) → (-y, x)  (90° CCW rotation)
-	static readonly "~" = [(a: Vec2): Vec2 => new Vec2(-a.y, a.x)] as const;
+	static "~"(a: Vec2): Vec2 {
+		return new Vec2(-a.y, a.x);
+	}
 
-	// ── Compound assignment (instance, function expressions, return void) ──────
+	// ── Compound assignment (instance methods, return void) ───────────────────
 
-	readonly "+=" = [
-		function (this: Vec2, b: Vec2): void {
-			this.x += b.x;
-			this.y += b.y;
-		},
-	] as const;
+	"+="(b: Vec2): void {
+		this.x += b.x;
+		this.y += b.y;
+	}
 
-	readonly "-=" = [
-		function (this: Vec2, b: Vec2): void {
-			this.x -= b.x;
-			this.y -= b.y;
-		},
-	] as const;
+	"-="(b: Vec2): void {
+		this.x -= b.x;
+		this.y -= b.y;
+	}
 
-	readonly "*=" = [
-		function (this: Vec2, b: number): void {
-			this.x *= b;
-			this.y *= b;
-		},
-	] as const;
+	"*="(b: number): void {
+		this.x *= b;
+		this.y *= b;
+	}
 
-	readonly "/=" = [
-		function (this: Vec2, b: number): void {
-			this.x /= b;
-			this.y /= b;
-		},
-	] as const;
+	"/="(b: number): void {
+		this.x /= b;
+		this.y /= b;
+	}
 
-	readonly "%=" = [
-		function (this: Vec2, b: number): void {
-			this.x %= b;
-			this.y %= b;
-		},
-	] as const;
+	"%="(b: number): void {
+		this.x %= b;
+		this.y %= b;
+	}
 
-	readonly "**=" = [
-		function (this: Vec2, b: number): void {
-			this.x **= b;
-			this.y **= b;
-		},
-	] as const;
+	"**="(b: number): void {
+		this.x **= b;
+		this.y **= b;
+	}
 
-	// ── Postfix unary (instance, function expressions, return void) ───────────
+	// ── Postfix unary (instance methods, return void) ─────────────────────────
 
-	readonly "++" = [
-		function (this: Vec2): void {
-			this.x++;
-			this.y++;
-		},
-	] as const;
+	"++"(): void {
+		this.x++;
+		this.y++;
+	}
 
-	readonly "--" = [
-		function (this: Vec2): void {
-			this.x--;
-			this.y--;
-		},
-	] as const;
+	"--"(): void {
+		this.x--;
+		this.y--;
+	}
 }

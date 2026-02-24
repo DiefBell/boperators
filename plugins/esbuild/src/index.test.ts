@@ -11,9 +11,7 @@ export class Vec2 {
 	x: number;
 	y: number;
 	constructor(x: number, y: number) { this.x = x; this.y = y; }
-	static readonly "+" = [
-		(a: Vec2, b: Vec2): Vec2 => new Vec2(a.x + b.x, a.y + b.y),
-	] as const;
+	static "+"(a: Vec2, b: Vec2): Vec2 { return new Vec2(a.x + b.x, a.y + b.y); }
 }
 `.trim();
 
@@ -96,7 +94,7 @@ describe("@boperators/plugin-esbuild", () => {
 	it("transforms a binary overloaded expression", () => {
 		const result = setupPlugin(tmpDir)(path.join(tmpDir, "usage.ts"));
 		expect(result).not.toBeNull();
-		expect((result as OnLoadResult).contents).toContain('Vec2["+"][0](a, b)');
+		expect((result as OnLoadResult).contents).toContain('Vec2["+"](a, b)');
 	});
 
 	it("sets loader to 'ts' for .ts files", () => {
@@ -125,6 +123,6 @@ describe("@boperators/plugin-esbuild", () => {
 		const result = setupPlugin(tmpDir, { project: "tsconfig.json" })(
 			path.join(tmpDir, "usage.ts"),
 		);
-		expect((result as OnLoadResult).contents).toContain('Vec2["+"][0](a, b)');
+		expect((result as OnLoadResult).contents).toContain('Vec2["+"](a, b)');
 	});
 });

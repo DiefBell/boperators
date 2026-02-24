@@ -4,6 +4,9 @@ export class Vec2 {
 		public y: number,
 	) {}
 
+	/**
+	 * Add together two vectors.
+	 */
 	static "+"(a: Vec2, b: Vec2): Vec2 {
 		return new Vec2(a.x + b.x, a.y + b.y);
 	}

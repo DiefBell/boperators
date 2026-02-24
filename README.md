@@ -4,7 +4,7 @@ Operator overloading for TypeScript.
 
 ![Sym.JS logo](https://github.com/DiefBell/boperators/blob/653ea138f4dcd1e6b4dd112133a4942f70e91fb3/logo.png)
 
-`boperators` lets you define operator overloads (`+`, `-`, `*=`, `==`, etc.) on your TypeScript classes. It works by transforming your source code at the AST level using [ts-morph](https://ts-morph.com), replacing expressions like `v1 + v2` with the corresponding overload call `Vector3["+"][0](v1, v2)`.
+`boperators` lets you define operator overloads (`+`, `-`, `*=`, `==`, etc.) on your TypeScript classes. It works by transforming your source code at the AST level using [ts-morph](https://ts-morph.com), replacing expressions like `v1 + v2` with the corresponding overload call `Vector3["+"](v1, v2)`.
 
 ## Quick Start
 
@@ -14,32 +14,52 @@ class Vector3 {
     public y: number;
     public z: number;
 
-    // Static operator: takes two parameters
-    static readonly "+" = [
-        (a: Vector3, b: Vector3) =>
-            new Vector3(a.x + b.x, a.y + b.y, a.z + b.z),
-    ] as const;
+    // Static operator: takes two parameters, returns a new instance
+    static "+"(a: Vector3, b: Vector3): Vector3 {
+        return new Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
+    }
 
-    // Instance operator: takes one parameter, uses `this`
-    readonly "+=" = [
-        function (this: Vector3, rhs: Vector3): void {
-            this.x += rhs.x;
-            this.y += rhs.y;
-            this.z += rhs.z;
-        },
-    ] as const;
+    // Instance operator: takes one parameter, mutates in place
+    "+="(rhs: Vector3): void {
+        this.x += rhs.x;
+        this.y += rhs.y;
+        this.z += rhs.z;
+    }
 
     // ...
 }
 
 // Usage - these get transformed automatically:
-const v3 = v1 + v2;    // => Vector3["+"][0](v1, v2)
-v1 += v2;              // => v1["+="][0].call(v1, v2)
+const v3 = v1 + v2;    // => Vector3["+"](v1, v2)
+v1 += v2;              // => v1["+="](v2)
 ```
 
-> **Important:** Overload arrays **must** use `as const`. Without it, TypeScript widens the array type and loses individual function signatures, causing type errors in the generated code. boperators will error if `as const` is missing.
-
 Overloads defined on a parent class are automatically inherited by subclasses. For example, if `Expr` defines `+` and `*`, a `Sym extends Expr` class can use those operators without redeclaring them.
+
+## Multiple overloads per operator
+
+A single operator can handle multiple type combinations using standard TypeScript method overload signatures. boperators registers each signature separately and dispatches to the correct one based on the operand types at each call site:
+
+```typescript
+class Vec2 {
+    // Vec2 * Vec2 → component-wise multiplication
+    static "*"(a: Vec2, b: Vec2): Vec2;
+    // Vec2 * number → scalar multiplication
+    static "*"(a: Vec2, b: number): Vec2;
+    static "*"(a: Vec2, b: Vec2 | number): Vec2 {
+        if (b instanceof Vec2) return new Vec2(a.x * b.x, a.y * b.y);
+        return new Vec2(a.x * b, a.y * b);
+    }
+}
+
+const a = new Vec2(1, 2);
+const b = new Vec2(3, 4);
+
+a * b;   // => Vec2["*"](a, b)   → Vec2(3, 8)  — routes to the Vec2 overload
+a * 2;   // => Vec2["*"](a, 2)   → Vec2(2, 4)  — routes to the number overload
+```
+
+The implementation method must accept the union of all overload parameter types; only the overload signatures (those without a body) are registered in the overload store.
 
 ## Publishing a library
 
@@ -173,9 +193,10 @@ boperators/
 - [x] Vite plugin
 - [x] ESBuild plugin
 - [x] Add support for Mozilla / V3 source map format, use in webpack plugin.
-- [ ] Drop ts-morph dependency???
+- [ ] ~~Drop ts-morph dependency???~~ NOPE
 - [ ] A lot of logic in plugins, like `transformer` in the `tsc` plugin, that could be unified in core.
 - [x] Update main package's README for new plugins
+- [ ] Sub-package for using Symbols
 - [ ] e2e test for Bun plugin and tsc plugin
 - [ ] ???
 
