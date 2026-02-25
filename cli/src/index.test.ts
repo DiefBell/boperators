@@ -201,6 +201,74 @@ describe("compile command", () => {
 	});
 });
 
+// ─── compile command — generic class ─────────────────────────────────────────
+
+const WRAPPER_SOURCE = `
+export class Wrapper<T> {
+	value: T;
+	constructor(value: T) { this.value = value; }
+	static "+"(a: Wrapper<unknown>, b: Wrapper<unknown>): Wrapper<string> {
+		return new Wrapper(\`\${String(a.value)}+\${String(b.value)}\`);
+	}
+}
+`.trim();
+
+const WRAPPER_USAGE_SOURCE = `
+import { Wrapper } from "./Wrapper";
+const a = new Wrapper(1);
+const b = new Wrapper(2);
+const c = a + b;
+`.trim();
+
+describe("compile command — generic class", () => {
+	let tmpDir: string;
+
+	beforeAll(() => {
+		tmpDir = fs.mkdtempSync(
+			path.join(os.tmpdir(), "boperators-cli-generic-test-"),
+		);
+		fs.writeFileSync(
+			path.join(tmpDir, "tsconfig.json"),
+			JSON.stringify({
+				compilerOptions: {
+					target: "ES2020",
+					module: "commonjs",
+					strict: true,
+					rootDir: "./src",
+					outDir: "./dist",
+				},
+				include: ["src"],
+			}),
+		);
+		const srcDir = path.join(tmpDir, "src");
+		fs.mkdirSync(srcDir, { recursive: true });
+		fs.writeFileSync(path.join(srcDir, "Wrapper.ts"), WRAPPER_SOURCE);
+		fs.writeFileSync(path.join(srcDir, "usage.ts"), WRAPPER_USAGE_SOURCE);
+	});
+
+	afterAll(() => {
+		fs.rmSync(tmpDir, { recursive: true, force: true });
+	});
+
+	it("transforms a + b on a generic class to Wrapper['+'](...)", () => {
+		const tsOut = path.join(tmpDir, "ts-out");
+		const { exitCode } = runCLI(
+			["compile", "--ts-out", tsOut, "--no-emit"],
+			tmpDir,
+		);
+		expect(exitCode).toBe(0);
+		const ts = fs.readFileSync(path.join(tsOut, "usage.ts"), "utf-8");
+		expect(ts).toContain('Wrapper["+"](a, b)');
+	});
+
+	it("emits transformed JavaScript for a generic class", () => {
+		const { exitCode } = runCLI(["compile"], tmpDir);
+		expect(exitCode).toBe(0);
+		const js = fs.readFileSync(path.join(tmpDir, "dist", "usage.js"), "utf-8");
+		expect(js).toContain('Wrapper["+"](a, b)');
+	});
+});
+
 // ─── validate command ─────────────────────────────────────────────────────────
 
 describe("validate command - exported class", () => {
