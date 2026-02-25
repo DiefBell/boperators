@@ -32,6 +32,7 @@
 		"watch": "concurrently \"bun run --filter boperators watch\" \"bun run --filter @boperators/plugin-ts-language-server watch\" \"bun run --filter @boperators/plugin-tsc watch\" \"bun run --filter @boperators/cli watch\"",
 		"example": "cd example && bun run transform && bun run start",
 		"test:e2e": "cd example && bun install && bun run webpack",
+		"bump-version": "bun run ./scripts/bumpVersion.ts",
 		"bump-versions": "bun run ./scripts/bumpVersion.ts"
 	},
 	"devDependencies": {

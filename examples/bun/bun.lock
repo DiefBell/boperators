@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "@boperators/example-bun",
@@ -49,6 +50,10 @@
     "undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
     "@boperators/plugin-bun/boperators": ["boperators@file:..\\..\\package", {}],
+
+    "@boperators/plugin-bun/boperators": ["boperators@file:..\\..\\package", {}],
+
+    "@boperators/plugin-ts-language-server/boperators": ["boperators@file:..\\..\\package", {}],
 
     "@boperators/plugin-ts-language-server/boperators": ["boperators@file:..\\..\\package", {}],
   }

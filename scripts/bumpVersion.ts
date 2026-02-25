@@ -121,7 +121,17 @@ const bumpVersion = (newVersion: string | undefined): void => {
 	if (totalChanges === 0) {
 		console.log(`All packages are already at ${newVersion}.`);
 	} else {
-		console.log("Done. Commit and tag the release:");
+		console.log("Updating lockfile...");
+		const result = Bun.spawnSync(["bun", "install"], {
+			cwd: repoRoot,
+			stdio: ["ignore", "inherit", "inherit"],
+		});
+		if (result.exitCode !== 0) {
+			console.error("bun install failed — lockfile may be out of date.");
+			process.exit(result.exitCode ?? 1);
+		}
+
+		console.log("\nDone. Commit and tag the release:");
 		console.log(`  git commit -am "chore: bump version to ${newVersion}"`);
 		console.log(`  git tag v${newVersion}`);
 	}
