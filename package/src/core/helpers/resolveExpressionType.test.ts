@@ -33,6 +33,18 @@ describe("normalizeTypeName", () => {
 		expect(normalizeTypeName("")).toBe("");
 	});
 
+	it("strips generic type parameters from a simple generic type", () => {
+		expect(normalizeTypeName("Wrapper<T>")).toBe("Wrapper");
+		expect(normalizeTypeName("Map<string, number>")).toBe("Map");
+		expect(normalizeTypeName("Array<Vec2>")).toBe("Array");
+	});
+
+	it("strips both import() prefix and generic parameters", () => {
+		expect(normalizeTypeName('import("/path/to/file").Wrapper<T>')).toBe(
+			"Wrapper",
+		);
+	});
+
 	it("strips import() prefix with backslash paths (Windows paths)", () => {
 		expect(
 			normalizeTypeName('import("C:/path/with spaces/file.ts").MyType'),

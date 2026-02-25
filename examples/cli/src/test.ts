@@ -17,6 +17,7 @@ import { ColoredVec2 } from "./ColoredVec2";
 import { Mat4 } from "./Mat4";
 import { Vec2 } from "./Vec2";
 import { Vec3 } from "./Vec3";
+import { Wrapper } from "./Wrapper";
 
 let passed = 0;
 let failed = 0;
@@ -359,6 +360,30 @@ assertEq(
 	String(cv4),
 	"ColoredVec2(7, 7, purple)",
 	"Inheritance: += falls back to Vec2 (color unchanged)",
+);
+console.log("::endgroup::");
+
+// ─── Generic class ────────────────────────────────────────────────────────────
+//
+// Regression test for the generic class bug: classDecl.getType().getText()
+// returns "Wrapper<T>", but param annotations are written as bare "Wrapper".
+// normalizeTypeName must strip generics so the overload is registered and
+// the transformation is applied.
+
+console.log("::group::Generic class (Wrapper<T>)");
+const wn1 = new Wrapper(1);
+const wn2 = new Wrapper(2);
+assertEq(
+	String(wn1 + wn2),
+	"Wrapper(1+2)",
+	"Wrapper<T>: + on number-valued instances",
+);
+const ws1 = new Wrapper("hello");
+const ws2 = new Wrapper("world");
+assertEq(
+	String(ws1 + ws2),
+	"Wrapper(hello+world)",
+	"Wrapper<T>: + on string-valued instances",
 );
 console.log("::endgroup::");
 
