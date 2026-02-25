@@ -145,6 +145,42 @@ const y = 1 + 2 + 3;
 		expect(result.edits.length).toBe(0);
 	});
 
+	it("transforms overloads defined on a generic class", () => {
+		// Regression test: classDecl.getType().getText() returns "Wrapper<T>" for
+		// a generic class, but the parameter annotation text is "Wrapper" (bare).
+		// normalizeTypeName must strip generics so the comparison doesn't fail.
+		const genericSource = `
+export class Wrapper<T> {
+	value: T;
+	constructor(value: T) { this.value = value; }
+	static "+"(lhs: Wrapper, rhs: Wrapper): Wrapper<unknown> {
+		return new Wrapper(lhs.value);
+	}
+}
+`.trim();
+
+		const project = new Project({ useInMemoryFileSystem: true });
+		const wrapperFile = project.createSourceFile("/Wrapper.ts", genericSource);
+		const errorManager = new ErrorManager(silentConfig);
+		const store = new OverloadStore(project, errorManager, silentConfig.logger);
+		store.addOverloadsFromFile(wrapperFile);
+		const injector = new OverloadInjector(project, store, silentConfig.logger);
+
+		const usageFile = project.createSourceFile(
+			"/usage_generic.ts",
+			`
+import { Wrapper } from "./Wrapper";
+const a = new Wrapper(1);
+const b = new Wrapper(2);
+const c = a + b;
+`.trim(),
+		);
+
+		const result = injector.overloadFile(usageFile);
+		expect(result.text).toContain('Wrapper["+"](a, b)');
+		expect(result.text).not.toContain("a + b");
+	});
+
 	it("routes each TypeScript overload signature to the correct transformed call", () => {
 		// Vec2 with two overloads for "*": Vec2*Vec2 (component-wise) and Vec2*number (scalar).
 		// Each overload signature is a separate entry in the store and dispatches correctly.

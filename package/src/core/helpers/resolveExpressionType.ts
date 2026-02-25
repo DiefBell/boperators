@@ -1,13 +1,23 @@
 import { type Node, SyntaxKind } from "ts-morph";
 
 /**
- * Strips `import("...").` qualification from a type name as returned by
- * ts-morph's `getType().getText()`. Language-server and cross-package contexts
- * produce fully-qualified names like `import("/path/to/file").ClassName`, but
- * overloads are keyed by short class names.
+ * Strips `import("...").` qualification and generic type parameters from a
+ * type name as returned by ts-morph's `getType().getText()`.
+ *
+ * Language-server and cross-package contexts produce fully-qualified names like
+ * `import("/path/to/file").ClassName`, and generic classes produce names like
+ * `ClassName<T>`. Overloads are keyed by bare class names, so both forms must
+ * be stripped.
+ *
+ * Note: generic stripping cuts at the first `<`, so union/intersection types
+ * that themselves contain generic members (e.g. `Foo<T> | Bar`) are reduced to
+ * the first segment only. Operator overload parameter types are always single
+ * type names, so this does not arise in practice.
  */
 export function normalizeTypeName(typeName: string): string {
-	return typeName.replace(/import\("[^"]*"\)\./g, "");
+	const withoutImport = typeName.replace(/import\("[^"]*"\)\./g, "");
+	const genericIdx = withoutImport.indexOf("<");
+	return genericIdx === -1 ? withoutImport : withoutImport.slice(0, genericIdx);
 }
 
 /**
